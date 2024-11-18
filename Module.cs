@@ -7,10 +7,7 @@ public class ModuleBase
     public virtual string Version { get => "0.1.0"; }
     public string RunningName { get; set; }
 
-    public virtual void Prepare(Logger logger)
-    {
-        Console.WriteLine(2);
-    }
+    public virtual void Prepare(){}
 
     public virtual void Start() { }
     public virtual void EndStop()

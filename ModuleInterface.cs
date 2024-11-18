@@ -1,5 +1,8 @@
-public class ModuleInterface
+public interface ModuleInterface
 {
-    public string RunningName { get; set; }
+    public string Path { get; set; }
+    public  void Prepare();
 
+    public  void Start();
+    public  void EndStop();
 }

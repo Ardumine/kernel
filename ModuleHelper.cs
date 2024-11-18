@@ -15,17 +15,16 @@ class ModuleHelper
     }
 
 
-    public static object Run(string Path, string funcName)
+    public static object Run(string Path, string funcName, object ?[]? parameters = null)
     {
-        Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateRunServer(Path, funcName);
+        //Console.WriteLine($"Running in {Path} func {funcName}");
+        return SimulateRunServer(Path, funcName, parameters);
     }
 
-    static object SimulateRunServer(string Path, string funcName)
+    static object SimulateRunServer(string Path, string funcName, object ?[]? parameters = null)
     {
         var impl = GetImplement(Path);
-        // Lookup the method
         var myMethod = impl.GetType().GetMethod(funcName);
-        return myMethod.Invoke(impl, null);
+        return myMethod.Invoke(impl, parameters);
     }
 }

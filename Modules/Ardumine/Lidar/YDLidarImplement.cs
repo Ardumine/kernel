@@ -1,14 +1,17 @@
 
 namespace Ardumine.Module.Lidar.YDLidar;
-public class YDLidarImplement : ModuleBase
+public class YDLidarImplement : ModuleBase, YDLidarInterface
 {
     private Logger logger;
-    public override void Prepare(Logger _logger)
+    public YDLidarImplement(Logger _logger)
     {
         logger = _logger;
-        logger.LogI("Preparing Lidar...");
         RunningName = "lidar";
 
+    }
+    public override void Prepare()
+    {
+        logger.LogI("Preparing Lidar...");
     }
 
     public void Start()
@@ -21,7 +24,10 @@ public class YDLidarImplement : ModuleBase
         logger.LogI("Stoping Lidar...");
     }
 
-    public void InternalFunction(){
+    public void InternalFunction()
+    {
         logger.LogI("Function ran!");
     }
+
+
 }

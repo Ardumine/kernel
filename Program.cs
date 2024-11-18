@@ -1,5 +1,4 @@
 ﻿using Ardumine.Module;
-using Ardumine.Module.Lidar.YDLidar;
 
 namespace Kernel;
 
@@ -23,20 +22,13 @@ internal class Program
         logger.LogI("Starting kernel...");
         logger.LogI("Searching modules...");
 
-        var mods = new[] {
-            "Ardumine.Module.Lidar.YDLidar.YDLidarImplement"
-        };
+        var modulesToLoad = File.ReadAllLines("config/modules");
 
-        /*AvailableModules = ModuleManager.GetModules();
-        foreach (var mod in AvailableModules)
-        {
-            logger.LogL($"Found module '{mod.Name}':{mod.Version}");
-        }*/
 
         AvailableModules = new List<ModuleBase>();
-        foreach (var modName in mods)
+        foreach (var modName in modulesToLoad)
         {
-            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(modName));
+            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(modName), logger);
             if (mod != null)
             {
                 logger.LogL($"Found module '{mod.Name}':{mod.Version}");
@@ -48,7 +40,7 @@ internal class Program
         logger.LogI("Preparing modules...");
         foreach (var mod in AvailableModules)
         {
-            mod.Prepare(logger);
+            mod.Prepare();
         }
 
 
@@ -57,6 +49,7 @@ internal class Program
         {
             mod.Start();
         }
+
         Test.Init();
 
         Test.Test1();
@@ -71,6 +64,10 @@ internal class Program
             {
                 run = false;
             }
+            if (cmd == "t" || cmd == "test")
+            {
+                Test.Test1();
+            }
         }
         //logger.LogI("Kernel Panic: No more instructions");
         StopRunningModules();
@@ -78,6 +75,6 @@ internal class Program
 
     }
 
-    
+
 
 }

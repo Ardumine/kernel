@@ -9,15 +9,15 @@ class Test
         logger = new();
         
         var mods = new[] {
-            "Ardumine.Module.Lidar.YDLidar.YDLidarInterface"
+            "Ardumine.Module.Lidar.YDLidar.YDLidarInterfacer"
         };
 
         foreach (var modName in mods)
         {
-            var mod = (ModuleInterface)Activator.CreateInstance(Type.GetType(modName), logger);
+            var mod = (ModuleInterface)Activator.CreateInstance(Type.GetType(modName));
             if (mod != null)
             {
-                logger.LogL($"Module path: {mod.RunningName}");
+                logger.LogL($"Module path: {mod.Path}");
                 ModuleInterfaces.Add(mod);
             }
         }
@@ -25,7 +25,7 @@ class Test
 
     static T GetInterface<T>(string Path) where T : ModuleInterface
     {
-        return (T)ModuleInterfaces.Where(mod => mod.RunningName == Path).First();
+        return (T)ModuleInterfaces.Where(mod => mod.Path == Path).First();
     }
 
 
@@ -33,7 +33,7 @@ class Test
     public static void Test1()
     {
         logger.LogI("Test...");
-        var lidarInterface = GetInterface<YDLidarInterface>("lidar");
+        var lidarInterface = GetInterface<YDLidarInterfacer>("lidar");
         lidarInterface.InternalFunction();
     }
 }

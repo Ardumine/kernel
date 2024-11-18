@@ -1,0 +1,5 @@
+     /*AvailableModules = ModuleManager.GetModules();
+        foreach (var mod in AvailableModules)
+        {
+            logger.LogL($"Found module '{mod.Name}':{mod.Version}");
+        }*/
