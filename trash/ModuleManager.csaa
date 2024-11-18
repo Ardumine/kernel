@@ -1,0 +1,30 @@
+using System.Reflection;
+
+namespace Ardumine.Module;
+
+class ModuleManager
+{
+    public static List<IModule> GetModules()
+    {
+        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+        List<IModule> mods = new();
+
+        foreach (Type t in types)
+        {
+            if (t.Namespace != null)
+            {
+                if (t.Namespace.StartsWith("Ardumine.Module"))
+                {
+                    if (t.IsSubclassOf(typeof(IModule)))
+                    {
+                        mods.Add((IModule)Activator.CreateInstance(t));
+                    }
+                }
+            }
+        }
+
+
+        return mods;
+    }
+}
+
