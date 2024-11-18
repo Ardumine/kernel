@@ -1,16 +1,13 @@
-﻿using Ardumine.Module;
-using Ardumine.Module.Base;
-using Ardumine.Module.Lidar.YDLidar;
+﻿using Ardumine.Module.Lidar.YDLidar;
 
 namespace Kernel;
-
 internal class Program
 {
-    static Logger logger;
+    static Logger? logger;
 
     static void StopRunningModules()
     {
-        logger.LogI("Stoping modules...");
+        logger?.LogI("Stoping modules...");
         foreach (var mod in ModuleHelper.RunningModuleImplements)
         {
             mod.EndStop();
@@ -25,13 +22,18 @@ internal class Program
         logger.LogI("Searching modules implements...");
 
 
-        var descLidar = new YDLidarDescription();
 
+
+        var descLidar = new YDLidarDescription();
+        
+        //Add to available modules
         ModuleHelper.AvailableModules.Add(descLidar);
 
-
+        //Create testing modules
         ModuleHelper.AddModule(descLidar, "/lidar");
         ModuleHelper.AddModule(descLidar, "/lidar2");
+
+
 
 
         logger.LogI("Preparing modules...");
