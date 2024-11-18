@@ -1,5 +1,7 @@
 ﻿using Ardumine.Module;
 
+namespace Kernel;
+
 internal class Program
 {
     static List<Module> AvailableModules = new List<Module>();
@@ -19,12 +21,26 @@ internal class Program
         logger.LogI("Starting kernel...");
         logger.LogI("Searching modules...");
 
-        AvailableModules = ModuleManager.GetModules();
+        var mods = new[] {
+            "Ardumine.Module.Lidar.YDLidar.YDLidar"
+        };
+
+        /*AvailableModules = ModuleManager.GetModules();
         foreach (var mod in AvailableModules)
         {
             logger.LogL($"Found module '{mod.Name}':{mod.Version}");
-        }
+        }*/
 
+        AvailableModules = new List<Module>();
+        foreach (var modName in mods)
+        {
+            var mod = (Module)Activator.CreateInstance(Type.GetType(modName));
+            if (mod != null)
+            {
+                logger.LogL($"Found module '{mod.Name}':{mod.Version}");
+                AvailableModules.Add(mod);
+            }
+        }
 
         logger.LogI("Preparing modules...");
         foreach (var mod in AvailableModules)
@@ -40,12 +56,14 @@ internal class Program
         }
 
 
+
+
         bool run = true;
         logger.LogI("Startup ended. Terminal mode.");
         while (run)
         {
             var cmd = Console.ReadLine();
-            if (cmd == "exit")
+            if (cmd == "exit" || cmd == "q" || cmd == "stop")
             {
                 run = false;
             }

@@ -2,9 +2,7 @@
 namespace Ardumine.Module.Lidar.YDLidar;
 public class YDLidar : Module
 {
-    public YDLidar(){
-
-    }
+   
     public string Name { get => "Ardumine.Module.Lidar.YDLidar"; }
     public string FriendlyName { get => "YDLidar module for T Mini Pro"; }
     public string Version { get => "0.1.0"; }
@@ -19,7 +17,6 @@ public class YDLidar : Module
     public void Start()
     {
         logger.LogI("Starting Lidar...");
-
     }
 
     public void EndStop()

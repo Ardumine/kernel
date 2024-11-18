@@ -1,14 +1,15 @@
 
 namespace Ardumine.Module;
-public class Module
+public interface Module
 {
-    public string Name { get; }
-    public string FriendlyName { get; }
-    public string Version { get; }
 
-    public void Prepare(Logger logger){}
+    public string Name { get => "Ardumine.Module.Base"; }
+    public string FriendlyName { get => "Base"; }
+    public string Version { get => "0.1.0"; }
 
-    public void Start(){}
-    public void EndStop(){}
+    public void Prepare(Logger logger);
+
+    public void Start();
+    public void EndStop();
 
 }
