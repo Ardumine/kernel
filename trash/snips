@@ -3,3 +3,16 @@
         {
             logger.LogL($"Found module '{mod.Name}':{mod.Version}");
         }*/
+
+        
+
+        /*foreach (var modStr in modulesToLoad)
+        {
+            var configMod = modStr.Split(",");
+            var mod = (IModuleInterface)Activator.CreateInstance(Type.GetType(configMod[0]), new Logger($"Mod {configMod[1]}"), configMod[1]);
+            if (mod != null)
+            {
+                //logger.LogL($"Found module '{mod.Name}':{mod.Version}");
+                RunningModuleImplements.Add(mod);
+            }
+        }*/

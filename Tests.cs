@@ -3,21 +3,27 @@ using Ardumine.Module.Lidar.YDLidar;
 class Tests
 {
     static Logger logger;
-  
-    public static void InitTests(){
-        logger = new Logger("Tests");
-    }
-
-    static T GetInterface<T>(string Path) where T : ModuleInterface
+    public static void InitTests()
     {
-        return (T)ModuleHelper.ModuleInterfaces.Where(mod => mod.Path == Path).First();
+        logger = new Logger("Tests");
     }
 
 
     public static void Test1()
     {
-        logger.LogI("Test...");
-        var lidarInterface = GetInterface<YDLidarInterfacer>("lidar");
-        lidarInterface.SetMotorSpeed(57);//Good reference
+        logger.LogI("Test begin");
+
+        var lidar = ModuleHelper.GetInterface<YDLidarInterfacer>("lidar");
+        var lidar2 = ModuleHelper.GetInterface<YDLidarInterfacer>("lidar2");
+
+        lidar.SetMotorSpeed(57);//Good reference
+        logger.LogI($"Motor speed: {lidar.MotorSpeed}");
+
+        lidar2.SetMotorSpeed(80);
+        logger.LogI($"Motor speed: {lidar2.MotorSpeed}");
+
+
+        var lidarData = lidar.Read();
+        logger.LogI($"Read from the lidar {lidarData.Count} points");
     }
 }

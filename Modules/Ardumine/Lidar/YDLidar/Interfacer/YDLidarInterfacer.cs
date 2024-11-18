@@ -1,15 +1,13 @@
 
-using System.Diagnostics;
-
 namespace Ardumine.Module.Lidar.YDLidar;
-public class YDLidarInterfacer : ModuleInterface, YDLidarInterface
+public class YDLidarInterfacer : IModuleInterface, YDLidarInterface
 {
-    public string Path { get; set;}
+    public string Path { get; set; }
 
-    public YDLidarInterfacer()
-    {
-        Path = "lidar";
-    }
+    public int MotorSpeed => (int)ModuleHelper.GetVar(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
+
+    public Guid guid { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
     public void Prepare()
     {
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -28,5 +26,10 @@ public class YDLidarInterfacer : ModuleInterface, YDLidarInterface
     public void SetMotorSpeed(int speed)
     {
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name, speed);
+    }
+
+    public List<LidarPoint> Read()
+    {
+        return ModuleHelper.Run<List<LidarPoint>>(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
     }
 }
