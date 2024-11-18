@@ -12,8 +12,8 @@ class YDLidarDescription : ModuleDescription
 
     public string NameImplement => typeof(YDLidarImplement).FullName;
 
-    public string NameInterfacer => typeof(YDLidarInterfacer).FullName;
+    public string NameConector => typeof(YDLidarConector).FullName;
 
-    public string NameBase { get => typeof(YDLidar).FullName; }
+    public string NameBase  => typeof(YDLidar).FullName; 
 
 }

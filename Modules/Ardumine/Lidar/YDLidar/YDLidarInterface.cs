@@ -1,8 +1,6 @@
-using Ardumine.Module.Base;
-
 namespace Ardumine.Module.Lidar.YDLidar;
 
-//This file must be shared between the server and the interfacer
+//This file must be shared between the implement and the conector
 public interface YDLidarInterface : IModuleInterface
 {
     public void SetMotorSpeed(int speed);

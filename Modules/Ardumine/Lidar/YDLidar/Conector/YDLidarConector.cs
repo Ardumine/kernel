@@ -1,12 +1,12 @@
 
 namespace Ardumine.Module.Lidar.YDLidar;
-public class YDLidarInterfacer : IModuleInterface, YDLidarInterface
+public class YDLidarConector : IModuleInterface, YDLidarInterface
 {
     public string Path { get; set; }
 
     public int MotorSpeed => (int)ModuleHelper.GetVar(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-    public Guid guid { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    public Guid guid { get; set; }
 
     public void Prepare()
     {

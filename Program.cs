@@ -6,29 +6,19 @@ namespace Kernel;
 
 internal class Program
 {
-    public static List<IModuleInterface> RunningModuleImplements = new();
-    public static List<Module> RunningModules = new();
-
-    public static List<ModuleDescription> AvailableModules = new();
-
+ 
 
     static Logger logger;
 
     static void StopRunningModules()
     {
         logger.LogI("Stoping modules...");
-        foreach (var mod in RunningModuleImplements)
+        foreach (var mod in ModuleHelper.RunningModuleImplements)
         {
             mod.EndStop();
         }
     }
 
-    static void AddModule(ModuleDescription desc, string Path)
-    {
-        var ModLidar = ModuleHelper.CreateModuleInstance(desc, Path);
-        RunningModules.Add(ModLidar);
-        RunningModuleImplements.Add(ModuleHelper.CreateImplementInstance(ModLidar));
-    }
     private static void Main(string[] args)
     {
         logger = new("Kernel");
@@ -36,30 +26,24 @@ internal class Program
 
         logger.LogI("Searching modules implements...");
 
-        RunningModuleImplements = new List<IModuleInterface>();
-
-
 
         var descLidar = new YDLidarDescription();
 
+        ModuleHelper.AvailableModules.Add(descLidar);
 
-        AvailableModules.Add(descLidar);
-        AddModule(descLidar, "lidar");
-        AddModule(descLidar, "lidar2");
 
-        ModuleHelper.ReloadInterfaces(RunningModules);
-
+        ModuleHelper.AddModule(descLidar, "/lidar");
+        ModuleHelper.AddModule(descLidar, "/lidar2");
 
 
         logger.LogI("Preparing modules...");
-        foreach (var mod in RunningModuleImplements)
+        foreach (var mod in ModuleHelper.RunningModuleImplements)
         {
             mod.Prepare();
         }
 
-
         logger.LogI("Starting modules...");
-        foreach (var mod in RunningModuleImplements)
+        foreach (var mod in ModuleHelper.RunningModuleImplements)
         {
             mod.Start();
         }

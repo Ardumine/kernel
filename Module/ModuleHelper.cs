@@ -1,37 +1,43 @@
 using Ardumine.Module.Base;
-using Kernel;
 
 class ModuleHelper
 {
-    public static List<IModuleInterface> ModuleInterfacers = new();
+    public static List<ModuleDescription> AvailableModules = new();
 
-    public static void ReloadInterfaces(List<Module> modulesInterfacesToLoad)
+
+    public static List<IModuleInterface> RunningModuleImplements = new();
+    public static List<IModuleInterface> RunningModuleConectors = new();
+    public static List<Module> RunningModules = new();
+
+
+    public static void ReloadConector(List<Module> modulesConectorsToLoad)
     {
-        ModuleInterfacers.Clear();
-        foreach (var mod in modulesInterfacesToLoad)
+        RunningModuleConectors.Clear();
+        foreach (var mod in modulesConectorsToLoad)
         {
-            var modInterfacer = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameInterfacer));
-            if (modInterfacer != null)
+            var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
+            if (conector != null)
             {
-                modInterfacer.Path = mod.Path;
-                ModuleInterfacers.Add(modInterfacer);
+                conector.Path = mod.Path;
+                conector.guid = mod.guid;
+                RunningModuleConectors.Add(conector);
             }
         }
     }
-    public static T GetInterface<T>(string Path) where T : IModuleInterface
+    public static T GetConector<T>(string Path) where T : IModuleInterface
     {
-        return (T)ModuleInterfacers.Where(mod => mod.Path == Path).First();
+        return (T)RunningModuleConectors.Where(mod => mod.Path == Path).First();
     }
 
 
     static IModuleInterface GetImplement(string Path)
     {
-        return Program.RunningModuleImplements.Where(mod => mod.Path == Path).First();
+        return RunningModuleImplements.Where(mod => mod.Path == Path).First();
     }
 
     static T GetImplement<T>(string Path) where T : BaseImplement
     {
-        return (T)Program.RunningModuleImplements.Where(mod => mod.Path == Path).First();
+        return (T)RunningModuleImplements.Where(mod => mod.Path == Path).First();
     }
 
     public static T Run<T>(string Path, string funcName)
@@ -80,15 +86,37 @@ class ModuleHelper
     {
         var mod = (Module)Activator.CreateInstance(Type.GetType(desc.NameBase));
         mod.Path = Path;
+        mod.guid = Guid.NewGuid();
         return mod;
     }
 
     public static BaseImplement CreateImplementInstance(Module mod)
     {
-        var a = (BaseImplement)Activator.CreateInstance(Type.GetType(mod.description.NameImplement));
-        a.Path = mod.Path;
-        a.logger = new Logger($"Mod {mod.Path}");
-        return a;
+        var implement = (BaseImplement)Activator.CreateInstance(Type.GetType(mod.description.NameImplement));
+        implement.Path = mod.Path;
+        implement.logger = new Logger($"Mod {mod.Path}");
+        implement.guid = mod.guid;
+
+        return implement;
+    }
+    public static IModuleInterface CreateConector(Module mod)
+    {
+        var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
+        if (conector != null)
+        {
+            conector.Path = mod.Path;
+            conector.guid = mod.guid;
+        }
+        return conector;
     }
 
+    public static void AddModule(ModuleDescription desc, string Path)
+    {
+        var mod = CreateModuleInstance(desc, Path);
+        RunningModules.Add(mod);
+
+        RunningModuleImplements.Add(CreateImplementInstance(mod));
+        RunningModuleConectors.Add(CreateConector(mod));
+
+    }
 }

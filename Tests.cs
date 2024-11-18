@@ -13,8 +13,8 @@ class Tests
     {
         logger.LogI("Test begin");
 
-        var lidar = ModuleHelper.GetInterface<YDLidarInterfacer>("lidar");
-        var lidar2 = ModuleHelper.GetInterface<YDLidarInterfacer>("lidar2");
+        var lidar = ModuleHelper.GetConector<YDLidarConector>("/lidar");
+        var lidar2 = ModuleHelper.GetConector<YDLidarConector>("/lidar2");
 
         lidar.SetMotorSpeed(57);//Good reference
         logger.LogI($"Motor speed: {lidar.MotorSpeed}");
