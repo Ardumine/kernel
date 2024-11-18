@@ -11,7 +11,7 @@ class Tests
 
     public static void Test1()
     {
-        logger.LogI("Test begin");
+        logger.LogOK("Test begin");
 
         var lidar = ModuleHelper.GetConector<YDLidarConector>("/lidar");
         var lidar2 = ModuleHelper.GetConector<YDLidarConector>("/lidar2");

@@ -6,8 +6,6 @@ namespace Kernel;
 
 internal class Program
 {
- 
-
     static Logger logger;
 
     static void StopRunningModules()
@@ -53,7 +51,7 @@ internal class Program
 
 
         bool run = false;
-        logger.LogI("Startup ended. Terminal mode.");
+        logger.LogOK("Startup ended. Terminal mode.");
         Console.WriteLine();
 
         Tests.Test1();
@@ -74,7 +72,7 @@ internal class Program
 
         //logger.LogI("Kernel Panic: No more instructions");
         StopRunningModules();
-        logger.LogI("Kernel stop");
+        logger.LogOK("Kernel stop");
 
     }
 
