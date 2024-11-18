@@ -18,6 +18,6 @@ class Tests
     {
         logger.LogI("Test...");
         var lidarInterface = GetInterface<YDLidarInterfacer>("lidar");
-        lidarInterface.InternalFunction(57);//Good reference
+        lidarInterface.SetMotorSpeed(57);//Good reference
     }
 }

@@ -3,10 +3,10 @@ namespace Ardumine.Module.Lidar.YDLidar;
 public class YDLidarImplement : ModuleBase, YDLidarInterface
 {
     private Logger logger;
-    public YDLidarImplement(Logger _logger)
+    public YDLidarImplement(Logger _logger, string _Path)
     {
         logger = _logger;
-        Path = "lidar";
+        Path = _Path;
 
     }
     public override void Prepare()
@@ -14,19 +14,19 @@ public class YDLidarImplement : ModuleBase, YDLidarInterface
         logger.LogI("Preparing Lidar...");
     }
 
-    public void Start()
+    public override void Start()
     {
         logger.LogI("Starting Lidar...");
     }
 
-    public void EndStop()
+    public override void EndStop()
     {
         logger.LogI("Stoping Lidar...");
     }
 
-    public void InternalFunction(int num)
+    public void SetMotorSpeed(int speed)
     {
-        logger.LogI($"Function ran! Num is {num}");
+        logger.LogI($"Motor speed set to {speed}");
     }
 
 

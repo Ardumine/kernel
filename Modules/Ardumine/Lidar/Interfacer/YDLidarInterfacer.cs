@@ -25,8 +25,8 @@ public class YDLidarInterfacer : ModuleInterface, YDLidarInterface
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
     }
 
-    public void InternalFunction(int num)
+    public void SetMotorSpeed(int speed)
     {
-        ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name, num);
+        ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name, speed);
     }
 }

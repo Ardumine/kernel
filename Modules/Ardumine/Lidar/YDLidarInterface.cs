@@ -4,5 +4,5 @@ using System.Diagnostics;
 namespace Ardumine.Module.Lidar.YDLidar;
 public interface YDLidarInterface
 {
-    public void InternalFunction(int num);
+    public void SetMotorSpeed(int speed);
 }

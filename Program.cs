@@ -26,9 +26,10 @@ internal class Program
 
 
         AvailableModules = new List<ModuleBase>();
-        foreach (var modName in modulesToLoad)
+        foreach (var modStr in modulesToLoad)
         {
-            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(modName), new Logger($"Mod {modName}"));
+            var configMod = modStr.Split(",");
+            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(configMod[0]), new Logger($"Mod {configMod[1]}"), configMod[1]);
             if (mod != null)
             {
                 logger.LogL($"Found module '{mod.Name}':{mod.Version}");
@@ -63,7 +64,7 @@ internal class Program
 
         Tests.Test1();
 
-        bool run = true;
+        bool run = false;
         logger.LogI("Startup ended. Terminal mode.");
         Console.WriteLine();
         while (run)
