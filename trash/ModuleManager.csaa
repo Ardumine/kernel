@@ -4,10 +4,10 @@ namespace Ardumine.Module;
 
 class ModuleManager
 {
-    public static List<Module> GetModules()
+    public static List<IModule> GetModules()
     {
         Type[] types = Assembly.GetExecutingAssembly().GetTypes();
-        List<Module> mods = new();
+        List<IModule> mods = new();
 
         foreach (Type t in types)
         {
@@ -15,9 +15,9 @@ class ModuleManager
             {
                 if (t.Namespace.StartsWith("Ardumine.Module"))
                 {
-                    if (t.IsSubclassOf(typeof(Module)))
+                    if (t.IsSubclassOf(typeof(IModule)))
                     {
-                        mods.Add((Module)Activator.CreateInstance(t));
+                        mods.Add((IModule)Activator.CreateInstance(t));
                     }
                 }
             }
