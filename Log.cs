@@ -1,8 +1,14 @@
 public class Logger
 {
+    private Logger(){}
+
+    private string Name {get;set;}
+    public Logger(string _Name){
+        Name = _Name;
+    }
     public void LogI(string dado)
     {
-        Console.WriteLine($"I[{DateTime.UtcNow}] {dado}");
+        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
     }
 
     /// <summary>

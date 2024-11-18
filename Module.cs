@@ -5,7 +5,7 @@ public class ModuleBase
     public virtual string Name { get => "Ardumine.Module.Base"; }
     public virtual string FriendlyName { get => "Base"; }
     public virtual string Version { get => "0.1.0"; }
-    public string RunningName { get; set; }
+    public string Path { get; set; }
 
     public virtual void Prepare(){}
 

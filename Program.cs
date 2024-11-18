@@ -18,7 +18,7 @@ internal class Program
     }
     private static void Main(string[] args)
     {
-        logger = new();
+        logger = new("Kernel");
         logger.LogI("Starting kernel...");
         logger.LogI("Searching modules...");
 
@@ -28,7 +28,7 @@ internal class Program
         AvailableModules = new List<ModuleBase>();
         foreach (var modName in modulesToLoad)
         {
-            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(modName), logger);
+            var mod = (ModuleBase)Activator.CreateInstance(Type.GetType(modName), new Logger($"Mod {modName}"));
             if (mod != null)
             {
                 logger.LogL($"Found module '{mod.Name}':{mod.Version}");
@@ -50,9 +50,18 @@ internal class Program
             mod.Start();
         }
 
-        Test.Init();
 
-        Test.Test1();
+        var mods = new[] {
+            "Ardumine.Module.Lidar.YDLidar.YDLidarInterfacer"
+        };
+
+
+        ModuleHelper.ReloadInterfaces(mods.ToList());
+        Tests.InitTests();
+
+
+
+        Tests.Test1();
 
         bool run = true;
         logger.LogI("Startup ended. Terminal mode.");
@@ -66,7 +75,7 @@ internal class Program
             }
             if (cmd == "t" || cmd == "test")
             {
-                Test.Test1();
+                Tests.Test1();
             }
         }
         //logger.LogI("Kernel Panic: No more instructions");

@@ -4,8 +4,7 @@ using System.Diagnostics;
 namespace Ardumine.Module.Lidar.YDLidar;
 public class YDLidarInterfacer : ModuleInterface, YDLidarInterface
 {
-
-    public string Path { get; set; }
+    public string Path { get; set;}
 
     public YDLidarInterfacer()
     {
@@ -26,8 +25,8 @@ public class YDLidarInterfacer : ModuleInterface, YDLidarInterface
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
     }
 
-    public void InternalFunction()
+    public void InternalFunction(int num)
     {
-        ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
+        ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name, num);
     }
 }

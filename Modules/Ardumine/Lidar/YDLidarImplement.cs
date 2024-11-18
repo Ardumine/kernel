@@ -6,7 +6,7 @@ public class YDLidarImplement : ModuleBase, YDLidarInterface
     public YDLidarImplement(Logger _logger)
     {
         logger = _logger;
-        RunningName = "lidar";
+        Path = "lidar";
 
     }
     public override void Prepare()
@@ -24,9 +24,9 @@ public class YDLidarImplement : ModuleBase, YDLidarInterface
         logger.LogI("Stoping Lidar...");
     }
 
-    public void InternalFunction()
+    public void InternalFunction(int num)
     {
-        logger.LogI("Function ran!");
+        logger.LogI($"Function ran! Num is {num}");
     }
 
 
