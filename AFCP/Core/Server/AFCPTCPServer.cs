@@ -30,6 +30,9 @@ public class AFCPTCPServer
         Running = true;
         tcpListener.Start();
         threadAccepter.Start();
+
+        Thread.Sleep(10);//Let it have some time to simmer
+
     }
 
     public void Stop()
