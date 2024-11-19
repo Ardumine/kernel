@@ -12,7 +12,7 @@ public class AFCPTCPClient
 
     private TcpClient TCPclient;
     private NetworkStream networkStream;
-    CancellationTokenSource stopToken = new CancellationTokenSource();
+    CancellationTokenSource StopToken = new CancellationTokenSource();
 
     public AFCPTCPClient(IPAddress ipa, int port = 9492)
     {
@@ -32,7 +32,7 @@ public class AFCPTCPClient
     }
     public void Close()
     {
-        stopToken.Cancel();
+        StopToken.Cancel();
         TCPclient.Close();
     }
 
@@ -67,10 +67,11 @@ public class AFCPTCPClient
     /// Waits until it receives data from the remote. It handles data sizes auto.
     /// </summary>
     /// <returns>Received byte array</returns>
-    public byte[] ReadData()
+    public byte[] ReadData(CancellationTokenSource _stopToken = null)
     {
+        if (_stopToken == null) _stopToken = StopToken;
         byte[] BufferLenRec = new byte[2];
-        networkStream.ReadAsync(BufferLenRec, 0, 2, stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
+        networkStream.ReadAsync(BufferLenRec, 0, 2, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
         int TamDadosPRec = ByteArrayToUshort(BufferLenRec);
 
         byte[] dados = new byte[TamDadosPRec];
@@ -78,7 +79,7 @@ public class AFCPTCPClient
         int lenDadosRecibdo = 0;
         while (lenDadosRecibdo != TamDadosPRec)
         {
-            lenDadosRecibdo += networkStream.ReadAsync(dados, lenDadosRecibdo, TamDadosPRec - lenDadosRecibdo, stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes
+            lenDadosRecibdo += networkStream.ReadAsync(dados, lenDadosRecibdo, TamDadosPRec - lenDadosRecibdo, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes
         }
 
         return dados;
@@ -91,4 +92,29 @@ public class AFCPTCPClient
 
     #endregion
 
+    public byte[] AskSomething(byte[] Question)
+    {
+        SendData(Question);
+        // Create a CancellationTokenSource
+        var cts = new CancellationTokenSource();
+
+        // Cancel the token after 5 seconds
+        cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+        try
+        {
+            // Pass the token to the task
+            return ReadData(cts);
+
+        }
+        catch (OperationCanceledException)
+        {
+            throw new Exception("Timeout");
+        }
+        finally
+        {
+            cts.Dispose();
+        }
+
+    }
 }

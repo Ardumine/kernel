@@ -16,7 +16,7 @@ public class AFCPTCPServer
     private bool Running { get; set; }
     CancellationTokenSource stopToken = new CancellationTokenSource();
 
-    private List<AFCPTCPClient> Clients = new();
+    private List<AFCPServerClient> Clients = new();
     public AFCPTCPServer(IPAddress iPEnd)
     {
         tcpListener = new(new IPEndPoint(iPEnd, 9492));
@@ -48,7 +48,7 @@ public class AFCPTCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-                HandleClient(new AFCPTCPClient((IPEndPoint)client.Client.RemoteEndPoint, client));
+                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client));
             }
             catch (OperationCanceledException)
             {
@@ -57,7 +57,7 @@ public class AFCPTCPServer
         }
     }
 
-    private void HandleClient(AFCPTCPClient client)
+    private void HandleClient(AFCPServerClient client)
     {
         Clients.Add(client);
         var dataRead = client.ReadData();
@@ -65,6 +65,11 @@ public class AFCPTCPServer
         {
             client.SendData(Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
         }
+
+    }
+
+    public void DoAuth(AFCPServerClient client){
+        
     }
 
 }
