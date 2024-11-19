@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using Ardumine.AFCP.Core.Client;
 
 namespace Ardumine.AFCP.Core.Server;
 
@@ -14,6 +15,7 @@ public class AFCPTCPServer
     private bool Running { get; set; }
     CancellationTokenSource stopToken = new CancellationTokenSource();
 
+    private List<AFCPTCPClient> Clients = new();
     public AFCPTCPServer(IPAddress iPEnd)
     {
         tcpListener = new(new IPEndPoint(iPEnd, 9492));
@@ -42,13 +44,19 @@ public class AFCPTCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-
+                HandleClient(new AFCPTCPClient((IPEndPoint)client.Client.RemoteEndPoint, client));
             }
             catch (OperationCanceledException)
             {
                 break;
             }
         }
+    }
+
+    private void HandleClient(AFCPTCPClient client)
+    {
+        Clients.Add(client);
+
     }
 
 }
