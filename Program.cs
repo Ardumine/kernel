@@ -1,4 +1,7 @@
-﻿using Ardumine.Module.Lidar.YDLidar;
+﻿using System.Net;
+using Ardumine.AFCP.Core.Server;
+using Ardumine.Module.AFCPClientTest;
+using Ardumine.Module.Lidar.YDLidar;
 
 namespace Kernel;
 internal class Program
@@ -25,6 +28,7 @@ internal class Program
 
 
         var descLidar = new YDLidarDescription();
+        var descAFCPTest = new AFCPClientTestDescription();
         
         //Add to available modules
         ModuleHelper.AvailableModules.Add(descLidar);
@@ -32,6 +36,8 @@ internal class Program
         //Create testing modules
         ModuleHelper.AddModule(descLidar, "/lidar");
         ModuleHelper.AddModule(descLidar, "/lidar2");
+
+        ModuleHelper.AddModule(descAFCPTest, "/afcpTest");
 
 
 
@@ -50,9 +56,11 @@ internal class Program
 
 
         Tests.InitTests();
+        logger.LogI("Starting AFCP server...");
+        var AFCP = new AFCPTCPServer(IPAddress.Any);
+        AFCP.Start();
 
-
-        bool run = false;
+        bool run = true;
         logger.LogOK("Startup ended. Terminal mode.");
         Console.WriteLine();
 
@@ -63,6 +71,7 @@ internal class Program
             var cmd = Console.ReadLine();
             if (cmd == "exit" || cmd == "q" || cmd == "stop")
             {
+
                 run = false;
             }
             if (cmd == "t" || cmd == "test")
@@ -74,6 +83,8 @@ internal class Program
 
         //logger.LogI("Kernel Panic: No more instructions");
         StopRunningModules();
+
+        AFCP.Stop();
         logger.LogOK("Kernel stop");
 
     }
