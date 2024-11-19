@@ -12,6 +12,8 @@ public class AFCPTCPClient
 
     private TcpClient TCPclient;
     private NetworkStream networkStream;
+    CancellationTokenSource stopToken = new CancellationTokenSource();
+
     public AFCPTCPClient(IPAddress ipa, int port = 9492)
     {
         remoteIP = new(ipa, port);
@@ -24,11 +26,23 @@ public class AFCPTCPClient
     }
     public void Connect()
     {
+        TCPclient = new();
         TCPclient.Connect(remoteIP);
         networkStream = TCPclient.GetStream();
     }
+    public void Close()
+    {
+        stopToken.Cancel();
+        TCPclient.Close();
+    }
+
 
     #region Data send
+
+    /// <summary>
+    /// Sends data to the remote. It handles data sizes auto.
+    /// </summary>
+    /// <param name="data">Data to send</param>
     public void SendData(byte[] data)
     {
         EncodeByteArray(data, (ushort)data.Length, networkStream);
@@ -45,14 +59,18 @@ public class AFCPTCPClient
 
     #endregion
 
-
     #region Data read
 
     //Code from Freedom VPN. Internal Ardumine C# project. It may seek GitHub if I feel good.
+
+    /// <summary>
+    /// Waits until it receives data from the remote. It handles data sizes auto.
+    /// </summary>
+    /// <returns>Received byte array</returns>
     public byte[] ReadData()
     {
         byte[] BufferLenRec = new byte[2];
-        networkStream.Read(BufferLenRec, 0, 2);//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
+        networkStream.ReadAsync(BufferLenRec, 0, 2, stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
         int TamDadosPRec = ByteArrayToUshort(BufferLenRec);
 
         byte[] dados = new byte[TamDadosPRec];
@@ -60,7 +78,7 @@ public class AFCPTCPClient
         int lenDadosRecibdo = 0;
         while (lenDadosRecibdo != TamDadosPRec)
         {
-            lenDadosRecibdo += networkStream.Read(dados, lenDadosRecibdo, TamDadosPRec - lenDadosRecibdo);//int32 = 4 bytes
+            lenDadosRecibdo += networkStream.ReadAsync(dados, lenDadosRecibdo, TamDadosPRec - lenDadosRecibdo, stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes
         }
 
         return dados;

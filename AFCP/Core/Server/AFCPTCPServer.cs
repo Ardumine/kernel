@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using Ardumine.AFCP.Core.Client;
 
 namespace Ardumine.AFCP.Core.Server;
@@ -56,7 +57,11 @@ public class AFCPTCPServer
     private void HandleClient(AFCPTCPClient client)
     {
         Clients.Add(client);
-
+        var dataRead = client.ReadData();
+        if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
+        {
+            client.SendData(Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
+        }
     }
 
 }
