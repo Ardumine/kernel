@@ -11,13 +11,17 @@ public class AFCPServerClient : AFCPTCPClient
     public AFCPServerClient(IPEndPoint remIP, TcpClient tcpClient) : base(remIP, tcpClient)
     {
     }
+
+   
+
 }
 
 public enum AuthStateClientOnServer
 {
     /// <summary>
-    /// Waiting for auth
+    /// When its first connection. Waiting for auth message from client.
     /// </summary>
+    NewConnect,
     NotAuth,
     DoingAuth,
     AuthOK

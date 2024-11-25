@@ -57,7 +57,7 @@ internal class Program
 
         Tests.InitTests();
         logger.LogI("Starting AFCP server...");
-        var AFCP = new AFCPTCPServer(IPAddress.Any);
+        var AFCP = new AFCPTCPServer(IPAddress.Any, new Logger("Servidor AFCP"));
         AFCP.Start();
 
         bool run = true;

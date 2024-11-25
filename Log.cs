@@ -22,12 +22,27 @@ public class Logger
 
     }
 
-     public void LogOK(string dado)
+    public void LogOK(string dado)
     {
         var ant = Console.BackgroundColor;
         var antx = Console.ForegroundColor;
 
         Console.ForegroundColor = ConsoleColor.Green;
+        //Console.ForegroundColor = ConsoleColor.Black;
+
+        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
+        Console.BackgroundColor = ant;
+        Console.ForegroundColor = antx;
+
+
+    }
+
+    public void LogW(string dado)
+    {
+        var ant = Console.BackgroundColor;
+        var antx = Console.ForegroundColor;
+
+        Console.ForegroundColor = ConsoleColor.Yellow;
         //Console.ForegroundColor = ConsoleColor.Black;
 
         Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
