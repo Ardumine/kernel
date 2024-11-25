@@ -14,7 +14,7 @@ jobs:
     name: Release
     strategy:
       matrix:
-        kind: ['linux', 'windows', 'macOS']
+        kind: ['linux', 'windows']
         include:
           - kind: linux
             os: ubuntu-latest
