@@ -1,38 +1,50 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using Ardumine.AFCP.Core.Client;
 
 namespace Ardumine.AFCP.Core.Server;
 
 
-public class AFCPTCPServer
+public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 {//Adaptative fast comunication protocol
+    public override event EventHandler<OnDataRecArgs> OnDataRec;
+    public override event EventHandler<AFCPServerClient> OnClientConnected;
 
-
-    public bool UseAuth { get; set; }
     private TcpListener tcpListener;
     private Thread threadAccepter;
     private bool Running { get; set; }
     CancellationTokenSource stopToken = new CancellationTokenSource();
 
-    private List<AFCPTCPClient> Clients = new();
-    public AFCPTCPServer(IPAddress iPEnd)
+    private string PasswordAuth => "coolPassword";
+
+    private Logger logger;
+    public AFCPTCPServer(IPAddress iPEnd, Logger logger)
     {
         tcpListener = new(new IPEndPoint(iPEnd, 9492));
         threadAccepter = new Thread(AccepterHandlerThread);
 
         Running = false;
+        this.logger = logger;
     }
+    AuthSystem authSystem;
+    DisconnectSystem disconnectSystem;
 
     public void Start()
     {
+        authSystem = new();
+        authSystem.logger = new Logger("Auth System");
+        authSystem.Server = this;
+        authSystem.Start();
+
+        disconnectSystem = new();
+        disconnectSystem.Server = this;
+        disconnectSystem.Start();
+
+
         Running = true;
         tcpListener.Start();
         threadAccepter.Start();
 
         Thread.Sleep(10);//Let it have some time to simmer
-
     }
 
     public void Stop()
@@ -48,7 +60,7 @@ public class AFCPTCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-                HandleClient(new AFCPTCPClient((IPEndPoint)client.Client.RemoteEndPoint, client));
+                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client));
             }
             catch (OperationCanceledException)
             {
@@ -57,14 +69,26 @@ public class AFCPTCPServer
         }
     }
 
-    private void HandleClient(AFCPTCPClient client)
+    private void HandleClient(AFCPServerClient client)
     {
+
         Clients.Add(client);
-        var dataRead = client.ReadData();
-        if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
+        OnClientConnected?.Invoke(this, client);
+        client.OnDataRec += (s, e) =>
         {
-            client.SendData(Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
-        }
+            OnDataRec?.Invoke(this, new OnDataRecArgs()
+            {
+                Client = client,
+                Data = e
+            });
+        };
     }
 
+}
+
+
+public class OnDataRecArgs : EventArgs
+{
+    public AFCPServerClient Client { get; set; }
+    public DataReadFromRemote Data { get; set; }
 }

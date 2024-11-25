@@ -24,18 +24,31 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
     {
     }
 
-    private void Main(){
+    private void Main()
+    {
         Thread.Sleep(100);//Let the rest of the kernel boot
-        var tcpclient = new AFCPTCPClient(IPAddress.Loopback);
-        tcpclient.Connect();
+        var AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
+        logger.LogI("A conectar...");
+        bool stat = AFCPClient.Connect();
+
+        logger.LogI("Client connected!");
+
+        if (!stat)
+        {
+            logger.LogW("Client: wrong password!");
+            return;
+        }
+
         logger.LogI("Begin test AFCP client");
 
         logger.LogI("Sending: Haro? Hibachi, Benihana, Teriyaki...");
-        tcpclient.SendData(Encoding.UTF8.GetBytes("Haro? Hibachi, Benihana, Teriyaki..."));
+        AFCPClient.rawComProt.SendData(60, Encoding.UTF8.GetBytes("Haro? Hibachi, Benihana, Teriyaki..."));
 
-        var dataRead = tcpclient.ReadData();
+        var dataRead = AFCPClient.ReadChannelData(60);
         logger.LogI($"Received {Encoding.UTF8.GetString(dataRead)}");//Nagasaki, Okinawa, Hokkaido...Yokohama
-        tcpclient.Close();
+        
+        Thread.Sleep(100);
+        AFCPClient.Close();
     }
 
 }
