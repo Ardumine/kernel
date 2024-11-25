@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using Ardumine.AFCP.Core.Client;
-using Ardumine.AFCP.Core.Client.RawComProt;
 using Ardumine.Module.Base;
 
 namespace Ardumine.Module.AFCPClientTest;
@@ -32,8 +31,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         logger.LogI("A conectar...");
         bool stat = AFCPClient.Connect();
 
-        logger.LogI("Cliente conectado!");
-        Thread.Sleep(500);
+        logger.LogI("Client connected!");
 
         if (!stat)
         {
@@ -49,7 +47,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         var dataRead = AFCPClient.ReadChannelData(60);
         logger.LogI($"Received {Encoding.UTF8.GetString(dataRead)}");//Nagasaki, Okinawa, Hokkaido...Yokohama
         
-        Thread.Sleep(500);
+        Thread.Sleep(100);
         AFCPClient.Close();
     }
 

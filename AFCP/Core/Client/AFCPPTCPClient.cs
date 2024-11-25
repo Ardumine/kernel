@@ -44,7 +44,6 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt.Connect(remoteIP);
         Run = true;
         thReadData.Start();
-        Thread.Sleep(100);
         return clientHandshaker.DoAuth(true);
     }
 
@@ -87,14 +86,12 @@ public class AFCPTCPClient : IAFCPClient
         {
             try
             {
-
                 var dataRec = rawComProt.ReadData(StopToken);
                 OnDataRec?.Invoke(this, dataRec);
                 TripResetEvent(dataRec.DataType, dataRec.Data);
             }
             catch { }
         }
-        Console.WriteLine("Loop quit!");
     }
 
 

@@ -35,6 +35,8 @@ public class AuthSystem : BaseSystem
                     client.AuthState = AuthStateClientOnServer.AuthOK;
                     client.rawComProt.SendData(MsgTypes.Auth, Encoding.UTF8.GetBytes($"c\x1"));//c[check](1/0)[auth ok]
 
+
+                    //Some testing
                     Thread.Sleep(200);
                     var dataRead = client.ReadChannelData(60);
                     if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
