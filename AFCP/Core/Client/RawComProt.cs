@@ -14,5 +14,6 @@ public interface IRawComProt
 /// </summary>
 public class MsgTypes
 {
-    public static ushort Auth => 0;
+    public static ushort Auth => 4;
+    public static ushort Disconnect => 2;
 }

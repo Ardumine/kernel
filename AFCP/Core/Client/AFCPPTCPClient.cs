@@ -1,8 +1,5 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices;
-using System.Text;
 using Ardumine.AFCP.Core.Client.RawComProt;
 
 namespace Ardumine.AFCP.Core.Client;
@@ -11,10 +8,11 @@ namespace Ardumine.AFCP.Core.Client;
 //This is for the raw communication protocol. Dont use it for normal use. It is for standard TCP communication with stability.
 public class AFCPTCPClient : IAFCPClient
 {
+    public event EventHandler<DataReadFromRemote> OnDataRec;
+
     ClientHandshaker clientHandshaker;
     CancellationTokenSource StopToken = new CancellationTokenSource();
     public bool UseAuth { get; set; }
-    Queue<DataReadFromRemote> QueueDataToBeRead = new();
 
 
     public TCPRawComProt rawComProt { get; set; }
@@ -27,7 +25,7 @@ public class AFCPTCPClient : IAFCPClient
         remoteIP = new(ipa, port);
         UseAuth = doAuth;
         rawComProt = new TCPRawComProt();
-        clientHandshaker = new(rawComProt);
+        clientHandshaker = new(this);
         thReadData = new(FuncReadData);
     }
 
@@ -38,7 +36,6 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt = new(tcpClient);
         thReadData.Start();
         Run = true;
-
     }
 
 
@@ -47,6 +44,7 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt.Connect(remoteIP);
         Run = true;
         thReadData.Start();
+        Thread.Sleep(100);
         return clientHandshaker.DoAuth(true);
     }
 
@@ -87,22 +85,31 @@ public class AFCPTCPClient : IAFCPClient
     {
         while (Run)
         {
-            var dataRec = rawComProt.ReadData(StopToken);
-            TripResetEvent(dataRec.DataType, dataRec.Data);
+            try
+            {
+
+                var dataRec = rawComProt.ReadData(StopToken);
+                OnDataRec?.Invoke(this, dataRec);
+                TripResetEvent(dataRec.DataType, dataRec.Data);
+            }
+            catch { }
         }
+        Console.WriteLine("Loop quit!");
     }
 
 
 
     public void Close()
     {
+        rawComProt.SendData(MsgTypes.Disconnect, [0]);
+        Thread.Sleep(50);
         Run = false;
         StopToken.Cancel();
         rawComProt.Close();
     }
 
 
-    public byte[] ReadChannelData(ushort DataType, int timoutMS = 1000)
+    public byte[] ReadChannelData(ushort DataType, int timoutMS = 5000)
     {
         var resEvent = AddResetEvent(DataType, timoutMS);
         return WaitResetEvent(resEvent);

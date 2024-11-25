@@ -11,10 +11,12 @@ public class TCPRawComProt : IRawComProt
     private NetworkStream networkStream;
     private TcpClient TCPClient;
     public CancellationTokenSource StopToken = new CancellationTokenSource();
-    public TCPRawComProt(){
-        
+    public TCPRawComProt()
+    {
+
     }
-    public TCPRawComProt(TcpClient _tcpClient){
+    public TCPRawComProt(TcpClient _tcpClient)
+    {
         TCPClient = _tcpClient;
         networkStream = TCPClient.GetStream();
 
@@ -36,13 +38,12 @@ public class TCPRawComProt : IRawComProt
         EncodeByteArray(data, MsgType, (ushort)data.Length, networkStream);
     }
 
-
-    private byte[] arrBytesLen = new byte[2];
-    private byte[] arrBytesMsgType = new byte[2];
-
     //Code from Freedom VPN. Internal Ardumine C# project. It may seek GitHub if I feel good.
     private unsafe void EncodeByteArray(byte[] arrIn, ushort MsgType, ushort arrLen, Stream stream)
     {
+        byte[] arrBytesLen = new byte[2];
+        byte[] arrBytesMsgType = new byte[2];
+
         Marshal.Copy((IntPtr)(byte*)&arrLen, arrBytesLen, 0, 2);//(byte*)&
         Marshal.Copy((IntPtr)(byte*)&MsgType, arrBytesMsgType, 0, 2);//(byte*)&
 
@@ -65,7 +66,7 @@ public class TCPRawComProt : IRawComProt
     {
         if (_stopToken == null) _stopToken = StopToken;
         byte[] BufferLenRec = new byte[2];
-        byte[] BufferMsgType = new byte[2];
+        byte[] BufferMsgType = new byte[2]; 
 
         networkStream.ReadAsync(BufferLenRec, 0, 2, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
         int TamDadosPRec = ByteArrayToUshort(BufferLenRec);
