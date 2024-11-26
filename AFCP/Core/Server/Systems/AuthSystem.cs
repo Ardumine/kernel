@@ -34,14 +34,14 @@ public class AuthSystem : BaseSystem
                 {
                     client.AuthState = AuthStateClientOnServer.AuthOK;
                     client.rawComProt.SendData(MsgTypes.Auth, Encoding.UTF8.GetBytes($"c\x1"));//c[check](1/0)[auth ok]
-
+                    logger.LogI("Client auth!");
 
                     //Some testing
-                    Thread.Sleep(200);
-                    var dataRead = client.ReadChannelData(60);
+                    Thread.Sleep(100);
+                    var dataRead = client.ReadChannelData(280);
                     if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
                     {
-                        client.rawComProt.SendData(60, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
+                        client.rawComProt.SendData(280, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
                     }
 
                 }

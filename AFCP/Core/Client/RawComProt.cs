@@ -10,7 +10,8 @@ public interface IRawComProt
 }
 
 /// <summary>
-/// Above 40 is channel ID's.
+/// Between [200, 1200] is channel ID's.
+/// Between [1400, 2400] is questions.
 /// </summary>
 public class MsgTypes
 {

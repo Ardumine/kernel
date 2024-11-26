@@ -8,6 +8,8 @@ namespace Ardumine.AFCP.Core.Client;
 //This is for the raw communication protocol. Dont use it for normal use. It is for standard TCP communication with stability.
 public class AFCPTCPClient : IAFCPClient
 {
+
+    public string Name {get;set;}
     public event EventHandler<DataReadFromRemote> OnDataRec;
 
     ClientHandshaker clientHandshaker;
@@ -19,6 +21,7 @@ public class AFCPTCPClient : IAFCPClient
     public IPEndPoint remoteIP;
     public bool Run { get; private set; }
 
+    private IDGenerator QuestionIDGenerator;
     private Thread thReadData;
     public AFCPTCPClient(IPAddress ipa, bool doAuth = false, int port = 9492)
     {
@@ -27,6 +30,7 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt = new TCPRawComProt();
         clientHandshaker = new(this);
         thReadData = new(FuncReadData);
+        QuestionIDGenerator = new(1400, 2400);
     }
 
     public AFCPTCPClient(IPEndPoint remIP, TcpClient tcpClient)
@@ -36,6 +40,7 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt = new(tcpClient);
         thReadData.Start();
         Run = true;
+        QuestionIDGenerator = new(1400, 2400);
     }
 
 
@@ -50,14 +55,16 @@ public class AFCPTCPClient : IAFCPClient
     class ChannelEventHandler
     {
         public AutoResetEvent autoResetEvent;
-        public ushort Channel { get; set; }
+        public ushort QuestionChannelID { get; set; }
+        public ushort MessageChannel { get; set; }
+
         public int TimeoutMS { get; set; }
         public byte[] Data { get; set; }
     }
     List<ChannelEventHandler> handlers = new();
-    public void TripResetEvent(int Channel, byte[] Data)
+    public void TripResetEvent(ushort Channel, ushort questionChannelID, byte[] Data)
     {
-        handlers.Where(handler => handler.Channel == Channel).ToList().ForEach((handler) =>
+        handlers.Where(handler => handler.MessageChannel == Channel && handler.QuestionChannelID == questionChannelID).ToList().ForEach((handler) =>
         {
             handler.Data = Data;
             handler.autoResetEvent.Set();
@@ -66,10 +73,18 @@ public class AFCPTCPClient : IAFCPClient
 
     private ChannelEventHandler AddResetEvent(ushort Channel, int TimeoutMS = 1000)
     {
-        var cc = new ChannelEventHandler() { autoResetEvent = new AutoResetEvent(false), Channel = Channel, TimeoutMS = TimeoutMS };
+        var cc = new ChannelEventHandler() { autoResetEvent = new AutoResetEvent(false), MessageChannel = Channel, TimeoutMS = TimeoutMS };
         handlers.Add(cc);
         return cc;
     }
+
+    private ChannelEventHandler AddResetEvent(ushort Channel, ushort questionChannelID, int TimeoutMS = 1000)
+    {
+        var cc = new ChannelEventHandler() { autoResetEvent = new AutoResetEvent(false), MessageChannel = Channel, TimeoutMS = TimeoutMS, QuestionChannelID = questionChannelID };
+        handlers.Add(cc);
+        return cc;
+    }
+
     private byte[] WaitResetEvent(ChannelEventHandler handler)
     {
         if (!handler.autoResetEvent.WaitOne(handler.TimeoutMS))
@@ -87,11 +102,17 @@ public class AFCPTCPClient : IAFCPClient
             try
             {
                 var dataRec = rawComProt.ReadData(StopToken);
+            
+                if(dataRec.MsgType > 1400 && dataRec.MsgType < 2400){
+                    Console.WriteLine($"Channel question rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
+                }
+
+                    TripResetEvent(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data);
                 OnDataRec?.Invoke(this, dataRec);
-                TripResetEvent(dataRec.DataType, dataRec.Data);
             }
             catch { }
         }
+        Console.WriteLine("exit" + Name);
     }
 
 
@@ -106,11 +127,41 @@ public class AFCPTCPClient : IAFCPClient
     }
 
 
-    public byte[] ReadChannelData(ushort DataType, int timoutMS = 5000)
+    public byte[] ReadChannelData(ushort MsgType, int timoutMS = 5000)
     {
-        var resEvent = AddResetEvent(DataType, timoutMS);
+        var resEvent = AddResetEvent(MsgType, timoutMS);
         return WaitResetEvent(resEvent);
     }
 
+    public byte[] ReadChannelData(ushort MsgType, ushort questionChannelID, int timoutMS = 5000)
+    {
+        var resEvent = AddResetEvent(MsgType, questionChannelID, timoutMS);
+        return WaitResetEvent(resEvent);
+    }
+
+
+
+
+    //We ask something
+    //We ask something to a channel.
+    public byte[] Ask(ushort channelQuestionID, byte[] question)
+    {
+        //IDQuestion: [1400, 2400] Generated randomly. To not confuse the answer of other questions with out question to this channel. 
+
+        //channelQuestion: [200, 1200] The channel to ask.
+
+        ushort IDQuestion = (ushort)QuestionIDGenerator.GenerateID();
+        rawComProt.SendQuestion(IDQuestion, channelQuestionID, question);
+        var answer = ReadChannelData(IDQuestion, channelQuestionID);
+        QuestionIDGenerator.DeleteID(IDQuestion);
+
+        return answer;
+    }
+
+
+    public void Answer()
+    {
+
+    }
 
 }
