@@ -26,7 +26,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 
     private void Main()
     {
-        Thread.Sleep(100);//Let the rest of the kernel boot
+        Thread.Sleep(200);//Let the rest of the kernel boot
         var AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
         AFCPClient.Name = "Client";
 
@@ -40,7 +40,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
             logger.LogW("Client: wrong password!");
             return;
         }
-        Thread.Sleep(200);
+        Thread.Sleep(50);
 
         logger.LogI("Begin test AFCP client");
 
@@ -49,12 +49,16 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 
         var dataRead = AFCPClient.ReadChannelData(281);
         logger.LogI($"Received {Encoding.UTF8.GetString(dataRead)}");//Nagasaki, Okinawa, Hokkaido...Yokohama
-        
-        
-        var aa = AFCPClient.Ask(250, [0, 0, 2]);
-        for (int i = 0; i < aa.Length; i++)
+
+        for (int i = 0; i < 10; i++)
         {
-            Console.WriteLine((int)aa[i]);
+            var aa = AFCPClient.Ask(250, [0, 0, 2]);
+            for (int a = 0; a < aa.Length; a++)
+            {
+                Console.Write(aa[a]);
+            }
+            Console.WriteLine();
+            Thread.Sleep(1000);
         }
 
         Thread.Sleep(10);

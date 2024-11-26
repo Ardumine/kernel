@@ -51,6 +51,12 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
     {
         Running = false;
         stopToken.Cancel();
+        Thread.Sleep(10);//Let it have some time to simmer
+        foreach (var item in Clients)
+        {
+            DisconnectClientForce(item);
+        }
+        tcpListener.Stop();
     }
 
     private void AccepterHandlerThread()

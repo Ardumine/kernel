@@ -49,6 +49,7 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt.Connect(remoteIP);
         Run = true;
         thReadData.Start();
+        Thread.Sleep(1);
         return clientHandshaker.DoAuth(true);
     }
 
@@ -132,7 +133,7 @@ public class AFCPTCPClient : IAFCPClient
 
 
             }
-            catch(TaskCanceledException)
+            catch(OperationCanceledException)
             {
             }
         }

@@ -37,7 +37,7 @@ public class AuthSystem : BaseSystem
                     logger.LogI("Client auth!");
 
                     //Some testing
-                    Thread.Sleep(100);
+                    Thread.Sleep(10);
                     var dataRead = client.ReadChannelData(280);
                     if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
                     {

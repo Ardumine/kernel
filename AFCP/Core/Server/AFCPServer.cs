@@ -4,13 +4,14 @@ using Ardumine.AFCP.Core.Server;
 public interface IAFCPServer
 {
 
-   
+
 }
-public abstract class BaseAFCPServer{
+public abstract class BaseAFCPServer
+{
     public abstract event EventHandler<AFCPServerClient> OnClientConnected;
     public abstract event EventHandler<OnDataRecArgs> OnDataRec;
 
-     public List<AFCPServerClient> Clients = new();
+    public List<AFCPServerClient> Clients = new();
 
     /// <summary>
     /// When a client doesnt do the auth, we disconnect. Do not call unless Auth related.
@@ -22,7 +23,7 @@ public abstract class BaseAFCPServer{
         Clients.Remove(client);
     }
 
-       public void DisconnectClientForce(AFCPServerClient client)
+    public void DisconnectClientForce(AFCPServerClient client)
     {
         client.Close();
         Clients.Remove(client);
