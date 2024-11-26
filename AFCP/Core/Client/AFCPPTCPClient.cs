@@ -180,6 +180,8 @@ public class AFCPTCPClient : IAFCPClient
         //[2400, 3400] +1000 to IDQuestion. Indicates its a answer
 
         //channelQuestion: [200, 1200] The channel to ask.
+        
+        //Console.WriteLine("Ask " + channelQuestionID);
 
         ushort IDQuestion = (ushort)QuestionIDGenerator.GenerateID();
 
@@ -189,6 +191,21 @@ public class AFCPTCPClient : IAFCPClient
         QuestionIDGenerator.DeleteID(IDQuestion);
 
         return answer;
+    }
+
+
+     //We ask something
+    //We ask something to a channel.
+    public void Post(ushort channelQuestionID, byte[] data)
+    {
+        //IDQuestion: [1400, 2400] Generated randomly. To not confuse the answer of other questions with out question to this channel. 
+        //[2400, 3400] +1000 to IDQuestion. Indicates its a answer
+
+        //channelQuestion: [200, 1200] The channel to ask.
+        
+
+        rawComProt.SendData(channelQuestionID, data);
+
     }
 
 

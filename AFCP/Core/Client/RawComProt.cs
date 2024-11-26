@@ -32,6 +32,8 @@ public class MsgTypes
 {
     public const ushort Disconnect = 2;
     public const ushort Auth = 4;
+    public const ushort ChannelResolve = 12;
+
 
     public const ushort MIIChaID = 200;//Min interval for channel ID
     public const ushort MXIChaID = 1200;//Max interval for channel ID
@@ -51,6 +53,10 @@ public class MsgTypes
         else if (msgType == Auth)
         {
             return MsgType.Auth;
+        }
+        else if (msgType == ChannelResolve)
+        {
+            return MsgType.ChannelResolve;
         }
         else if (msgType > MIIQuestID && msgType < MXIQuestID)
         {
@@ -73,6 +79,7 @@ public enum MsgType
 {
     Auth,
     Disconnect,
+    ChannelResolve,
     Question,
     Answer,
     Unknown,

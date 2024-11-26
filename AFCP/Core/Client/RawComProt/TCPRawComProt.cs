@@ -82,11 +82,11 @@ public class TCPRawComProt : IRawComProt
         byte[] BufferMsgType = new byte[2];
 
         networkStream.ReadAsync(BufferLenRec, 0, 2, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
-        int TamDadosPRec = ByteArrayToUshort(BufferLenRec);
+        int TamDadosPRec = Converter.ByteArrayToUshort(BufferLenRec);
 
 
         networkStream.ReadAsync(BufferMsgType, 0, 2, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
-        ushort msgChannel = ByteArrayToUshort(BufferMsgType);
+        ushort msgChannel =  Converter.ByteArrayToUshort(BufferMsgType);
 
 
         ushort questionChannelID = 0;
@@ -95,7 +95,7 @@ public class TCPRawComProt : IRawComProt
             byte[] BufferQuestionChannelID = new byte[2];//What is the channel to ask?
 
             networkStream.ReadAsync(BufferQuestionChannelID, 0, 2, _stopToken.Token).GetAwaiter().GetResult();
-            questionChannelID = ByteArrayToUshort(BufferQuestionChannelID);
+            questionChannelID =  Converter.ByteArrayToUshort(BufferQuestionChannelID);
 
         }
 
@@ -109,13 +109,7 @@ public class TCPRawComProt : IRawComProt
         }
         return new DataReadFromRemote(msgChannel, questionChannelID, dados);
     }
-    public static ushort ByteArrayToUshort(byte[] b)
-    {
-        return (ushort)(b[0] | (b[1] << 8));//| (b[2] << 16) | (b[3] << 24)
-    }
-
-
-
+    
 
     #endregion
     public override void Close()

@@ -31,6 +31,11 @@ public class IDGenerator
                 return -1;
             }
         }
+        UsedIDS.Add(ID);
+        return ID;
+    }
+    public int ManualAdd(int ID){
+        UsedIDS.Add(ID);
         return ID;
     }
 

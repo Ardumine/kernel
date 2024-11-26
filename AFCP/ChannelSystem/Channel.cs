@@ -1,12 +1,17 @@
+using Ardumine.AFCP.Core.Client;
+
 public class Channel
 {
 
     public string URL { get; private set; }
     public ChannelPermission Perms { get; private set; }
     public ushort AFCP_ID { get; set; }
-    public Channel(string _URL)
+    public bool Local { get; set; }
+    private AFCPTCPClient Client;
+    public Channel(string _URL, AFCPTCPClient client)
     {
         URL = _URL;
+        Client = client;
     }
 
     public Channel(string _URL, ChannelPermission _perms)
@@ -15,24 +20,32 @@ public class Channel
         Perms = _perms;
     }
 
-    /// <summary>
-    /// Only the owner of the channel should call this.
-    /// </summary>
-    public void Allocate()
-    {
-
-    }
 
     public void Set(byte[] data)
     {
-        CurrentValue = data;
+        if (Local)
+        {
+            CurrentValueLocal = data;
+        }
+        else
+        {
+            Client.Post(AFCP_ID, data);
+        }
     }
     public byte[] Get()
     {
-        return CurrentValue;
+        if (Local)
+        {
+            return CurrentValueLocal;
+        }
+        else
+        {
+            //    var ans = AFCPClient.Ask(499, []);
+            return Client.Ask(AFCP_ID, []);
+        }
     }
 
-    public byte[] CurrentValue;//Just for testing
+    private byte[] CurrentValueLocal = [16, 1, 5, 89];//Just for testing
 }
 public enum ChannelPermission
 {
