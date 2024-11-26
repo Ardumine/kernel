@@ -1,3 +1,4 @@
+using Ardumine.AFCP.Core.Client.RawComProt;
 using Ardumine.AFCP.Core.Server;
 
 public class ChannelSystemServer
@@ -8,10 +9,19 @@ public class ChannelSystemServer
     public ChannelSystemServer(BaseAFCPServer baseAFCPServer)
     {
         AFCPServer = baseAFCPServer;
-        AFCPServer.OnDataRec += OnAFCPDataRec;
-        IDChannelGenerator = new(200, 1200);
+        IDChannelGenerator = new(MsgTypes.MIIChaID, MsgTypes.MXIChaID);
     }
 
+    public void Start()
+    {
+        AFCPServer.OnDataRec += OnAFCPDataRec;
+        AFCPServer.OnQuestionRec += OnQuestionRec;
+    }
+    private void OnQuestionRec(object sender, OnQuestionRecArgs args)
+    {
+        Console.WriteLine("Question rec!");
+        args.Data.Answer([0, 1, 2]);
+    }
     private void OnAFCPDataRec(object sender, OnDataRecArgs args)
     {
         if (IDChannelGenerator.Contains(args.Data.MsgType))
@@ -23,7 +33,6 @@ public class ChannelSystemServer
             }
         }
     }
-
     public void CreateChannel(string URL, ChannelPermission perms)
     {
         Channel channel = new Channel(URL, perms);
@@ -34,6 +43,7 @@ public class ChannelSystemServer
         }
         channel.AFCP_ID = (ushort)id;
         Channels.Add(channel);
+        Console.WriteLine($"Channel {channel.URL} with ID{channel.AFCP_ID}");
     }
 
     public void DeleteChannel(string URL)
@@ -49,6 +59,9 @@ public class ChannelSystemServer
     }
 
 
-
+    public void Stop()
+    {
+        AFCPServer.OnDataRec -= OnAFCPDataRec;
+    }
 
 }

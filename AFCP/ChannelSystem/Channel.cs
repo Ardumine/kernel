@@ -25,12 +25,14 @@ public class Channel
 
     public void Set(byte[] data)
     {
-
+        CurrentValue = data;
     }
     public byte[] Get()
     {
-        return null;
+        return CurrentValue;
     }
+
+    public byte[] CurrentValue;//Just for testing
 }
 public enum ChannelPermission
 {

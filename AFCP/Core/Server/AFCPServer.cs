@@ -10,6 +10,7 @@ public abstract class BaseAFCPServer
 {
     public abstract event EventHandler<AFCPServerClient> OnClientConnected;
     public abstract event EventHandler<OnDataRecArgs> OnDataRec;
+    public abstract event EventHandler<OnQuestionRecArgs> OnQuestionRec;
 
     public List<AFCPServerClient> Clients = new();
 
@@ -23,9 +24,9 @@ public abstract class BaseAFCPServer
         Clients.Remove(client);
     }
 
-    public void DisconnectClientForce(AFCPServerClient client)
+    public void DisconnectClientForce(AFCPServerClient client, bool Remove = true)
     {
         client.Close();
-        Clients.Remove(client);
+        if(Remove) Clients.Remove(client);
     }
 }

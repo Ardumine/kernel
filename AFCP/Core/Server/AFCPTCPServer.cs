@@ -8,6 +8,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 {//Adaptative fast comunication protocol
     public override event EventHandler<OnDataRecArgs> OnDataRec;
     public override event EventHandler<AFCPServerClient> OnClientConnected;
+    public override event EventHandler<OnQuestionRecArgs> OnQuestionRec;
 
     private TcpListener tcpListener;
     private Thread threadAccepter;
@@ -52,10 +53,12 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
         Running = false;
         stopToken.Cancel();
         Thread.Sleep(10);//Let it have some time to simmer
-        foreach (var item in Clients)
+
+        foreach (var item in Clients.ToList())
         {
-            DisconnectClientForce(item);
+            DisconnectClientForce(item, false);
         }
+
         tcpListener.Stop();
     }
 
@@ -88,6 +91,15 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
                 Data = e
             });
         };
+
+        client.OnQuestionRec += (s, e) =>
+        {
+            OnQuestionRec?.Invoke(this, new OnQuestionRecArgs()
+            {
+                Client = client,
+                Data = e
+            });
+        };
     }
 
 }
@@ -97,4 +109,10 @@ public class OnDataRecArgs : EventArgs
 {
     public AFCPServerClient Client { get; set; }
     public DataReadFromRemote Data { get; set; }
+}
+
+public class OnQuestionRecArgs : EventArgs
+{
+    public AFCPServerClient Client { get; set; }
+    public QuestionFromRemote Data { get; set; }
 }

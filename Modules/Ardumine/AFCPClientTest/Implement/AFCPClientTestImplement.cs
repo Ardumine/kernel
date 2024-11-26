@@ -22,19 +22,19 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 
     public void EndStop()
     {
+       // Disconnect();
     }
 
-    private void Main()
+    private AFCPTCPClient AFCPClient;
+    private void Connect()
     {
-        Thread.Sleep(200);//Let the rest of the kernel boot
-        var AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
+        AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
         AFCPClient.Name = "Client";
 
         logger.LogI("A conectar...");
         bool stat = AFCPClient.Connect();
 
         logger.LogI("Client connected!");
-
         if (!stat)
         {
             logger.LogW("Client: wrong password!");
@@ -42,6 +42,17 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         }
         Thread.Sleep(50);
 
+    }
+
+    private void Disconnect()
+    {
+        Thread.Sleep(10);
+        AFCPClient.Close();
+    }
+    private void Main()
+    {
+        Thread.Sleep(200);//Let the rest of the kernel boot
+        Connect();
         logger.LogI("Begin test AFCP client");
 
         logger.LogI("Sending: Haro? Hibachi, Benihana, Teriyaki...");
@@ -50,7 +61,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         var dataRead = AFCPClient.ReadChannelData(281);
         logger.LogI($"Received {Encoding.UTF8.GetString(dataRead)}");//Nagasaki, Okinawa, Hokkaido...Yokohama
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 4; i++)
         {
             var aa = AFCPClient.Ask(250, [0, 0, 2]);
             for (int a = 0; a < aa.Length; a++)
@@ -58,11 +69,19 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
                 Console.Write(aa[a]);
             }
             Console.WriteLine();
-            Thread.Sleep(1000);
+            Thread.Sleep(100);
         }
 
-        Thread.Sleep(10);
-        AFCPClient.Close();
+        //logger.LogI("Begin test Channels");
+        //TestChannels();
+
+        logger.LogI("End test");
+Disconnect();
+    }
+
+    private void TestChannels()
+    {
+
     }
 
 }

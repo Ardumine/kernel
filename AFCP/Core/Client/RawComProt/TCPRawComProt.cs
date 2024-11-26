@@ -21,7 +21,7 @@ public class TCPRawComProt : IRawComProt
         networkStream = TCPClient.GetStream();
 
     }
-    public void Connect(IPEndPoint remoteIP)
+    public override void Connect(IPEndPoint remoteIP)
     {
         TCPClient = new();
         TCPClient.Connect(remoteIP);
@@ -33,11 +33,11 @@ public class TCPRawComProt : IRawComProt
     /// Sends data to the remote. It handles data sizes auto.
     /// </summary>
     /// <param name="data">Data to send</param>
-    public void SendData(ushort MsgType, byte[] data)
+    public override void SendData(ushort MsgType, byte[] data)
     {
         EncodeByteArray(data, MsgType, (ushort)data.Length, networkStream);
     }
-    public void SendQuestion(ushort channelID, ushort channelQuestionID, byte[] data)
+    public override void SendQuestion(ushort channelID, ushort channelQuestionID, byte[] data)
     {
         EncodeUshort((ushort)data.Length, networkStream);
         EncodeUshort(channelID, networkStream);
@@ -62,16 +62,7 @@ public class TCPRawComProt : IRawComProt
         stream.Write(arrIn, 0, arrLen);
     }
 
-    private unsafe void EncodeUshort(ushort data, Stream stream)
-    {
-        byte[] arrBytes = new byte[2];
 
-        Marshal.Copy((IntPtr)(byte*)&data, arrBytes, 0, 2);//(byte*)&
-
-        stream.Write(arrBytes);
-        stream.Flush();
-
-    }
 
 
     #endregion
@@ -84,7 +75,7 @@ public class TCPRawComProt : IRawComProt
     /// Waits until it receives data from the remote. It handles data sizes auto.
     /// </summary>
     /// <returns>Message type and Received byte array</returns>
-    public DataReadFromRemote ReadData(CancellationTokenSource _stopToken = null)
+    public override DataReadFromRemote ReadData(CancellationTokenSource _stopToken = null)
     {
         if (_stopToken == null) _stopToken = StopToken;
         byte[] BufferLenRec = new byte[2];
@@ -97,12 +88,10 @@ public class TCPRawComProt : IRawComProt
         networkStream.ReadAsync(BufferMsgType, 0, 2, _stopToken.Token).GetAwaiter().GetResult();//int32 = 4 bytes; int16(short) = 2(-32,768 to 32,767); ushort = 2 bytes(0 to 65,535)
         ushort msgChannel = ByteArrayToUshort(BufferMsgType);
 
-        //Console.WriteLine("aa" + msgChannel);
 
         ushort questionChannelID = 0;
-        if (msgChannel > 1400 && msgChannel < 2400 || msgChannel > 2400 && msgChannel < 3400)//Could be a question or a answer.
+        if (MsgTypes.IsAnswerQuestionRelated(msgChannel))//Could be a question or a answer.
         {
-            //Console.WriteLine("Answer rec!");
             byte[] BufferQuestionChannelID = new byte[2];//What is the channel to ask?
 
             networkStream.ReadAsync(BufferQuestionChannelID, 0, 2, _stopToken.Token).GetAwaiter().GetResult();
@@ -129,11 +118,12 @@ public class TCPRawComProt : IRawComProt
 
 
     #endregion
-    public void Close()
+    public override void Close()
     {
         StopToken.Cancel();
         networkStream.Close();
         TCPClient.Close();
     }
+
 
 }

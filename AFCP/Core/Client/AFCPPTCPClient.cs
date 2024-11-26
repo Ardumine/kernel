@@ -11,6 +11,7 @@ public class AFCPTCPClient : IAFCPClient
 
     public string Name { get; set; }
     public event EventHandler<DataReadFromRemote> OnDataRec;
+    public event EventHandler<QuestionFromRemote> OnQuestionRec;
 
     ClientHandshaker clientHandshaker;
     CancellationTokenSource StopToken = new CancellationTokenSource();
@@ -30,9 +31,8 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt = new TCPRawComProt();
         clientHandshaker = new(this);
         thReadData = new(FuncReadData);
-        QuestionIDGenerator = new(1400, 2400);
+        QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
     }
-
     public AFCPTCPClient(IPEndPoint remIP, TcpClient tcpClient)
     {
         thReadData = new(FuncReadData);
@@ -40,7 +40,7 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt = new(tcpClient);
         thReadData.Start();
         Run = true;
-        QuestionIDGenerator = new(1400, 2400);
+        QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
     }
 
 
@@ -53,6 +53,8 @@ public class AFCPTCPClient : IAFCPClient
         return clientHandshaker.DoAuth(true);
     }
 
+
+#region Data receiving with questions.
     class ChannelEventHandler
     {
         public AutoResetEvent autoResetEvent;
@@ -97,12 +99,14 @@ public class AFCPTCPClient : IAFCPClient
     private byte[] WaitResetEvent(ChannelEventHandler handler)
     {
         if (!handler.autoResetEvent.WaitOne(handler.TimeoutMS))
-        {//Não recebeu dados
+        {//Timout
             return null;
         }
         return handler.Data;
 
     }
+
+#endregion
 
     private void FuncReadData()
     {
@@ -112,17 +116,18 @@ public class AFCPTCPClient : IAFCPClient
             {
                 var dataRec = rawComProt.ReadData(StopToken);
 
-                if (dataRec.MsgType > 1400 && dataRec.MsgType < 2400)//On question received
+                if (MsgTypes.GetType(dataRec.MsgType) == MsgType.Question)//On question received
                 {
-                   // Console.WriteLine($"Channel question rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
-                    rawComProt.SendQuestion((ushort)(dataRec.MsgType + 1000), dataRec.QuestionChannelID, [0, 1]);
+                    //rawComProt.SendQuestion((ushort)(dataRec.MsgType + 1000), dataRec.QuestionChannelID, [0, 1]);
+
+                    QuestionFromRemote cc = new(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data, rawComProt);
+                    cc.comProt = rawComProt; 
+                    OnQuestionRec?.Invoke(this, cc);
 
                 }
-                else if (dataRec.MsgType > 2400 && dataRec.MsgType < 3400)//On answer received
+                else if (MsgTypes.GetType(dataRec.MsgType) == MsgType.Answer)//On answer received
                 {
-                    //Console.WriteLine($"Channel answer rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
                     TripResetEvent(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data);
-
                 }
                 else
                 {
@@ -155,7 +160,6 @@ public class AFCPTCPClient : IAFCPClient
     public byte[] ReadChannelData(ushort MsgType, int timoutMS = 5000)
     {
         var resEvent = AddResetEvent(MsgType, timoutMS);
-        //Console.WriteLine("Waiting for data on: " + MsgType);
         return WaitResetEvent(resEvent);
     }
 
@@ -173,17 +177,14 @@ public class AFCPTCPClient : IAFCPClient
     public byte[] Ask(ushort channelQuestionID, byte[] question)
     {
         //IDQuestion: [1400, 2400] Generated randomly. To not confuse the answer of other questions with out question to this channel. 
-        // [2400, 3400] a +1000 to IDQuestion. Indicates its a answer
-
+        //[2400, 3400] +1000 to IDQuestion. Indicates its a answer
 
         //channelQuestion: [200, 1200] The channel to ask.
 
         ushort IDQuestion = (ushort)QuestionIDGenerator.GenerateID();
 
         rawComProt.SendQuestion(IDQuestion, channelQuestionID, question);
-
         byte[] answer = ReadChannelData((ushort)(IDQuestion + 1000), channelQuestionID);
-        //Console.WriteLine("OK");
 
         QuestionIDGenerator.DeleteID(IDQuestion);
 
