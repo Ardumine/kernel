@@ -41,7 +41,7 @@ public class AuthSystem : BaseSystem
                     var dataRead = client.ReadChannelData(280);
                     if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
                     {
-                        client.rawComProt.SendData(280, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
+                        client.rawComProt.SendData(281, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
                     }
 
                 }

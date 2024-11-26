@@ -29,7 +29,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         Thread.Sleep(100);//Let the rest of the kernel boot
         var AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
         AFCPClient.Name = "Client";
-        
+
         logger.LogI("A conectar...");
         bool stat = AFCPClient.Connect();
 
@@ -47,12 +47,17 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         logger.LogI("Sending: Haro? Hibachi, Benihana, Teriyaki...");
         AFCPClient.rawComProt.SendData(280, Encoding.UTF8.GetBytes("Haro? Hibachi, Benihana, Teriyaki..."));
 
-        var dataRead = AFCPClient.ReadChannelData(280);
+        var dataRead = AFCPClient.ReadChannelData(281);
         logger.LogI($"Received {Encoding.UTF8.GetString(dataRead)}");//Nagasaki, Okinawa, Hokkaido...Yokohama
-        AFCPClient.Ask(250, [0, 0]);
+        
+        
+        var aa = AFCPClient.Ask(250, [0, 0, 2]);
+        for (int i = 0; i < aa.Length; i++)
+        {
+            Console.WriteLine((int)aa[i]);
+        }
 
-
-        Thread.Sleep(1000);
+        Thread.Sleep(10);
         AFCPClient.Close();
     }
 

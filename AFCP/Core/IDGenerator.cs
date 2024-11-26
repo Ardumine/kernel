@@ -21,7 +21,7 @@ public class IDGenerator
     /// <returns>Returns -1 if error</returns>
     public int GenerateID()
     {
-        int ID = -1;
+        int ID = rnd.Next(Min, Max);
         var start = DateTime.Now;
         while (!(ID > Min && ID < Max) && UsedIDS.Contains(ID))
         {

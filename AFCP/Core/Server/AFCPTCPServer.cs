@@ -60,7 +60,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client));
+                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client){Name = "server"});
             }
             catch (OperationCanceledException)
             {

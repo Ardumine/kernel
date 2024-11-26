@@ -21,4 +21,10 @@ public abstract class BaseAFCPServer{
         client.Close();
         Clients.Remove(client);
     }
+
+       public void DisconnectClientForce(AFCPServerClient client)
+    {
+        client.Close();
+        Clients.Remove(client);
+    }
 }

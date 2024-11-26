@@ -9,7 +9,7 @@ namespace Ardumine.AFCP.Core.Client;
 public class AFCPTCPClient : IAFCPClient
 {
 
-    public string Name {get;set;}
+    public string Name { get; set; }
     public event EventHandler<DataReadFromRemote> OnDataRec;
 
     ClientHandshaker clientHandshaker;
@@ -70,6 +70,14 @@ public class AFCPTCPClient : IAFCPClient
             handler.autoResetEvent.Set();
         });
     }
+    public void TripResetEvent(ushort Channel, byte[] Data)
+    {
+        handlers.Where(handler => handler.MessageChannel == Channel).ToList().ForEach((handler) =>
+        {
+            handler.Data = Data;
+            handler.autoResetEvent.Set();
+        });
+    }
 
     private ChannelEventHandler AddResetEvent(ushort Channel, int TimeoutMS = 1000)
     {
@@ -102,15 +110,31 @@ public class AFCPTCPClient : IAFCPClient
             try
             {
                 var dataRec = rawComProt.ReadData(StopToken);
-            
-                if(dataRec.MsgType > 1400 && dataRec.MsgType < 2400){
-                    Console.WriteLine($"Channel question rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
+
+                if (dataRec.MsgType > 1400 && dataRec.MsgType < 2400)//On question received
+                {
+                   // Console.WriteLine($"Channel question rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
+                    rawComProt.SendQuestion((ushort)(dataRec.MsgType + 1000), dataRec.QuestionChannelID, [0, 1]);
+
+                }
+                else if (dataRec.MsgType > 2400 && dataRec.MsgType < 3400)//On answer received
+                {
+                    //Console.WriteLine($"Channel answer rec: {dataRec.QuestionChannelID} Question ID:{dataRec.MsgType}");
+                    TripResetEvent(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data);
+
+                }
+                else
+                {
+                    TripResetEvent(dataRec.MsgType, dataRec.Data);
+                    OnDataRec?.Invoke(this, dataRec);
                 }
 
-                    TripResetEvent(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data);
-                OnDataRec?.Invoke(this, dataRec);
+
+
             }
-            catch { }
+            catch(TaskCanceledException)
+            {
+            }
         }
         Console.WriteLine("exit" + Name);
     }
@@ -130,6 +154,7 @@ public class AFCPTCPClient : IAFCPClient
     public byte[] ReadChannelData(ushort MsgType, int timoutMS = 5000)
     {
         var resEvent = AddResetEvent(MsgType, timoutMS);
+        //Console.WriteLine("Waiting for data on: " + MsgType);
         return WaitResetEvent(resEvent);
     }
 
@@ -147,12 +172,18 @@ public class AFCPTCPClient : IAFCPClient
     public byte[] Ask(ushort channelQuestionID, byte[] question)
     {
         //IDQuestion: [1400, 2400] Generated randomly. To not confuse the answer of other questions with out question to this channel. 
+        // [2400, 3400] a +1000 to IDQuestion. Indicates its a answer
+
 
         //channelQuestion: [200, 1200] The channel to ask.
 
         ushort IDQuestion = (ushort)QuestionIDGenerator.GenerateID();
+
         rawComProt.SendQuestion(IDQuestion, channelQuestionID, question);
-        var answer = ReadChannelData(IDQuestion, channelQuestionID);
+
+        byte[] answer = ReadChannelData((ushort)(IDQuestion + 1000), channelQuestionID);
+        //Console.WriteLine("OK");
+
         QuestionIDGenerator.DeleteID(IDQuestion);
 
         return answer;

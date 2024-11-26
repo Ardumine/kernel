@@ -10,8 +10,7 @@ public class DisconnectSystem : BaseSystem
     }
     private void OnDataRec(object sender, OnDataRecArgs data){
         if(data.Data.MsgType == MsgTypes.Disconnect){
-            data.Client.Close();
-            Server.DisconnectClientAuth(data.Client);
+            Server.DisconnectClientForce(data.Client);
         }
     }
 }
