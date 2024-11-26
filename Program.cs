@@ -20,6 +20,13 @@ internal class Program
     private static void Main(string[] args)
     {
         logger = new("Kernel");
+
+        if(false){
+            Tests.InitTests();
+            Tests.Test2();
+            return;
+        }
+
         logger.LogI("Starting kernel...");
 
         logger.LogI("Searching modules implements...");
@@ -35,9 +42,9 @@ internal class Program
 
         //Create testing modules
         ModuleHelper.AddModule(descLidar, "/lidar");
-        ModuleHelper.AddModule(descLidar, "/lidar2");
+        //ModuleHelper.AddModule(descLidar, "/lidar2");
 
-        ModuleHelper.AddModule(descAFCPTest, "/afcpTest");
+        //ModuleHelper.AddModule(descAFCPTest, "/afcpTest");
 
 
 

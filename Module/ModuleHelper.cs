@@ -1,6 +1,6 @@
 using Ardumine.Module.Base;
 
-class ModuleHelper
+public static class ModuleHelper
 {
     public static List<ModuleDescription> AvailableModules = new();
 
@@ -10,7 +10,7 @@ class ModuleHelper
     public static List<Module> RunningModules = new();
 
 
-    public static void ReloadConector(List<Module> modulesConectorsToLoad)
+    /*public static void ReloadConector(List<Module> modulesConectorsToLoad)
     {
         RunningModuleConectors.Clear();
         foreach (var mod in modulesConectorsToLoad)
@@ -23,10 +23,10 @@ class ModuleHelper
                 RunningModuleConectors.Add(conector);
             }
         }
-    }
+    }*/
     public static T GetConector<T>(string Path) where T : IModuleInterface
     {
-        return (T)RunningModuleConectors.Where(mod => mod.Path == Path).First();
+        return (T)RunningModuleConectors.Where(mod => true).First();//mod.Path == Path
     }
 
 
@@ -40,25 +40,39 @@ class ModuleHelper
         return (T)RunningModuleImplements.Where(mod => mod.Path == Path).First();
     }
 
-    public static T Run<T>(string Path, string funcName)
+    /*public static T Run<T>(string Path, string funcName)
     {
         //Console.WriteLine($"Running in {Path} func {funcName}");
         return (T)SimulateRunServer(Path, funcName, null);
     }
-
-    public static object Run(string Path, string funcName)
+*/
+    public static object RunReturn(string Path, string funcName)
     {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
+        Console.WriteLine($"Running in {Path} func {funcName}");
         return SimulateRunServer(Path, funcName, null);
     }
 
-
-    public static object Run(string Path, string funcName, params object[] parameters)
+    public static void RunNormal(string Path, string funcName)
+    {
+        Console.WriteLine($"Running in {Path} func {funcName}");
+        SimulateRunServer(Path, funcName, null);
+    }
+    public static object RunNormal(string Path, string funcName, params object[] parameters)
     {
         //Console.WriteLine($"Running in {Path} func {funcName}");
         return SimulateRunServer(Path, funcName, parameters);
     }
 
+        public static object RunNormal( object[] parameters)
+    {
+        Console.WriteLine($"Running in {parameters.Length} ");
+        return "aa";
+    }
+ public static object Run(string Path, string funcName, params object[] parameters)
+    {
+        //Console.WriteLine($"Running in {Path} func {funcName}");
+        return SimulateRunServer(Path, funcName, parameters);
+    }
 
     public static object GetVar(string Path, string varName)
     {
@@ -101,13 +115,17 @@ class ModuleHelper
     }
     public static IModuleInterface CreateConector(Module mod)
     {
+        var dynamicType = DynamicTypeBuilder.CreateTypeWithInterface();
+        var instance = Activator.CreateInstance(dynamicType);//as IMyInterface
+        return instance as IModuleInterface;
+        /*
         var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
         if (conector != null)
         {
             conector.Path = mod.Path;
             conector.guid = mod.guid;
         }
-        return conector;
+        return conector;*/
     }
 
     public static void AddModule(ModuleDescription desc, string Path)

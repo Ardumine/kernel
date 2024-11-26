@@ -25,8 +25,9 @@ public class YDLidarImplement : YDLidarInterface, BaseImplement
         logger.LogI("Stoping Lidar...");
     }
 
-    public void SetMotorSpeed(int speed)
+    public void SetMotorSpeed(object[] speeda)//int speed
     {
+        int speed = 1231;
         _MotorSpeed = speed;
         logger.LogI($"Motor speed set to {speed}");
     }
