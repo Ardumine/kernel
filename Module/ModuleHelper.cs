@@ -1,34 +1,21 @@
 using Ardumine.Module.Base;
 
-class ModuleHelper
+public static class ModuleHelper
 {
     public static List<ModuleDescription> AvailableModules = new();
 
 
     public static List<IModuleInterface> RunningModuleImplements = new();
-    public static List<IModuleInterface> RunningModuleConectors = new();
+    //public static List<IModuleInterface> RunningModuleConectors = new();
     public static List<Module> RunningModules = new();
 
 
-    public static void ReloadConector(List<Module> modulesConectorsToLoad)
-    {
-        RunningModuleConectors.Clear();
-        foreach (var mod in modulesConectorsToLoad)
-        {
-            var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
-            if (conector != null)
-            {
-                conector.Path = mod.Path;
-                conector.guid = mod.guid;
-                RunningModuleConectors.Add(conector);
-            }
-        }
-    }
-    public static T GetConector<T>(string Path) where T : IModuleInterface
-    {
-        return (T)RunningModuleConectors.Where(mod => mod.Path == Path).First();
-    }
 
+    public static T GetConector<T>(string Path) where T : class, IModuleInterface
+    {
+
+        return ModuleProxy<T>.CreateProxy(Path);
+    }
 
     static IModuleInterface GetImplement(string Path)
     {
@@ -40,74 +27,57 @@ class ModuleHelper
         return (T)RunningModuleImplements.Where(mod => mod.Path == Path).First();
     }
 
-    public static T Run<T>(string Path, string funcName)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return (T)SimulateRunServer(Path, funcName, null);
-    }
 
-    public static object Run(string Path, string funcName)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateRunServer(Path, funcName, null);
-    }
-
-
-    public static object Run(string Path, string funcName, params object[] parameters)
+    public static object RunParam(string Path, string funcName, object[] parameters)
     {
         //Console.WriteLine($"Running in {Path} func {funcName}");
         return SimulateRunServer(Path, funcName, parameters);
     }
 
 
-    public static object GetVar(string Path, string varName)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateGetVarServer(Path, varName);
-    }
 
-
-    static object SimulateGetVarServer(string Path, string varName)
-    {
-        var impl = GetImplement(Path);
-        var myMethod = impl.GetType().GetMethod(varName);
-        return myMethod.Invoke(impl, null);
-    }
 
     static object SimulateRunServer(string Path, string funcName, object?[]? parameters = null)
     {
         var impl = GetImplement(Path);
         var myMethod = impl.GetType().GetMethod(funcName);
+#pragma warning disable CS8602, CS8603, CS8604
         return myMethod.Invoke(impl, parameters);
+#pragma warning restore CS8602, CS8603, CS8604
     }
 
 
     public static Module CreateModuleInstance(ModuleDescription desc, string Path)
     {
-        var mod = (Module)Activator.CreateInstance(Type.GetType(desc.NameBase));
+#pragma warning disable CS8602, CS8604
+
+        var mod = Activator.CreateInstance(Type.GetType(desc.NameBase)) as Module;
         mod.Path = Path;
         mod.guid = Guid.NewGuid();
         return mod;
+#pragma warning restore CS8602, CS8604
+
     }
 
     public static BaseImplement CreateImplementInstance(Module mod)
     {
+#pragma warning disable CS8600, CS8602, CS8603, CS8604
+
         var implement = (BaseImplement)Activator.CreateInstance(Type.GetType(mod.description.NameImplement));
         implement.Path = mod.Path;
         implement.logger = new Logger($"Mod {mod.Path}");
         implement.guid = mod.guid;
 
+#pragma warning restore CS8600, CS8602, CS8603, CS8604
+
         return implement;
     }
-    public static IModuleInterface CreateConector(Module mod)
+
+    public static T1 CreateConector<T1>(Module mod) where T1 : class, IModuleInterface
     {
-        var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
-        if (conector != null)
-        {
-            conector.Path = mod.Path;
-            conector.guid = mod.guid;
-        }
-        return conector;
+        var cc = ModuleProxy<T1>.CreateProxy(mod.Path);
+        return cc;
+
     }
 
     public static void AddModule(ModuleDescription desc, string Path)
@@ -116,7 +86,26 @@ class ModuleHelper
         RunningModules.Add(mod);
 
         RunningModuleImplements.Add(CreateImplementInstance(mod));
-        RunningModuleConectors.Add(CreateConector(mod));
 
     }
+}
+
+public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, IModuleInterface
+{
+    private string Path { get; set; }
+
+#pragma warning disable CS8602, CS8603, CS8610, CS8765
+    protected override object Invoke(System.Reflection.MethodInfo targetMethod, object[] args)
+    {
+        return ModuleHelper.RunParam(Path, targetMethod.Name, args);
+    }
+
+    public static T CreateProxy(string Path)
+    {
+        var proxy = Create<T, ModuleProxy<T>>() as ModuleProxy<T>;
+        proxy.Path = Path;
+        return proxy as T;
+    }
+#pragma warning restore CS8602, CS8603, CS8610, CS8765
+
 }

@@ -8,6 +8,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 {//Adaptative fast comunication protocol
     public override event EventHandler<OnDataRecArgs> OnDataRec;
     public override event EventHandler<AFCPServerClient> OnClientConnected;
+    public override event EventHandler<OnQuestionRecArgs> OnQuestionRec;
 
     private TcpListener tcpListener;
     private Thread threadAccepter;
@@ -17,6 +18,8 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
     private string PasswordAuth => "coolPassword";
 
     private Logger logger;
+#pragma warning disable CS8600,CS8601, CS8618
+
     public AFCPTCPServer(IPAddress iPEnd, Logger logger)
     {
         tcpListener = new(new IPEndPoint(iPEnd, 9492));
@@ -25,18 +28,24 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
         Running = false;
         this.logger = logger;
     }
+#pragma warning restore CS8600,CS8601, CS8618
+
     AuthSystem authSystem;
     DisconnectSystem disconnectSystem;
 
     public void Start()
     {
-        authSystem = new();
-        authSystem.logger = new Logger("Auth System");
-        authSystem.Server = this;
+        authSystem = new()
+        {
+            logger = new Logger("Auth System"),
+            Server = this
+        };
         authSystem.Start();
 
-        disconnectSystem = new();
-        disconnectSystem.Server = this;
+        disconnectSystem = new(){
+            logger = new Logger("Disconnect System"),
+            Server = this
+        };
         disconnectSystem.Start();
 
 
@@ -51,6 +60,14 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
     {
         Running = false;
         stopToken.Cancel();
+        Thread.Sleep(10);//Let it have some time to simmer
+
+        foreach (var item in Clients.ToList())
+        {
+            DisconnectClientForce(item, false);
+        }
+
+        tcpListener.Stop();
     }
 
     private void AccepterHandlerThread()
@@ -60,7 +77,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client));
+                HandleClient(new AFCPServerClient(client.Client.RemoteEndPoint, client));
             }
             catch (OperationCanceledException)
             {
@@ -82,6 +99,15 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
                 Data = e
             });
         };
+
+        client.OnQuestionRec += (s, e) =>
+        {
+            OnQuestionRec?.Invoke(this, new OnQuestionRecArgs()
+            {
+                Client = client,
+                Question = e
+            });
+        };
     }
 
 }
@@ -89,6 +115,12 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 
 public class OnDataRecArgs : EventArgs
 {
-    public AFCPServerClient Client { get; set; }
-    public DataReadFromRemote Data { get; set; }
+    public required AFCPServerClient Client { get; set; }
+    public required DataReadFromRemote Data { get; set; }
+}
+
+public class OnQuestionRecArgs : EventArgs
+{
+    public required AFCPServerClient Client { get; set; }
+    public required QuestionFromRemote Question { get; set; }
 }

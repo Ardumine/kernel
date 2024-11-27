@@ -13,6 +13,6 @@ public interface ModuleDescription
     public string FriendlyName { get; }
     public string Version { get; }
     public string NameImplement { get; }
-    public string NameConector { get; }
+    //public string NameConector { get; }
     public string NameBase { get; }
 }

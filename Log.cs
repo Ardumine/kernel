@@ -1,11 +1,15 @@
 public class Logger
 {
-    private Logger() { }
+    private Logger() { Name= ""; }
 
     private string Name { get; set; }
     public Logger(string _Name)
     {
         Name = _Name;
+    }
+
+    public string GetTime(){
+        return DateTime.UtcNow.ToShortTimeString();
     }
     public void LogI(string dado)
     {
@@ -15,7 +19,7 @@ public class Logger
         Console.ForegroundColor = ConsoleColor.Cyan;
         //Console.ForegroundColor = ConsoleColor.Black;
 
-        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
+        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
@@ -30,7 +34,7 @@ public class Logger
         Console.ForegroundColor = ConsoleColor.Green;
         //Console.ForegroundColor = ConsoleColor.Black;
 
-        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
+        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
@@ -68,5 +72,9 @@ public class Logger
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
+    }
+
+    public void Space(){
+        Console.WriteLine();
     }
 }

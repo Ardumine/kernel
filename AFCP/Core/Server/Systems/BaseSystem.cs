@@ -1,7 +1,7 @@
 public abstract class BaseSystem
 {
-    public BaseAFCPServer Server;
+    public required BaseAFCPServer Server;
     public abstract void Start();
-    public Logger logger { get; set; }
+    public required Logger logger { get; set; }
 
 }

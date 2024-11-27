@@ -20,16 +20,15 @@ internal class Program
     private static void Main(string[] args)
     {
         logger = new("Kernel");
+
         logger.LogI("Starting kernel...");
 
         logger.LogI("Searching modules implements...");
 
 
-
-
         var descLidar = new YDLidarDescription();
         var descAFCPTest = new AFCPClientTestDescription();
-        
+
         //Add to available modules
         ModuleHelper.AvailableModules.Add(descLidar);
 
@@ -60,6 +59,10 @@ internal class Program
         var AFCP = new AFCPTCPServer(IPAddress.Any, new Logger("Servidor AFCP"));
         AFCP.Start();
 
+        var channelSystem = new ChannelSystemServer(AFCP);
+        channelSystem.Start();  
+        channelSystem.CreateChannel("/oi", ChannelPermission.ReadWrite);
+
         bool run = true;
         logger.LogOK("Startup ended. Terminal mode.");
         Console.WriteLine();
@@ -84,7 +87,9 @@ internal class Program
         //logger.LogI("Kernel Panic: No more instructions");
         StopRunningModules();
 
+        channelSystem.Stop();
         AFCP.Stop();
+        
         logger.LogOK("Kernel stop");
 
     }

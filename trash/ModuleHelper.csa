@@ -1,0 +1,28 @@
+    public static object GetVar(string Path, string varName)
+    {
+        //Console.WriteLine($"Running in {Path} func {funcName}");
+        return SimulateGetVarServer(Path, varName);
+    }
+
+
+    static object SimulateGetVarServer(string Path, string varName)
+    {
+        var impl = GetImplement(Path);
+        var myMethod = impl.GetType().GetMethod(varName);
+        return myMethod.Invoke(impl, null);
+    }
+
+    /*public static void ReloadConector(List<Module> modulesConectorsToLoad)
+    {
+        RunningModuleConectors.Clear();
+        foreach (var mod in modulesConectorsToLoad)
+        {
+            var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
+            if (conector != null)
+            {
+                conector.Path = mod.Path;
+                conector.guid = mod.guid;
+                RunningModuleConectors.Add(conector);
+            }
+        }
+    }*/

@@ -12,7 +12,7 @@ public class AuthSystem : BaseSystem
         Server.OnClientConnected += OnClientConnected;
     }
 
-    private void OnClientConnected(object sender, AFCPServerClient client)
+    private void OnClientConnected(object? sender, AFCPServerClient client)
     {
         client.AuthState = AuthStateClientOnServer.NewConnect;
 
@@ -24,7 +24,7 @@ public class AuthSystem : BaseSystem
             client.AuthState = AuthStateClientOnServer.DoingAuth;
             if (dataRec[1] == 1)
             {//If does not allow guest and server only allows authenthicated.
-                logger.LogI("A pedir pass!");
+                //logger.LogI("A pedir pass!");
 
                 client.rawComProt.SendData(MsgTypes.Auth, Encoding.UTF8.GetBytes($"h{(UseAuth ? '\x1' : '\x0')}"));//h[hello](1/0)[server need auth]  
 
@@ -34,14 +34,14 @@ public class AuthSystem : BaseSystem
                 {
                     client.AuthState = AuthStateClientOnServer.AuthOK;
                     client.rawComProt.SendData(MsgTypes.Auth, Encoding.UTF8.GetBytes($"c\x1"));//c[check](1/0)[auth ok]
-
+                    //logger.LogI("Client auth!");
 
                     //Some testing
-                    Thread.Sleep(200);
-                    var dataRead = client.ReadChannelData(60);
+                    Thread.Sleep(10);
+                    var dataRead = client.ReadChannelData(280);
                     if (Encoding.UTF8.GetString(dataRead) == "Haro? Hibachi, Benihana, Teriyaki...")
                     {
-                        client.rawComProt.SendData(60, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
+                        client.rawComProt.SendData(280, Encoding.UTF8.GetBytes("Nagasaki, Okinawa, Hokkaido...Yokohama"));
                     }
 
                 }
