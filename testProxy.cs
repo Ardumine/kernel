@@ -92,12 +92,23 @@ class HelloDispatchProxy<T> : DispatchProxy where T : class, IThing
 
 class Programe
 {
+    public static T1 CreateConector<T1>(string Path) where T1 : class, IThing
+    {
+        var cc = HelloDispatchProxy<T1>.CreateProxy(Path);
+
+        return cc;
+     
+    }
+
+
     public static void Maine()
     {
         Runner.CreateCar("car1");
         Runner.CreateCar("car2");
 
-        var car1 = HelloDispatchProxy<ICar>.CreateProxy("/car1");
+        //var car1 = HelloDispatchProxy<ICar>.CreateProxy("/car1");
+        var car1 = (ICar)CreateConector<ICar>("/car1");
+
         var car2 = HelloDispatchProxy<ICar>.CreateProxy("/car2");
 
         car1.SetSpeed(80);

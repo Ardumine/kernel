@@ -4,9 +4,9 @@ namespace Ardumine.Module.Lidar.YDLidar;
 public interface YDLidarInterface : IModuleInterface
 {
     public void SetMotorSpeed(int speed);//int speed
-   // public int MotorSpeed { get; }
+    public int MotorSpeed { get; }
     
-    //public List<LidarPoint> Read(); 
+    public List<LidarPoint> Read(); 
 }
 public struct LidarPoint
 {

@@ -12,8 +12,6 @@ class AFCPClientTestDescription : ModuleDescription
 
     public string NameImplement => typeof(AFCPClientTestImplement).FullName;
 
-    public string NameConector => typeof(AFCPClientTestConector).FullName;
-
     public string NameBase  => typeof(AFCPClientTest).FullName; 
 
 }

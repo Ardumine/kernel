@@ -6,7 +6,7 @@ public static class ModuleHelper
 
 
     public static List<IModuleInterface> RunningModuleImplements = new();
-    public static List<IModuleInterface> RunningModuleConectors = new();
+    //public static List<IModuleInterface> RunningModuleConectors = new();
     public static List<Module> RunningModules = new();
 
 
@@ -24,9 +24,13 @@ public static class ModuleHelper
             }
         }
     }*/
-    public static T GetConector<T>(string Path) where T : IModuleInterface
+    public static T GetConector<T>(string Path) where T : class, IModuleInterface
     {
-        return (T)RunningModuleConectors.Where(mod => true).First();//mod.Path == Path
+        // return (T)RunningModuleConectors.Where(mod => {
+        //     Console.WriteLine(mod.Path + mod.GetType().Name);
+        //     return mod.Path == Path;
+        // }).First();//mod.Path == Path
+        return ModuleProxy<T>.CreateProxy(Path);
     }
 
 
@@ -98,21 +102,14 @@ public static class ModuleHelper
 
         return implement;
     }
-    public static IModuleInterface CreateConector(Module mod)
-    {
-        //IModuleInterface inst = InterfaceImplementationExtensions.CreateImplementation<IModuleInterface>();
-       // inst.Path = mod.Path;
-       // inst.guid = mod.guid;
 
-        return null;
-        /*
-        var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
-        if (conector != null)
-        {
-            conector.Path = mod.Path;
-            conector.guid = mod.guid;
-        }
-        return conector;*/
+    public static T1 CreateConector<T1>(Module mod) where T1 : class, IModuleInterface
+    {
+        // inst.Path = mod.Path;
+        // inst.guid = mod.guid;
+        var cc = ModuleProxy<T1>.CreateProxy(mod.Path);
+        return cc;
+
     }
 
     public static void AddModule(ModuleDescription desc, string Path)
@@ -121,7 +118,24 @@ public static class ModuleHelper
         RunningModules.Add(mod);
 
         RunningModuleImplements.Add(CreateImplementInstance(mod));
-        RunningModuleConectors.Add(CreateConector(mod));
+        //RunningModuleConectors.Add(CreateConector<IModuleInterface>(mod));
 
+    }
+}
+
+public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, IModuleInterface
+{
+    private string Path { get; set; }
+
+    protected override object Invoke(System.Reflection.MethodInfo targetMethod, object[] args)
+    {
+        return ModuleHelper.RunParam(Path, targetMethod.Name, args);
+    }
+
+    public static T CreateProxy(string Path)
+    {
+        var proxy = Create<T, ModuleProxy<T>>() as ModuleProxy<T>;
+        proxy.Path = Path;
+        return proxy as T;
     }
 }

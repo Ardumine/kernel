@@ -21,7 +21,7 @@ internal class Program
     {
         logger = new("Kernel");
 
-        if(true){
+        if(false){
            Programe.Maine();
            // Tests.InitTests();
            // Tests.Test2();
@@ -43,9 +43,9 @@ internal class Program
 
         //Create testing modules
         ModuleHelper.AddModule(descLidar, "/lidar");
-        //ModuleHelper.AddModule(descLidar, "/lidar2");
+        ModuleHelper.AddModule(descLidar, "/lidar2");
 
-        //ModuleHelper.AddModule(descAFCPTest, "/afcpTest");
+        ModuleHelper.AddModule(descAFCPTest, "/afcpTest");
 
 
 
