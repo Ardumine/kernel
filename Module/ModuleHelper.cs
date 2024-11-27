@@ -10,29 +10,12 @@ public static class ModuleHelper
     public static List<Module> RunningModules = new();
 
 
-    /*public static void ReloadConector(List<Module> modulesConectorsToLoad)
-    {
-        RunningModuleConectors.Clear();
-        foreach (var mod in modulesConectorsToLoad)
-        {
-            var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
-            if (conector != null)
-            {
-                conector.Path = mod.Path;
-                conector.guid = mod.guid;
-                RunningModuleConectors.Add(conector);
-            }
-        }
-    }*/
+    
     public static T GetConector<T>(string Path) where T : class, IModuleInterface
     {
-        // return (T)RunningModuleConectors.Where(mod => {
-        //     Console.WriteLine(mod.Path + mod.GetType().Name);
-        //     return mod.Path == Path;
-        // }).First();//mod.Path == Path
+     
         return ModuleProxy<T>.CreateProxy(Path);
     }
-
 
     static IModuleInterface GetImplement(string Path)
     {
@@ -44,18 +27,7 @@ public static class ModuleHelper
         return (T)RunningModuleImplements.Where(mod => mod.Path == Path).First();
     }
 
-    /*public static T Run<T>(string Path, string funcName)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return (T)SimulateRunServer(Path, funcName, null);
-    }
-*/
-
-    public static object Run(string Path, string funcName, params object[] parameters)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateRunServer(Path, funcName, parameters);
-    }
+    
     public static object RunParam(string Path, string funcName, object[] parameters)
     {
         //Console.WriteLine($"Running in {Path} func {funcName}");
@@ -63,19 +35,7 @@ public static class ModuleHelper
     }
 
 
-    public static object GetVar(string Path, string varName)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateGetVarServer(Path, varName);
-    }
 
-
-    static object SimulateGetVarServer(string Path, string varName)
-    {
-        var impl = GetImplement(Path);
-        var myMethod = impl.GetType().GetMethod(varName);
-        return myMethod.Invoke(impl, null);
-    }
 
     static object SimulateRunServer(string Path, string funcName, object?[]? parameters = null)
     {
@@ -105,8 +65,6 @@ public static class ModuleHelper
 
     public static T1 CreateConector<T1>(Module mod) where T1 : class, IModuleInterface
     {
-        // inst.Path = mod.Path;
-        // inst.guid = mod.guid;
         var cc = ModuleProxy<T1>.CreateProxy(mod.Path);
         return cc;
 
@@ -118,7 +76,6 @@ public static class ModuleHelper
         RunningModules.Add(mod);
 
         RunningModuleImplements.Add(CreateImplementInstance(mod));
-        //RunningModuleConectors.Add(CreateConector<IModuleInterface>(mod));
 
     }
 }
