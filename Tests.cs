@@ -9,7 +9,7 @@ using System.Reflection.Emit;
 
 class Tests
 {
-     static Logger logger= new Logger("Tests");
+    static Logger logger = new Logger("Tests");
     public static void InitTests()
     {
     }
@@ -26,7 +26,7 @@ class Tests
         var lidar1 = ModuleHelper.GetConector<YDLidarInterface>("/lidar");
         var lidar2 = ModuleHelper.GetConector<YDLidarInterface>("/lidar2");
 
-        lidar1.SetMotorSpeed(57);//Good reference57
+        lidar1.SetMotorSpeed(57);//Good reference
         logger.LogI($"Lidar1 Motor speed: {lidar1.MotorSpeed}");
 
         lidar2.SetMotorSpeed(80);

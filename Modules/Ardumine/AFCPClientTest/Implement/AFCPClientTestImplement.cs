@@ -21,7 +21,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 
     public void EndStop()
     {
-        // Disconnect();
+
     }
 
     private AFCPTCPClient AFCPClient;
@@ -32,7 +32,7 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
     }
     private void Main()
     {
-        Thread.Sleep(200);//Let the rest of the kernel boot
+        Thread.Sleep(100);//Let the rest of the kernel boot
         logger.Space();
 
         logger.LogOK("Begin test AFCP client");
@@ -55,7 +55,6 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 
     private void Connect()
     {
-
         bool stat = AFCPClient.Connect();
 
         logger.LogI("Client connected!");
@@ -64,7 +63,6 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
             logger.LogW("Client: wrong password!");
             return;
         }
-        Thread.Sleep(50);
 
     }
 
