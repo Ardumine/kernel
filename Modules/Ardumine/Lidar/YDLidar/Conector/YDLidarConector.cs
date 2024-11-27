@@ -23,7 +23,7 @@ public class YDLidarConectore : IModuleInterface, YDLidarInterface
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name);
     }
 
-    public void SetMotorSpeed(object[] speed)//int speed
+    public void SetMotorSpeed(int speed)//int speed
     {
         ModuleHelper.Run(Path, System.Reflection.MethodBase.GetCurrentMethod().Name, 200);
     }

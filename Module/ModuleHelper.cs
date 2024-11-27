@@ -46,33 +46,18 @@ public static class ModuleHelper
         return (T)SimulateRunServer(Path, funcName, null);
     }
 */
-    public static object RunReturn(string Path, string funcName)
-    {
-        Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateRunServer(Path, funcName, null);
-    }
 
-    public static void RunNormal(string Path, string funcName)
+    public static object Run(string Path, string funcName, params object[] parameters)
     {
-        Console.WriteLine($"Running in {Path} func {funcName}");
-        SimulateRunServer(Path, funcName, null);
+        //Console.WriteLine($"Running in {Path} func {funcName}");
+        return SimulateRunServer(Path, funcName, parameters);
     }
-    public static object RunNormal(string Path, string funcName, params object[] parameters)
+    public static object RunParam(string Path, string funcName, object[] parameters)
     {
         //Console.WriteLine($"Running in {Path} func {funcName}");
         return SimulateRunServer(Path, funcName, parameters);
     }
 
-        public static object RunNormal( object[] parameters)
-    {
-        Console.WriteLine($"Running in {parameters.Length} ");
-        return "aa";
-    }
- public static object Run(string Path, string funcName, params object[] parameters)
-    {
-        //Console.WriteLine($"Running in {Path} func {funcName}");
-        return SimulateRunServer(Path, funcName, parameters);
-    }
 
     public static object GetVar(string Path, string varName)
     {
@@ -115,9 +100,11 @@ public static class ModuleHelper
     }
     public static IModuleInterface CreateConector(Module mod)
     {
-        var dynamicType = DynamicTypeBuilder.CreateTypeWithInterface();
-        var instance = Activator.CreateInstance(dynamicType);//as IMyInterface
-        return instance as IModuleInterface;
+        //IModuleInterface inst = InterfaceImplementationExtensions.CreateImplementation<IModuleInterface>();
+       // inst.Path = mod.Path;
+       // inst.guid = mod.guid;
+
+        return null;
         /*
         var conector = (IModuleInterface)Activator.CreateInstance(Type.GetType(mod.description.NameConector));
         if (conector != null)
