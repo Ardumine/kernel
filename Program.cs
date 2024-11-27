@@ -21,18 +21,9 @@ internal class Program
     {
         logger = new("Kernel");
 
-        if(false){
-           //Programe.Maine();
-           // Tests.InitTests();
-           // Tests.Test2();
-            return;
-        }
-
         logger.LogI("Starting kernel...");
 
         logger.LogI("Searching modules implements...");
-
-
 
 
         var descLidar = new YDLidarDescription();

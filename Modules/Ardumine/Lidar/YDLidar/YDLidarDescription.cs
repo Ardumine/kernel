@@ -4,7 +4,7 @@ namespace Ardumine.Module.Lidar.YDLidar;
 
 class YDLidarDescription : ModuleDescription
 {
-    public string Name => GetType().FullName;
+    public string Name => "YDLidarConector";
 
     public string FriendlyName => "YDLidar conector";
 

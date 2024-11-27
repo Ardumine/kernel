@@ -18,6 +18,8 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
     private string PasswordAuth => "coolPassword";
 
     private Logger logger;
+#pragma warning disable CS8600,CS8601, CS8618
+
     public AFCPTCPServer(IPAddress iPEnd, Logger logger)
     {
         tcpListener = new(new IPEndPoint(iPEnd, 9492));
@@ -26,6 +28,8 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
         Running = false;
         this.logger = logger;
     }
+#pragma warning restore CS8600,CS8601, CS8618
+
     AuthSystem authSystem;
     DisconnectSystem disconnectSystem;
 

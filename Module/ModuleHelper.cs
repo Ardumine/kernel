@@ -43,7 +43,7 @@ public static class ModuleHelper
         var myMethod = impl.GetType().GetMethod(funcName);
 #pragma warning disable CS8602, CS8603, CS8604
         return myMethod.Invoke(impl, parameters);
-#pragma warning disable CS8602, CS8603, CS8604
+#pragma warning restore CS8602, CS8603, CS8604
     }
 
 
@@ -55,7 +55,7 @@ public static class ModuleHelper
         mod.Path = Path;
         mod.guid = Guid.NewGuid();
         return mod;
-#pragma warning disable CS8602, CS8604
+#pragma warning restore CS8602, CS8604
 
     }
 
@@ -68,7 +68,7 @@ public static class ModuleHelper
         implement.logger = new Logger($"Mod {mod.Path}");
         implement.guid = mod.guid;
 
-#pragma warning disable CS8600, CS8602, CS8603, CS8604
+#pragma warning restore CS8600, CS8602, CS8603, CS8604
 
         return implement;
     }
@@ -92,14 +92,13 @@ public static class ModuleHelper
 
 public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, IModuleInterface
 {
-    private string? Path { get; set; }
+    private string Path { get; set; }
 
-#pragma warning disable CS8610, CS8765
+#pragma warning disable CS8602, CS8603, CS8610, CS8765
     protected override object Invoke(System.Reflection.MethodInfo targetMethod, object[] args)
     {
         return ModuleHelper.RunParam(Path, targetMethod.Name, args);
     }
-#pragma warning restore CS8610, CS8765
 
     public static T CreateProxy(string Path)
     {
@@ -107,4 +106,6 @@ public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, I
         proxy.Path = Path;
         return proxy as T;
     }
+#pragma warning restore CS8602, CS8603, CS8610, CS8765
+
 }

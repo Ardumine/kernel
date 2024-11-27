@@ -32,9 +32,13 @@ public class AFCPTCPClient : IAFCPClient
         thReadData = new(FuncReadData);
         QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
     }
+
     public AFCPTCPClient(EndPoint? remIP, TcpClient tcpClient)
     {
+#pragma warning disable CS8600, CS8601
         remoteIP = (IPEndPoint)remIP;
+#pragma warning restore CS8600, CS8601
+
         rawComProt = new(tcpClient);
         thReadData = new(FuncReadData);
         clientHandshaker = new(this);
@@ -63,7 +67,7 @@ public class AFCPTCPClient : IAFCPClient
         public ushort MessageChannel { get; set; }
 
         public int TimeoutMS { get; set; }
-        public byte[]? Data { get; set; }
+        public byte[] Data { get; set; }
     }
     List<ChannelEventHandler> handlers = new();
     public void TripResetEvent(ushort Channel, ushort questionChannelID, byte[] Data)
@@ -100,8 +104,8 @@ public class AFCPTCPClient : IAFCPClient
     private byte[] WaitResetEvent(ChannelEventHandler handler)
     {
         if (!handler.autoResetEvent.WaitOne(handler.TimeoutMS))
-        {//Timout
-            return null;
+        {//Timeout
+            return [];
         }
         return handler.Data;
 
@@ -209,9 +213,5 @@ public class AFCPTCPClient : IAFCPClient
     }
 
 
-    public void Answer()
-    {
-
-    }
 
 }
