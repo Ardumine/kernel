@@ -91,7 +91,6 @@ internal class Program
         AFCP.Stop();
         
         logger.LogOK("Kernel stop");
-
     }
 
 

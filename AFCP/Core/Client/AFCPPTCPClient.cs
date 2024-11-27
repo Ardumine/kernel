@@ -43,9 +43,9 @@ public class AFCPTCPClient : IAFCPClient
         thReadData = new(FuncReadData);
         clientHandshaker = new(this);
         QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
+        Run = true;
 
         thReadData.Start();
-        Run = true;
     }
 
 
@@ -54,12 +54,12 @@ public class AFCPTCPClient : IAFCPClient
         rawComProt.Connect(remoteIP);
         Run = true;
         thReadData.Start();
-        Thread.Sleep(1);
+        Thread.Sleep(10);//Let the server have some time to ack the connection. Do not remove.
         return clientHandshaker.DoAuth(true);
     }
 
 
-#region Data receiving with questions.
+    #region Data receiving with questions.
     class ChannelEventHandler
     {
         public required AutoResetEvent autoResetEvent;
@@ -111,22 +111,28 @@ public class AFCPTCPClient : IAFCPClient
 
     }
 
-#endregion
+    #endregion
 
     private void FuncReadData()
     {
         while (Run)
         {
+            DataReadFromRemote? dataRec = null;
             try
             {
-                var dataRec = rawComProt.ReadData(StopToken);
+                dataRec = rawComProt.ReadData(StopToken);
+            }
+            catch (OperationCanceledException) { }
+            catch (ObjectDisposedException) { }
+            if (dataRec != null)
+            {
 
                 if (MsgTypes.GetType(dataRec.MsgType) == MsgType.Question)//On question received
                 {
                     //rawComProt.SendQuestion((ushort)(dataRec.MsgType + 1000), dataRec.QuestionChannelID, [0, 1]);
 
                     QuestionFromRemote cc = new(dataRec.MsgType, dataRec.QuestionChannelID, dataRec.Data, rawComProt);
-                    cc.comProt = rawComProt; 
+                    cc.comProt = rawComProt;
                     OnQuestionRec?.Invoke(this, cc);
 
                 }
@@ -140,11 +146,6 @@ public class AFCPTCPClient : IAFCPClient
                     OnDataRec?.Invoke(this, dataRec);
                 }
 
-
-
-            }
-            catch(OperationCanceledException)
-            {
             }
         }
     }
@@ -184,7 +185,7 @@ public class AFCPTCPClient : IAFCPClient
         //[2400, 3400] +1000 to IDQuestion. Indicates its a answer
 
         //channelQuestion: [200, 1200] The channel to ask.
-        
+
         //Console.WriteLine("Ask " + channelQuestionID);
 
         ushort IDQuestion = (ushort)QuestionIDGenerator.GenerateID();
@@ -198,7 +199,7 @@ public class AFCPTCPClient : IAFCPClient
     }
 
 
-     //We ask something
+    //We ask something
     //We ask something to a channel.
     public void Post(ushort channelQuestionID, byte[] data)
     {
@@ -206,7 +207,7 @@ public class AFCPTCPClient : IAFCPClient
         //[2400, 3400] +1000 to IDQuestion. Indicates its a answer
 
         //channelQuestion: [200, 1200] The channel to ask.
-        
+
 
         rawComProt.SendData(channelQuestionID, data);
 
