@@ -9,9 +9,8 @@ namespace Ardumine.AFCP.Core.Client;
 public class AFCPTCPClient : IAFCPClient
 {
 
-    public string Name { get; set; }
-    public event EventHandler<DataReadFromRemote> OnDataRec;
-    public event EventHandler<QuestionFromRemote> OnQuestionRec;
+    public event EventHandler<DataReadFromRemote>? OnDataRec;
+    public event EventHandler<QuestionFromRemote>? OnQuestionRec;
 
     ClientHandshaker clientHandshaker;
     CancellationTokenSource StopToken = new CancellationTokenSource();
@@ -33,14 +32,16 @@ public class AFCPTCPClient : IAFCPClient
         thReadData = new(FuncReadData);
         QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
     }
-    public AFCPTCPClient(IPEndPoint remIP, TcpClient tcpClient)
+    public AFCPTCPClient(EndPoint? remIP, TcpClient tcpClient)
     {
-        thReadData = new(FuncReadData);
-        remoteIP = remIP;
+        remoteIP = (IPEndPoint)remIP;
         rawComProt = new(tcpClient);
+        thReadData = new(FuncReadData);
+        clientHandshaker = new(this);
+        QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
+
         thReadData.Start();
         Run = true;
-        QuestionIDGenerator = new(MsgTypes.MIIQuestID, MsgTypes.MXIQuestID);
     }
 
 
@@ -57,12 +58,12 @@ public class AFCPTCPClient : IAFCPClient
 #region Data receiving with questions.
     class ChannelEventHandler
     {
-        public AutoResetEvent autoResetEvent;
+        public required AutoResetEvent autoResetEvent;
         public ushort QuestionChannelID { get; set; }
         public ushort MessageChannel { get; set; }
 
         public int TimeoutMS { get; set; }
-        public byte[] Data { get; set; }
+        public byte[]? Data { get; set; }
     }
     List<ChannelEventHandler> handlers = new();
     public void TripResetEvent(ushort Channel, ushort questionChannelID, byte[] Data)
@@ -142,7 +143,6 @@ public class AFCPTCPClient : IAFCPClient
             {
             }
         }
-        Console.WriteLine("exit" + Name);
     }
 
 

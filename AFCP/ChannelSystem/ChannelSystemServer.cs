@@ -20,12 +20,12 @@ public class ChannelSystemServer
         AFCPServer.OnDataRec += OnAFCPDataRec;
         AFCPServer.OnQuestionRec += OnQuestionRec;
     }
-    private void OnQuestionRec(object sender, OnQuestionRecArgs args)
+    private void OnQuestionRec(object? sender, OnQuestionRecArgs args)
     {
         //Console.WriteLine("Req to " + args.Data.QuestionChannelID);
-        var data = args.Data.Data;
+        var data = args.Question.Data;
 
-        if (MsgTypes.GetType(args.Data.QuestionChannelID) == MsgType.ChannelResolve)
+        if (MsgTypes.GetType(args.Question.QuestionChannelID) == MsgType.ChannelResolve)
         {
             if (data[0] == 0x1)//1: resolve
             {
@@ -33,7 +33,7 @@ public class ChannelSystemServer
                 var channel = Channels.Where(channel => channel.URL == url).FirstOrDefault();
                 if (channel == null)
                 {
-                    args.Data.Answer([40]);//40: not found
+                    args.Question.Answer([40]);//40: not found
                     return;
                 }
 
@@ -46,7 +46,7 @@ public class ChannelSystemServer
                 Array.Copy(channelData, 0, oute, 1, channelData.Length);
                 //Console.WriteLine($"Rec mand: {string.Join(" ", oute)}");
 
-                args.Data.Answer(oute);
+                args.Question.Answer(oute);
 
 
             }
@@ -56,25 +56,25 @@ public class ChannelSystemServer
                 var channel = Channels.Where(channel => channel.URL == url).FirstOrDefault();
                 if (channel == null)
                 {
-                    args.Data.Answer([40]);//40: not found
+                    args.Question.Answer([40]);//40: not found
                     return;
                 }
                 var channelData = channel.Get();
                 byte[] oute = new byte[channelData.Length + 1];
                 oute[0] = 0;
                 Array.Copy(channelData, 0, oute, 1, channelData.Length);
-                args.Data.Answer(oute);
+                args.Question.Answer(oute);
             }
 
         }
-        if (IDChannelGenerator.Contains(args.Data.QuestionChannelID))
+        if (IDChannelGenerator.Contains(args.Question.QuestionChannelID))
         {
-            var channel = Channels.Where(channel => channel.AFCP_ID == args.Data.QuestionChannelID).FirstOrDefault();
+            var channel = Channels.Where(channel => channel.AFCP_ID == args.Question.QuestionChannelID).FirstOrDefault();
             if (channel != null)
             {
-                if (args.Data.Data.Length == 0)
+                if (args.Question.Data.Length == 0)
                 {
-                    args.Data.Answer(channel.Get());
+                    args.Question.Answer(channel.Get());
                 }
 
             }
@@ -82,7 +82,7 @@ public class ChannelSystemServer
         }
     }
 
-    private void OnAFCPDataRec(object sender, OnDataRecArgs args)
+    private void OnAFCPDataRec(object? sender, OnDataRecArgs args)
     {
         if (IDChannelGenerator.Contains(args.Data.MsgType))
         {
@@ -129,6 +129,7 @@ public class ChannelSystemServer
     public void Stop()
     {
         AFCPServer.OnDataRec -= OnAFCPDataRec;
+        AFCPServer.OnQuestionRec -= OnQuestionRec;
     }
 
 }

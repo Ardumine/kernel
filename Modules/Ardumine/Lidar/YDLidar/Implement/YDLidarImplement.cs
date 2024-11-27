@@ -6,9 +6,9 @@ public class YDLidarImplement : YDLidarInterface, BaseImplement
     private int _MotorSpeed;
     public int MotorSpeed => _MotorSpeed;
 
-    public string Path { get; set; }
+    public required string Path { get; set; }
     public Guid guid { get; set; }
-    public Logger logger { get; set; }
+    public required Logger logger { get; set; }
 
     public void Prepare()
     {

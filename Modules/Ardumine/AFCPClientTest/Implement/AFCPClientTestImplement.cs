@@ -6,10 +6,9 @@ using Ardumine.Module.Base;
 namespace Ardumine.Module.AFCPClientTest;
 public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
 {
-
-    public string Path { get; set; }
+    public required string Path { get; set; }
     public Guid guid { get; set; }
-    public Logger logger { get; set; }
+    public required Logger logger { get; set; }
 
     public void Prepare()
     {
@@ -39,7 +38,6 @@ public class AFCPClientTestImplement : AFCPClientTestInterface, BaseImplement
         logger.LogOK("Begin test AFCP client");
 
         AFCPClient = new AFCPTCPClient(IPAddress.Loopback, true);
-        AFCPClient.Name = "Client";
 
         logger.LogI("Conecting...");
         Connect();

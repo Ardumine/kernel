@@ -31,13 +31,17 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 
     public void Start()
     {
-        authSystem = new();
-        authSystem.logger = new Logger("Auth System");
-        authSystem.Server = this;
+        authSystem = new()
+        {
+            logger = new Logger("Auth System"),
+            Server = this
+        };
         authSystem.Start();
 
-        disconnectSystem = new();
-        disconnectSystem.Server = this;
+        disconnectSystem = new(){
+            logger = new Logger("Disconnect System"),
+            Server = this
+        };
         disconnectSystem.Start();
 
 
@@ -69,7 +73,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
             try
             {
                 var client = tcpListener.AcceptTcpClientAsync(stopToken.Token).AsTask().GetAwaiter().GetResult();
-                HandleClient(new AFCPServerClient((IPEndPoint)client.Client.RemoteEndPoint, client){Name = "server"});
+                HandleClient(new AFCPServerClient(client.Client.RemoteEndPoint, client));
             }
             catch (OperationCanceledException)
             {
@@ -97,7 +101,7 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
             OnQuestionRec?.Invoke(this, new OnQuestionRecArgs()
             {
                 Client = client,
-                Data = e
+                Question = e
             });
         };
     }
@@ -107,12 +111,12 @@ public class AFCPTCPServer : BaseAFCPServer, IAFCPServer
 
 public class OnDataRecArgs : EventArgs
 {
-    public AFCPServerClient Client { get; set; }
-    public DataReadFromRemote Data { get; set; }
+    public required AFCPServerClient Client { get; set; }
+    public required DataReadFromRemote Data { get; set; }
 }
 
 public class OnQuestionRecArgs : EventArgs
 {
-    public AFCPServerClient Client { get; set; }
-    public QuestionFromRemote Data { get; set; }
+    public required AFCPServerClient Client { get; set; }
+    public required QuestionFromRemote Question { get; set; }
 }

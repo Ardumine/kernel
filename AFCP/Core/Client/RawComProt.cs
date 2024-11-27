@@ -6,7 +6,7 @@ public abstract class IRawComProt
 {
     public abstract void Connect(IPEndPoint ipa);
     public abstract void SendData(ushort DataType, byte[] Data);
-    public abstract DataReadFromRemote ReadData(CancellationTokenSource _stopToken = null);
+    public abstract DataReadFromRemote ReadData(CancellationTokenSource _stopToken);
     public abstract void Close();
     public abstract void SendQuestion(ushort channelID, ushort channelQuestionID, byte[] data);
 

@@ -22,7 +22,7 @@ internal class Program
         logger = new("Kernel");
 
         if(false){
-           Programe.Maine();
+           //Programe.Maine();
            // Tests.InitTests();
            // Tests.Test2();
             return;

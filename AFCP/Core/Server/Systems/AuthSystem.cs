@@ -12,7 +12,7 @@ public class AuthSystem : BaseSystem
         Server.OnClientConnected += OnClientConnected;
     }
 
-    private void OnClientConnected(object sender, AFCPServerClient client)
+    private void OnClientConnected(object? sender, AFCPServerClient client)
     {
         client.AuthState = AuthStateClientOnServer.NewConnect;
 

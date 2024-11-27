@@ -1,6 +1,6 @@
 public class Logger
 {
-    private Logger() { }
+    private Logger() { Name= ""; }
 
     private string Name { get; set; }
     public Logger(string _Name)

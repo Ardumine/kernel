@@ -8,11 +8,12 @@ namespace Ardumine.AFCP.Core.Client.RawComProt;
 public class TCPRawComProt : IRawComProt
 {
 
-    private NetworkStream networkStream;
     private TcpClient TCPClient;
+    private NetworkStream networkStream;
     public CancellationTokenSource StopToken = new CancellationTokenSource();
     public TCPRawComProt()
     {
+        TCPClient = new();
 
     }
     public TCPRawComProt(TcpClient _tcpClient)
@@ -75,7 +76,7 @@ public class TCPRawComProt : IRawComProt
     /// Waits until it receives data from the remote. It handles data sizes auto.
     /// </summary>
     /// <returns>Message type and Received byte array</returns>
-    public override DataReadFromRemote ReadData(CancellationTokenSource _stopToken = null)
+    public override DataReadFromRemote ReadData(CancellationTokenSource _stopToken)
     {
         if (_stopToken == null) _stopToken = StopToken;
         byte[] BufferLenRec = new byte[2];

@@ -7,7 +7,7 @@ public class Channel
     public ChannelPermission Perms { get; private set; }
     public ushort AFCP_ID { get; set; }
     public bool Local { get; set; }
-    private AFCPTCPClient Client;
+    private AFCPTCPClient ?Client;
     public Channel(string _URL, AFCPTCPClient client)
     {
         URL = _URL;
@@ -29,7 +29,7 @@ public class Channel
         }
         else
         {
-            Client.Post(AFCP_ID, data);
+            Client?.Post(AFCP_ID, data);
         }
     }
     public byte[] Get()
@@ -41,7 +41,7 @@ public class Channel
         else
         {
             //    var ans = AFCPClient.Ask(499, []);
-            return Client.Ask(AFCP_ID, []);
+            return Client?.Ask(AFCP_ID, []);
         }
     }
 

@@ -8,7 +8,7 @@ public class DisconnectSystem : BaseSystem
     {
         Server.OnDataRec += OnDataRec;
     }
-    private void OnDataRec(object sender, OnDataRecArgs data){
+    private void OnDataRec(object? sender, OnDataRecArgs data){
         if(data.Data.MsgType == MsgTypes.Disconnect){
             Server.DisconnectClientForce(data.Client);
         }
