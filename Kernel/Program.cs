@@ -31,19 +31,9 @@ internal class Program
 
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
-            //Console.WriteLine("AssemblyResolve: " + args.Name);
-            var aa = moduleLoader.GetModuleAssembly(args.Name);//In case a module requires another module
-            if (aa == null)
-            {
-                string assemblyPath = Path.Combine(@"C:\dados\hort\kernelTest\Modules.SLAM.Hector\bin\Debug\net9.0", new AssemblyName(args.Name).Name + ".dll");
-                if (File.Exists(assemblyPath))
-                {
-                    return Assembly.LoadFrom(assemblyPath);
-                }
-            }
-            return aa;
-
+            return moduleLoader.GetModuleAssembly(args.Name);//In case a module requires another module
         };
+
         logger.LogI("Starting AFCP...");
         channelServer.Start();
 
@@ -74,19 +64,9 @@ internal class Program
         StartersTreeStart(startingTrigger);
 
 
-        // foreach (var mod in logger.CreateIterator(moduleManager.RunningModules.Where(m => m.StartOnBoot), "Starting modules..."))
-        {
-            //    var impl = moduleManager.GetLocalImplement(mod);
-            //    impl.Start();
-            //     mod.Running = true;
-        }
-        channelManager.CreateLocalDataChannel<string>("/test", false);
-        var channel = channelManager.GetInterfaceForChannel<string>("/test");
-
-        channel.Set("Hi");
-
         logger.LogOK("Kernel started!");
-        Console.ReadLine();
+        Console.ReadLine();//Wait for stop signal
+
 
         logger.Space();
         logger.LogI("Stop");

@@ -6,7 +6,7 @@ public class YDLidarDescription : ModuleDescription
 {
     public string Name => "YDLidar";
 
-    public string FriendlyName => "conector";
+    public string FriendlyName => "YDLidar conector";
 
     public string Version => "0.1.0";
 
