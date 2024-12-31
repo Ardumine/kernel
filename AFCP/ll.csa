@@ -1,0 +1,69 @@
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(PacketCustomData), typeDiscriminator: "PacketCustomData")]
+[JsonDerivedType(typeof(PacketDoubleData), typeDiscriminator: "PacketDoubleData")]
+public class PacketBase
+{
+
+}
+public class PacketCustomData : PacketBase
+{
+    //This can be MyCustomData, string, int, etc...
+    [JsonConverter(typeof(ObjectToInferredTypesConverter))]
+    public object Data { get; set; }
+}
+
+
+
+public class PacketDoubleData : PacketBase
+{
+    public object Data1 { get; set; }
+    public object Data2 { get; set; }
+
+}
+public class MyCustomData
+{
+    public string Field1 { get; set; }
+}
+
+
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        PacketBase packetWithData = new PacketCustomData()
+        {
+            Data = new Vector3(1, 2, 3)
+        };
+
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNameCaseInsensitive = true,
+            Converters = { new Vector3JsonConverter() }
+        };
+
+
+
+        string jsonString = JsonSerializer.Serialize(packetWithData, options);
+
+        //{"$type":"PacketCustomData","Data":{"Field1":"Hi"}}
+        Console.WriteLine("Serialized JSON: " + jsonString);
+
+
+        //Lets supose I already know the type of packet is PacketCustomData
+        PacketCustomData deserializedPacket = JsonSerializer.Deserialize<PacketCustomData>(jsonString, options);
+
+        //And I already know that the data it holds is CustomData.
+        //Unhandled exception. System.InvalidCastException: Unable to cast object of type 'System.Text.Json.JsonElement' to type 'CustomData'.
+        // Properly convert the Data to CustomData
+        var myData = deserializedPacket.Data is JsonElement jsonElement
+        ? JsonSerializer.Deserialize<Vector3>(jsonElement, options)
+        : (Vector3)deserializedPacket.Data;
+
+
+        //In this case, Field1 has "Hi"
+        Console.WriteLine("Field1 data: " + myData.X);
+
+
+    }
+}
