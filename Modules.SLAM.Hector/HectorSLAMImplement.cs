@@ -75,8 +75,8 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
             var ray = points[iRay];
             scanCloud.Points.Add(new Vector2()
             {
-                X = ray.Distance * MathF.Cos(ray.AngleRad),
-                Y = ray.Distance * MathF.Sin(ray.AngleRad),
+                X = ray.Distance * MathF.Cos(ray.Angle),
+                Y = ray.Distance * MathF.Sin(ray.Angle),
             });
         }
 

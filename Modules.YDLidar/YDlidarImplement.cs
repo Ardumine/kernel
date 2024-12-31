@@ -152,7 +152,7 @@ public class YDLidarImplement : Kernel.Modules.Base.BaseImplement, IYDLidar
             {
                 points.Add(new()
                 {
-                    AngleRad = angle,
+                    Angle = angle,
                     Distance = hit
                 });
             }
