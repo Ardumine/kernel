@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kernel.Modules.Base\Kernel.Modules.Base.csproj"/>
+    <ProjectReference Include="..\Kernel.Logging\Kernel.Logging.csproj"/>
+    <ProjectReference Include="..\AFCP\AFCP.csproj"/>
+  </ItemGroup>
+</Project>

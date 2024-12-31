@@ -1,0 +1,86 @@
+{
+    "ModulesDlls": [
+        "[root]/Module1/bin/Debug/net9.0/Module1.dll",
+        "[root]/Module2/bin/Debug/net9.0/Module2.dll",
+        "[root]/Modules.YDLidar/bin/Debug/net9.0/Modules.YDLidar.dll",
+        "[root]/Modules.SLAM.Hector/bin/Debug/net9.0/Modules.SLAM.Hector.dll"
+    ],
+    "StartupModules": [
+        {
+            "ModuleName": "Module1",
+            "Path": "/modules/mod1",
+            
+            "StartOnBoot": true,
+            "startAfter" : ".kernel"
+
+        },
+        {
+            "ModuleName": "Module2",
+            "Path": "/modules/mod2",
+
+            "StartOnBoot": false,
+            "startAfter" : "/modules/mod1"
+
+        },
+        {
+            "ModuleName": "YDLidar",
+            "Path": "/modules/YDLidar",
+            
+            "StartOnBoot": true,
+            "startAfter" : "kernel",
+
+            "hostingChannels": [
+                {
+                    "Path": "/lidarData",
+                    "Name": "#lidarData",
+                    "HighData" : true
+                }
+            ],
+
+            "Config": {
+                "Port": "COM14"
+            }
+        },
+        {
+            "ModuleName": "HectorSLAM",
+            "Path": "/modules/HectorSLAM",
+            "StartOnBoot": true,
+            "startAfter" : "/modules/YDLidar",
+
+            "hostingChannels": [
+                {
+                    "Path": "/slamPos",
+                    "Name": "#slamPos",
+                    "HighData" : true
+
+                },
+                {
+                    "Path": "/SLAMmap",
+                    "Name": "#SLAMmap",
+                    "HighData" : true
+                }
+
+            ],
+            "connectedChannels": [
+                {
+                    "Path": "/lidarData",
+                    "Name": "#lidarData",
+                    "HighData" : true
+
+                }
+            ],
+            "Config": {
+                "Port": "COM14"
+            }
+        }
+     
+    ],
+    "RCS": {
+        "symlinks": [
+            {
+                "source": "/modules/mod1",
+                "dest": "/modules/modMain"
+            }
+        ]
+    }
+}

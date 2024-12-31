@@ -1,0 +1,14 @@
+     if(workingConsoleLine == -1){
+            
+            Console.WriteLine();
+            workingConsoleLine = Console.CursorTop;
+            Console.Write("a");
+            Console.WriteLine();
+            Console.WriteLine();
+
+        }        (int lastChar, int lastLine) = Console.GetCursorPosition();
+
+        Console.SetCursorPosition(0, workingConsoleLine);
+
+        Console.SetCursorPosition(lastChar, lastLine);
+    private int workingConsoleLine = -1;

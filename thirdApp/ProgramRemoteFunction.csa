@@ -1,0 +1,218 @@
+﻿
+using System.Diagnostics;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using MessagePack;
+
+
+class TestClass
+{
+    public void hello()
+    {
+
+    }
+    public void Func2(int a)
+    {
+        //  Console.WriteLine($"A: " + a);
+    }
+}
+
+public class MethodDesc
+{
+    public required string Name { get; set; }
+    public required byte guid { get; set; }
+    public required Type[] Params { get; set; }
+}
+public static class Shared
+{
+    public static List<MethodDesc> methods = new List<MethodDesc>();
+}
+
+public class Client
+{
+    public void GenCache()
+    {
+        var classe = new TestClass();
+        //generate cache
+        MethodInfo[] array = classe.GetType().GetMethods();
+        for (int i = 0; i < array.Length; i++)
+        {
+            MethodInfo? met = array[i];
+            Shared.methods.Add(new MethodDesc() { Name = met.Name, guid = (byte)i, Params = met.GetParameters().Select(m => m.ParameterType).ToArray() });
+            Console.WriteLine($"{met.Name} {i}");
+        }
+
+
+    }
+
+    public byte[] GetRun()
+    {
+        var met = Shared.methods.Where(met => met.Name == "Func2").FirstOrDefault();
+
+        object[] param = [1];//parameters
+
+
+
+        var bin = MessagePackSerializer.Serialize(param);
+
+        byte[] oute = new byte[1 + bin.Length];
+
+        Array.Copy(bin, 0, oute, 1, bin.Length);
+        oute[0] = met.guid;//MetID
+
+
+        return oute;
+    }
+}
+
+
+public delegate object ReturnValueDelegate(object instance, object[] arguments);
+public delegate void VoidDelegate(object instance, object[] arguments);
+
+
+public class FastMethodInfo
+{
+    public FastMethodInfo(MethodInfo methodInfo)
+    {
+        var instanceExpression = Expression.Parameter(typeof(object), "instance");
+        var argumentsExpression = Expression.Parameter(typeof(object[]), "arguments");
+        var argumentExpressions = new List<Expression>();
+        var parameterInfos = methodInfo.GetParameters();
+        for (var i = 0; i < parameterInfos.Length; ++i)
+        {
+            var parameterInfo = parameterInfos[i];
+            argumentExpressions.Add(Expression.Convert(Expression.ArrayIndex(argumentsExpression, Expression.Constant(i)), parameterInfo.ParameterType));
+        }
+        var callExpression = Expression.Call(!methodInfo.IsStatic ? Expression.Convert(instanceExpression, methodInfo.ReflectedType) : null, methodInfo, argumentExpressions);
+        if (callExpression.Type == typeof(void))
+        {
+            var voidDelegate = Expression.Lambda<VoidDelegate>(callExpression, instanceExpression, argumentsExpression).Compile();
+            Delegate = (instance, arguments) => { voidDelegate(instance, arguments); return null; };
+        }
+        else
+            Delegate = Expression.Lambda<ReturnValueDelegate>(Expression.Convert(callExpression, typeof(object)), instanceExpression, argumentsExpression).Compile();
+    }
+
+    public ReturnValueDelegate Delegate { get; }
+
+    public object Invoke(object instance, params object[] arguments)
+    {
+        return Delegate(instance, arguments);
+    }
+}
+public class Server
+{
+    MethodInfo[] Cache;
+    ReturnValueDelegate[] Cache2;
+    Type[][] CacheTypeIn;
+
+    TestClass testClass = new TestClass();
+
+    public void GenCache()
+    {
+        Cache = new MethodInfo[Shared.methods.Count];
+        Cache2 = new ReturnValueDelegate[Shared.methods.Count];
+        CacheTypeIn = new Type[Shared.methods.Count][];
+
+        var type = typeof(TestClass);
+
+        foreach (var item in Shared.methods)
+        {
+            Cache[item.guid] = type.GetMethod(item.Name, item.Params);
+            Cache2[item.guid] = new FastMethodInfo(type.GetMethod(item.Name, item.Params)).Delegate;
+            CacheTypeIn[item.guid] = item.Params;
+        }
+    }
+
+    (int, object[]) Decode(byte[] data)
+    {
+        int metID = data[0];
+        //int metID = 1;
+
+        object[] param = MessagePackSerializer.Deserialize<object[]>(new ReadOnlyMemory<byte>(data, 1, data.Length - 1));
+
+        //object[] param = MessagePackSerializer.Deserialize<object[]>(data);
+
+        //object[] param = [1];
+
+        return (metID, param);
+    }
+    public void Run(byte[] bytes)
+    {
+        (int metID, object[] param) = Decode(bytes);
+        Cache[metID].Invoke(testClass, param);
+    }
+    public void Run2(byte[] bytes)
+    {
+        (int metID, object[] param) = Decode(bytes);
+        Cache2[metID](testClass, param);
+    }
+    public void Run3(byte[] bytes)
+    {
+        (int metID, object[] param) = Decode(bytes);
+        typeof(TestClass).GetMethods()[metID].Invoke(testClass, param);//Func2 hello GetMethod("Func2") 
+    }
+
+}
+
+internal class Program
+{
+
+    private static void Main(string[] args)
+    {
+        var client = new Client();
+        var server = new Server();
+
+        client.GenCache();
+        server.GenCache();
+
+        byte[] a = client.GetRun();
+
+        const int num = 1000_0000;
+        for (int i = 0; i < 100; i++)
+        {
+            server.Run(a);
+        }
+
+        var sw = Stopwatch.StartNew();
+        for (int i = 0; i < num; i++)
+        {
+            server.Run(a);
+        }
+        Console.WriteLine($"Tmp: {sw.ElapsedMilliseconds} {num / (float)sw.ElapsedMilliseconds}run/ms");
+
+
+
+
+        for (int i = 0; i < 100; i++)
+        {
+            server.Run2(a);
+        }
+
+        sw.Restart();
+        for (int i = 0; i < num; i++)
+        {
+            server.Run2(a);
+        }
+        Console.WriteLine($"Tmp: {sw.ElapsedMilliseconds} {num / (float)sw.ElapsedMilliseconds}run/ms");
+
+
+
+
+
+        for (int i = 0; i < 100; i++)
+        {
+            server.Run3(a);
+        }
+
+        sw.Restart();
+        for (int i = 0; i < num; i++)
+        {
+            server.Run3(a);
+        }
+        Console.WriteLine($"Tmp: {sw.ElapsedMilliseconds} {num / (float)sw.ElapsedMilliseconds}run/ms");
+
+    }
+}

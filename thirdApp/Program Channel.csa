@@ -1,0 +1,61 @@
+﻿//Yup we just cant
+public class ChannelDecora : Attribute
+{
+    public string Path { get; set; }
+    private ChannelDecora()
+    {
+
+    }
+
+    public ChannelDecora(string _Path, bool _PublicSet)
+    {
+        Path = _Path;
+    }
+}
+
+public class Channel<T> {
+
+}
+
+interface Mod
+{
+
+}
+interface IMod1 : Mod
+{
+}
+
+
+class Mod1Implement : IMod1
+{
+    public Channel<string> MyVar { get; set; }
+}
+
+
+internal class Program
+{
+    private static void Main(string[] args)
+    {
+
+        var modImpl = new Mod1Implement();
+
+
+        foreach (var interf in modImpl.GetType().GetInterfaces().Where(inter => inter.IsAssignableTo(typeof(Mod)) && typeof(Mod) != inter))
+        {
+            foreach (var prop in interf.GetProperties())
+            {
+                foreach (var atrib in prop.CustomAttributes)
+                {
+                    
+                }
+            }
+
+
+        }
+
+    }
+
+
+
+
+}
