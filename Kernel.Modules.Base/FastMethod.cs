@@ -7,7 +7,7 @@ public delegate object ReturnValueDelegate(object instance, object[] arguments);
 public delegate void VoidDelegate(object instance, object[] arguments);
 
 
-public class FastMethodInfo
+public struct FastMethodInfo
 {
     public FastMethodInfo(MethodInfo methodInfo)
     {

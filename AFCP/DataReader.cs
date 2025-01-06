@@ -27,10 +27,10 @@ public class DataReader
 
     public uint ReadUint()
     {
-        byte[] lenArr = new byte[4];
-        stream.ReadExactly(lenArr);
+        byte[] arr = new byte[4];
+        stream.ReadExactly(arr);
 
-        return BitConverter.ToUInt32(lenArr);
+        return BitConverter.ToUInt32(arr);
     }
     public int ReadInt()
     {
