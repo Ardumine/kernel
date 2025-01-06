@@ -11,6 +11,8 @@ public class TestClass
 
     public List<int> SubClasses { get; set; }
 
+    public List<TestSubClass> testSubClasses { get; set; }
+
 }
 
 [AttributeUsage(AttributeTargets.Property)]
@@ -18,7 +20,7 @@ public class ABigDataProperty : Attribute
 {
 }
 
-public class TestSubClass
+public struct TestSubClass
 {
     public string Param3 { get; set; }
 }
@@ -95,7 +97,7 @@ public class StringSerializer : CustomSerializer
     public Type type => typeof(string);
     public object Deserialize(Stream ms, Serializer serializer, Type type)
     {
-        byte[] lenArr = new byte[4];
+        /*byte[] lenArr = new byte[4];
         ms.ReadExactly(lenArr);
         uint TamDadosPRec = Tools.GetUInt(lenArr);
 
@@ -105,9 +107,9 @@ public class StringSerializer : CustomSerializer
         while (lenDadosRecebido != TamDadosPRec)
         {
             lenDadosRecebido += ms.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
-        }
+        }*/
 
-        return Tools.GetString(dados);
+        return Tools.GetString(serializer.Deserialize<byte[]>(ms));
     }
 
 
@@ -289,7 +291,7 @@ public class UShortSerializer : CustomSerializer
 public class ListSerializer : CustomSerializer
 {
     public Type type { get; set; } = typeof(List<>);
-    public Type DataType { get; set; } = null;
+    public Type DataType { get; set; } = null!;
     public bool SpecialDataType = true;
 
     public IList CreateList(Type myType)
@@ -339,16 +341,26 @@ public class ListSerializer<Ta> : CustomSerializer where Ta : struct
     public Type type { get; set; } = typeof(List<Ta>);
     public bool SpecialDataType { get; set; } = false;
 
-
     public object Deserialize(Stream ms, Serializer serializer, Type type)
     {
-        var list = new List<Ta>();
-        var len = serializer.Deserialize<uint>(ms);
-        for (int i = 0; i < len; i++)
-        {
-            list.Add((Ta)serializer.Deserialize(ms, typeof(Ta)));
-        }
-        return list;
+
+        // var list = new List<Ta>();
+        uint len = serializer.Deserialize<uint>(ms);
+        var data = new Ta[len];
+
+        var totalLen = len * Marshal.SizeOf(typeof(Ta));
+        int lenToParse = (int)(len / Marshal.SizeOf(typeof(Ta)));
+
+        var byteData = new byte[totalLen];
+        ms.ReadExactly(byteData);
+
+        Buffer.BlockCopy(byteData, 0, data, 0, lenToParse);
+
+        //for (int i = 0; i < len; i++)
+        //{
+        //   list.Add((Ta)serializer.Deserialize(ms, typeof(Ta)));
+        //}
+        return data.ToList();
     }
 
 
@@ -361,7 +373,7 @@ public class ListSerializer<Ta> : CustomSerializer where Ta : struct
             var list = ((List<Ta>)obj).ToArray();
 
 
-            int totalBytes = list.Length * Marshal.SizeOf(typeof(Ta)); // Create a byte array to hold the result 
+            int totalBytes = list.Length * Marshal.SizeOf(typeof(Ta));
             byte[] byteArray = new byte[totalBytes];
 
             Buffer.BlockCopy(list, 0, byteArray, 0, totalBytes);
@@ -433,15 +445,13 @@ public struct Serializer
         if (IsList(type))
         {
 
-            //GenerateCacheForType(type.GetGenericArguments()[0]);
+            GenerateCacheForType(type.GetGenericArguments()[0]);
 
             AddCustomSerializer(new ListSerializer()
             {
                 type = type,
                 DataType = type.GetGenericArguments()[0]
             });
-            //gerar um serializer de lista para esse tipo
-            //para q?
             return;
 
         }
@@ -453,14 +463,14 @@ public struct Serializer
         {
             if (!CachedTypes.ContainsKey(prop.PropertyType) && IsComplex(prop.PropertyType))
             {
-                //  if (IsList(prop.PropertyType))
-                {
-                    //  GenerateCacheForType(prop.PropertyType.GetGenericArguments()[0]);
-                }
-                // else
-                {
+               // if (IsList(prop.PropertyType))
+                //{
+               //     GenerateCacheForType(prop.PropertyType.GetGenericArguments()[0]);
+               // }
+               // else
+              //  {
                     GenerateCacheForType(prop.PropertyType);
-                }
+               // }
             }
             if (prop.GetMethod == null || prop.SetMethod == null)
             {
@@ -486,7 +496,7 @@ public struct Serializer
         }
         else
         {
-            if (IsComplex(type))
+            //if (IsComplex(type))
             {
                 //if (CachedTypes.TryGetValue(type, out var cachedType))
                 //{
@@ -498,9 +508,9 @@ public struct Serializer
                 }
                 //}
             }
-            else
+            //else
             {
-                throw new NotImplementedException($"The type {type.FullName} is not implemented totally");
+            //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
             }
 
         }
@@ -513,14 +523,14 @@ public struct Serializer
 
     public object Deserialize(Stream ms, Type type)
     {
-        if (!IsComplex(type))
-        {
+        // if (!IsComplex(type))
+        //{
 
-            if (TypesSerializers.TryGetValue(type, out var customSerializer))
-            {
-                return customSerializer.Deserialize(ms, this, type);
-            }
+        if (TypesSerializers.TryGetValue(type, out var customSerializer))
+        {
+            return customSerializer.Deserialize(ms, this, type);
         }
+        //}
         var obj = Activator.CreateInstance(type)!;
 
         var cachedType = CachedTypes[type];
@@ -531,19 +541,19 @@ public struct Serializer
             var prop = cachedType[i];
 
 
-            if (TypesSerializers.TryGetValue(prop.type, out var customSerializer))
+            if (TypesSerializers.TryGetValue(prop.type, out var customSerializer_))
             {
-                prop.SetMethod.Invoke(obj, customSerializer.Deserialize(ms, this, prop.type));
+                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(ms, this, prop.type));
             }
             else
             {
-                if (IsComplex(prop.type))
+                //if (IsComplex(prop.type))
                 {
                     prop.SetMethod.Invoke(obj, Deserialize(ms, prop.type));
                 }
-                else
+                //else
                 {
-                    throw new NotImplementedException($"The not complex type '{type.FullName}' is not implemented.");
+                    //throw new NotImplementedException($"The complex type '{type.FullName}' is not implemented.");
                 }
 
             }
@@ -584,6 +594,61 @@ internal class Program
                 2,5,6,7,4,2,4,6,5,4,9,5,6,6,
                 2,5,6,7,4,2,4,6,5,4,9,5,6,6,
                 2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
+            },
+            testSubClasses = new(){
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
+                new(){
+                    Param3 = "aaaaaaaaaaa",
+                },
 
             }
         };
@@ -631,45 +696,76 @@ internal class Program
 
 
         var ms = new MemoryStream();
-
-        sw.Restart();
-
-        for (int i = 0; i < num; i++)
-        {
-            ser.Serialize(obj, ms);
-        }
-        Console.WriteLine($"A: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms.Position}");
-        long aMs = sw.ElapsedMilliseconds;
-
-
-
-
-
         var ms2 = new MemoryStream();
+
         sw.Restart();
 
-        for (int i = 0; i < num; i++)
         {
+            for (int i = 0; i < num; i++)
+            {
+                ser.Serialize(obj, ms);
+            }
+            Console.WriteLine($"A: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms.Position}");
+            long aMs = sw.ElapsedMilliseconds;
+
+
+
+
+
+            sw.Restart();
+
+            for (int i = 0; i < num; i++)
+            {
+                ms2.Write(JsonSerializer.SerializeToUtf8Bytes(obj));
+            }
+            Console.WriteLine($"J: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms2.Position}");
+            long jMs = sw.ElapsedMilliseconds;
+
+
+            ms.Clear();//Tools.cs in thirdApp
+            ms2.Clear();//Tools.cs in thirdApp
+
+            ser.Serialize(obj, ms);
             ms2.Write(JsonSerializer.SerializeToUtf8Bytes(obj));
+
+            byte[] data = ms.ToArray();
+            // PrintArr(data);
+
+            var des = (TestClass)ser.Deserialize(new MemoryStream(data), typeof(TestClass));
+            Console.WriteLine($"A: LenDados: {data.Length} array len: {des.SubClasses.Count} VelDif(maior melhor A): {(float)jMs / aMs}X Dif: {jMs - aMs}");
+
         }
-        Console.WriteLine($"J: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms2.Position}");
-        long jMs = sw.ElapsedMilliseconds;
 
 
+        Console.WriteLine();
 
-
-        ms.Clear();//Tools.cs in thirdApp
-        ser.Serialize(obj, ms);
-
-        byte[] data = ms.ToArray();
-        // PrintArr(data);
-
-        var des = (TestClass)ser.Deserialize(new MemoryStream(data), typeof(TestClass));
-        Console.WriteLine($"A: LenDados: {data.Length} array len: {des.SubClasses.Count} VelDif(maior melhor A): {(float)jMs / aMs}X Dif: {jMs - aMs}");
-        foreach (var item in des.SubClasses)
         {
-            // Console.Write(item + " ");
+            sw.Restart();
+
+            for (int i = 0; i < num; i++)
+            {
+                ms.Position = 0;
+                ser.Deserialize<TestClass>(ms);
+            }
+            Console.WriteLine($"A: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Des/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser");
+            long aMs = sw.ElapsedMilliseconds;
+
+
+            sw.Restart();
+
+            for (int i = 0; i < num; i++)
+            {
+                ms2.Position = 0;
+                JsonSerializer.Deserialize<TestClass>(ms2);
+            }
+            Console.WriteLine($"J: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Des/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser");
+            long jMs = sw.ElapsedMilliseconds;
+
+            Console.WriteLine($"VelDif(maior melhor A): {(float)jMs / aMs}X Dif: {jMs - aMs}");
+
+
         }
+
 
     }
 }
