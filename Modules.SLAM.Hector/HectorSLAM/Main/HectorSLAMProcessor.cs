@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 using System.Text;
-using Microsoft.Extensions.Logging;
 using BaseSLAM;
 using HectorSLAM.Map;
 using HectorSLAM.Matcher;

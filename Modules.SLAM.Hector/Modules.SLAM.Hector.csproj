@@ -31,7 +31,6 @@
 
     <PackageReference Include="Redzen" Version="9.0.0"/>
 
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 
 

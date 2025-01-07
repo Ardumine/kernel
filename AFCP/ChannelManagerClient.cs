@@ -1,9 +1,6 @@
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Text.Json;
 using AFCP.DataTreatment;
-using AFCP.JsonConverters;
 using AFCP.Packets;
 using AFCP.Systems;
 
@@ -22,7 +19,8 @@ public class ChannelManagerClient
     NetworkStream TCPClientstream;
     ConnectSystem connectSystem;
     ChannelManagementSystem channelManagementSystem;
-   
+    AFCP.KASerializer.KASerializer Serializer;
+
     private AutoResetEvent OnNewData = new AutoResetEvent(false);
 
     Queue<DataWritter> dataCache = new();
@@ -30,32 +28,19 @@ public class ChannelManagerClient
     {
         dataCache.Enqueue(dataWritter);
         OnNewData.Set();
-
     }
     public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
     {
         LocalChannelManager = _localChannelManager;
         Running = true;
         tcpClient = new TcpClient();
-
+        Serializer = new();
 
         tcpClient.Connect(IP, Port);
         TCPClientstream = tcpClient.GetStream();
 
-        new Thread(() =>
-       {
-           while (Running)
-           {
-               while (dataCache.Count > 0)
-               {
-                   dataCache.Dequeue().Copy(TCPClientstream);
-               }
-               OnNewData.Reset();
-           }
-       })
-        {
-            Name = $"ChannelManagerClient {IP}:{Port} Send"
-        }.Start();
+
+        StartSendThread();
 
         new Thread(handleTCPClient)
         {
@@ -65,7 +50,6 @@ public class ChannelManagerClient
 
         channelManagementSystem = new(LocalChannelManager);
         connectSystem = new(LocalChannelManager, this);
-    	File.Create("cc");
 
         Thread.Sleep(100);
         OnConnect();//Only when we connect as a client
@@ -79,42 +63,13 @@ public class ChannelManagerClient
 
         Running = true;
         tcpClient = client;
+        Serializer = new();
 
         channelManagementSystem = new(LocalChannelManager);
         connectSystem = new(LocalChannelManager, this);
 
         TCPClientstream = tcpClient.GetStream();
-
-
-        new Thread(() =>
-       {
-           while (Running)
-           {
-               while (dataCache.Count > 0 && Running)
-               {
-                   try
-                   {
-                       dataCache.Dequeue().Copy(TCPClientstream);
-                   }
-                   catch
-                   {
-                       if (!tcpClient.Connected && Running)
-                       {
-                           ServerStop(RemoteGuid);
-                       }
-
-                       if (Running && tcpClient.Connected)
-                       {
-                           throw;
-                       }
-                   }
-               }
-               OnNewData.Reset();
-           }
-       })
-        {
-            Name = $"ChannelManagerClient Server Send"
-        }.Start();
+        StartSendThread();
 
         new Thread(handleTCPClient)
         {
@@ -122,6 +77,25 @@ public class ChannelManagerClient
         }.Start();
     }
 
+    private void StartSendThread()
+    {
+        new Thread(() =>
+        {
+           while (Running)
+           {
+               while (dataCache.Count > 0)
+               {
+                   dataCache.Dequeue().Copy(TCPClientstream);
+               }
+               OnNewData.Reset();
+               OnNewData.WaitOne();
+
+           }
+        })
+        {
+            Name = $"ChannelManagerClient  Send"
+        }.Start();
+    }
     private void OnConnect()
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.LocalGuid, Disconnect = false });
@@ -142,7 +116,7 @@ public class ChannelManagerClient
 
         OnNewData.Set();
 
-        LocalChannelManager.RemoveKernel(connectResponse.RemoteKernel);
+        LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(connectResponse.RemoteKernel)!);
         Running = false;
         tcpClient.Close();
 
@@ -150,11 +124,11 @@ public class ChannelManagerClient
 
     }
 
-    //When another asks to stop, then this runs. Only if this client is an server and not a client, run this.
+    //When another asks to us stop, then this runs. Only if this client is an server and not a client, run this.
     public void ServerStop(Guid remoteKernel)
     {
         Console.WriteLine("Server stop");
-        LocalChannelManager.RemoveKernel(remoteKernel);
+        LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(remoteKernel)!);
 
         foreach (var item in _pendingRequests.Values)
         {
@@ -183,9 +157,12 @@ public class ChannelManagerClient
         var writter = GenerateRequestHeader(RequestID);
 
         writter.Write(RequestType);
-        
-        Payload.Serialize(writter);
-    
+        var req = new PacketBaseRequestAK()
+        {
+            req = Payload
+        };
+        Serializer.Serialize(req, writter.ms);
+
         WriteData(writter);
 
         return (T)tcs.Task.Result;
@@ -216,7 +193,7 @@ public class ChannelManagerClient
 
                     byte msgType = reader.ReadByte();
                     //answerWritterFull.WriteByte(msgType);
-                    Console.WriteLine("msgType" + msgType);
+                    //Console.WriteLine("msgType" + msgType);
 
                     if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
                     {
@@ -226,7 +203,7 @@ public class ChannelManagerClient
                     {
                         answer = ParseChannelSyncRequestPacket(ParsePacketRequest<PacketSyncRequest>(reader));
                     }
-                    else if (msgType == MessagesTypes.ChannelManagementRequest)//Channel management.
+                    else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
                     {
                         answer = channelManagementSystem.Process(ParsePacketRequest<PacketChannelManagementRequest>(reader));
                     }
@@ -239,7 +216,11 @@ public class ChannelManagerClient
                         answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketFunctionRequest>(reader));
                     }
 
-                    answerWritterFull.WriteObject(answer);
+
+                    Serializer.Serialize(new BasePacketAnswerAK()
+                    {
+                        ans = answer
+                    }, answerWritterFull.ms);
                     //answerWritterFull.Copy(TCPClientstream);
                     WriteData(answerWritterFull);
 
@@ -248,7 +229,8 @@ public class ChannelManagerClient
                 {
                     if (_pendingRequests.TryRemove(RequestID, out var tcs))
                     {
-                        var obj = reader.ReadObject<BasePacketAnswer>()!;
+                        //var obj = reader.ReadObject<BasePacketAnswer>()!;
+                        var obj = Serializer.Deserialize<BasePacketAnswerAK>(reader.stream).ans;
                         tcs.SetResult(obj);
                     }
                 }
@@ -274,16 +256,15 @@ public class ChannelManagerClient
 
     T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        PacketBaseRequest aa = (PacketBaseRequest)Activator.CreateInstance(typeof(T));
-        aa.Deserialize(reader);
-        return (T)aa;
+        var req = Serializer.Deserialize<PacketBaseRequestAK>(reader.stream);
+        return (T)req.req;
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {
-        LocalChannelManager.AddChannelsSync(data.RemoteChannels, data.RemoteGuid);
+        LocalChannelManager.AddChannelsSync(data.RemoteChannels.ToArray(), data.RemoteGuid);
         var packet = new PacketSyncAnswer()
         {
-            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors(),
+            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors().ToList(),
             RemoteGuid = LocalChannelManager.LocalGuid
         };
 

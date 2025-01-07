@@ -1,5 +1,6 @@
 using Kernel.Modules.Base;
 using AFCP;
+using AFCP.FastMethod;
 
 namespace Kernel.Modules;
 

@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json;
 
 namespace AFCP.DataTreatment;
 public class DataReader
@@ -27,10 +26,10 @@ public class DataReader
 
     public uint ReadUint()
     {
-        byte[] lenArr = new byte[4];
-        stream.ReadExactly(lenArr);
+        byte[] arr = new byte[4];
+        stream.ReadExactly(arr);
 
-        return BitConverter.ToUInt32(lenArr);
+        return BitConverter.ToUInt32(arr);
     }
     public int ReadInt()
     {
@@ -41,17 +40,6 @@ public class DataReader
     }
 
 
-    public T? ReadObject<T>()
-    {
-        return JsonSerializer.Deserialize<T>(ReadByteArr(), DataWritter.JsonOptions);
-    }
-
-    public object? ReadObject(Type type)
-    {
-        if(type == null) return null;
-        return JsonSerializer.Deserialize(ReadByteArrAsStream(), type, DataWritter.JsonOptions);
-
-    }
     private byte[] ReadByteArrRaw(int len)
     {
         byte[] dados = new byte[len];

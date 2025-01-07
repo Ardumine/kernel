@@ -1,7 +1,3 @@
-using System.Text;
-using System.Text.Json;
-using AFCP;
-using AFCP.DataTreatment;
 using AFCP.Packets;
 
 namespace AFCP.Systems;
@@ -19,12 +15,12 @@ public class ChannelManagementSystem
         if (a.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
             DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.AddNotifyToKernelOnChange(a.RequestingKernel);
+            channel?.AddNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
             DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.RemoveNotifyToKernelOnChange(a.RequestingKernel);
+            channel?.RemoveNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
         {
@@ -32,10 +28,8 @@ public class ChannelManagementSystem
             //DataChannel? channel = channelManager.GetDataChannel();
             //var interf = channelManager.GetInterfaceForChannel(a.ChannelPath);
 
-            object? myData = a.NewVal is JsonElement jsonElement
-              ? jsonElement.Deserialize(Type.GetType(a?.DataType!)!, DataWritter.JsonOptions)
-             : Convert.ChangeType(a.NewVal, Type.GetType(a?.DataType!)!);
-            channelManager.OnRemoteDataChange(a!.ChannelPath, myData);
+         
+            channelManager.OnRemoteDataChange(a!.ChannelPath, a.NewVal);
 
             //interf?.OnRemoteChange(myData);
         }
