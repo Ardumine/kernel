@@ -15,12 +15,12 @@ public class ChannelManagementSystem
         if (a.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
             DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.AddNotifyToKernelOnChange(a.RequestingKernel);
+            channel?.AddNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
             DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.RemoveNotifyToKernelOnChange(a.RequestingKernel);
+            channel?.RemoveNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
         {

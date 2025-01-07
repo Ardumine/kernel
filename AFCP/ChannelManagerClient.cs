@@ -26,8 +26,11 @@ public class ChannelManagerClient
     Queue<DataWritter> dataCache = new();
     void WriteData(DataWritter dataWritter)
     {
-        dataCache.Enqueue(dataWritter);
-        OnNewData.Set();
+        dataWritter.Copy(TCPClientstream);
+
+        //dataCache.Enqueue(dataWritter);
+        //OnNewData.Set();
+
 
     }
     public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
@@ -40,20 +43,20 @@ public class ChannelManagerClient
         tcpClient.Connect(IP, Port);
         TCPClientstream = tcpClient.GetStream();
 
-        new Thread(() =>
-       {
-           while (Running)
-           {
-               while (dataCache.Count > 0)
-               {
-                   dataCache.Dequeue().Copy(TCPClientstream);
-               }
-               OnNewData.Reset();
-           }
-       })
+        /*new Thread(() =>
         {
-            Name = $"ChannelManagerClient {IP}:{Port} Send"
-        }.Start();
+            while (Running)
+            {
+                while (dataCache.Count > 0)
+                {
+                    dataCache.Dequeue().Copy(TCPClientstream);
+                }
+                OnNewData.Reset();
+            }
+        })
+         {
+             Name = $"ChannelManagerClient {IP}:{Port} Send"
+         }.Start();*/
 
         new Thread(handleTCPClient)
         {
@@ -84,7 +87,7 @@ public class ChannelManagerClient
         TCPClientstream = tcpClient.GetStream();
 
 
-        new Thread(() =>
+        /*new Thread(() =>
        {
            while (Running)
            {
@@ -113,7 +116,7 @@ public class ChannelManagerClient
         {
             Name = $"ChannelManagerClient Server Send"
         }.Start();
-
+*/
         new Thread(handleTCPClient)
         {
             Name = "ChannelManagerClient Server Read"
@@ -140,7 +143,7 @@ public class ChannelManagerClient
 
         OnNewData.Set();
 
-        LocalChannelManager.RemoveKernel(connectResponse.RemoteKernel);
+        LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(connectResponse.RemoteKernel)!);
         Running = false;
         tcpClient.Close();
 
@@ -148,11 +151,11 @@ public class ChannelManagerClient
 
     }
 
-    //When another asks to stop, then this runs. Only if this client is an server and not a client, run this.
+    //When another asks to us stop, then this runs. Only if this client is an server and not a client, run this.
     public void ServerStop(Guid remoteKernel)
     {
         Console.WriteLine("Server stop");
-        LocalChannelManager.RemoveKernel(remoteKernel);
+        LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(remoteKernel)!);
 
         foreach (var item in _pendingRequests.Values)
         {
@@ -181,9 +184,10 @@ public class ChannelManagerClient
         var writter = GenerateRequestHeader(RequestID);
 
         writter.Write(RequestType);
-        var req = new PacketBaseRequestAK();
-        req.req = Payload;
-        //Console.WriteLine("SendRequest" + req.req.GetType());
+        var req = new PacketBaseRequestAK()
+        {
+            req = Payload
+        };
         Serializer.Serialize(req, writter.ms);
 
         WriteData(writter);

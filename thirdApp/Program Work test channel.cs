@@ -17,12 +17,18 @@ internal class Program
         channelManager.Join("127.0.0.1", 8000);
 
         //var lidarDataChannel = channelManager.GetDataChannel("/slamPos");
-        var interf = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
-        interf?.AddEvent((aa) =>
+        var interfPos = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
+        var interfMap = channelManager.GetInterfaceForChannel<byte[]>("/SLAMmap");
+
+        interfPos?.AddEvent((aa) =>
         {
-            Console.WriteLine("Lidar data rec!!" + aa);
+            Console.WriteLine("Pos data rec!!" + aa);
         });
-        Console.WriteLine("Get: " + interf?.Get());
+        //interfMap?.AddEvent((aa) =>
+        //{
+       //    Console.WriteLine("Map data rec!!");
+        //});
+        Console.WriteLine("Get: " + interfPos?.Get());
 
         Thread.Sleep(50000);
 

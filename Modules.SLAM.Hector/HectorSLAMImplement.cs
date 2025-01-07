@@ -51,25 +51,24 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
     {
         Running = true;
         lidarDataChannel?.AddEvent(OnLidarData!);
-                posChannel?.Set(new Vector3(2, 5, 90));
-       
-       new Thread(() =>
-        {
-            while (Running)
-            {
-                Logger.LogI("note");
-                posChannel?.Set(new Vector3(2, 5, 90));
-                Thread.Sleep(1000);
-            }
-        }).Start();
+
+        var thFake = new Thread(() =>
+         {
+             while (Running)
+             {
+                 posChannel?.Set(new Vector3(2, 5, 90));
+                 Thread.Sleep(1000);
+             }
+         });
 
     }
 
     private void OnLidarData(LidarPoint[] points)
     {
         //var points = (LidarPoint[])e!;
-        ScanCloud scanCloud = new ScanCloud(){
-          //  Pose = hectorSlam.MatchPose
+        ScanCloud scanCloud = new ScanCloud()
+        {
+            //  Pose = hectorSlam.MatchPose
         };
 
         for (int iRay = 0; iRay < points.Length; iRay++)
@@ -87,7 +86,7 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
 
         //Logger.LogI("Hector pose" + hectorSlam?.MatchPose);
 
-        if ((DateTime.Now - TimeSinceLastUpdate).Seconds > 2)
+        if ((DateTime.Now - TimeSinceLastUpdate).Seconds > 5)
         {
             new Thread(() =>
             {
