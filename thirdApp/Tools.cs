@@ -39,6 +39,9 @@ public static class Tools
     //https://stackoverflow.com/questions/20273556/fast-string-to-byte-conversion
     public static unsafe byte[] GetBytes(string str)
     {
+        if(str == null){
+            return [];
+        }
         byte[] bytes = new byte[str.Length * sizeof(char)];
 
         fixed (void* ptr = str)

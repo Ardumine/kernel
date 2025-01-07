@@ -1,26 +1,29 @@
 using System.Collections;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Kernel.Modules.Base;
 
 public class TestClass
 {
-    public int Param1 { get; set; }
+    //public int Param1 { get; set; }
 
-    public List<int> SubClasses { get; set; }
+    // public List<int> SubClasses { get; set; } = new();
 
-    public List<TestSubClass> testSubClasses { get; set; }
+    //public List<TestSubClass> testSubClasses { get; set; } = new();
+    [CanHaveOtherTypes]
+    public object Obj { get; set; }
 
 }
 
+/// <summary>
+/// When the property can have another types. This includes derivation.
+/// </summary>
 [AttributeUsage(AttributeTargets.Property)]
-public class ABigDataProperty : Attribute
+public class CanHaveOtherTypes : Attribute
 {
 }
 
-public struct TestSubClass
+public class TestSubClass
 {
     public string Param3 { get; set; }
 }
@@ -409,10 +412,11 @@ public interface CustomSerializer
 
 public struct AProperty
 {
-    // public string Name { get; set; }
+    public required string Name { get; set; }
     public Type type { get; set; }
     public FastMethodInfo GetMethod { get; set; }
     public FastMethodInfo SetMethod { get; set; }
+    public required bool CanChangeType { get; set; }
 }
 
 public struct Serializer
@@ -429,11 +433,48 @@ public struct Serializer
 
     private ConcurrentDictionary<Type, AProperty[]> CachedTypes = new();
     private ConcurrentDictionary<Type, CustomSerializer> TypesSerializers = new();
+    private ConcurrentDictionary<string, Type> TypeNameMap = new();
+
 
     public Serializer()
     {
+        AddDefaultSerializer();
     }
 
+    public void AddDefaultSerializer()
+    {
+        AddCustomSerializer(new ByteArraySerializer());
+        AddCustomSerializer(new StringSerializer());
+
+        AddCustomSerializer(new BoolSerializer());
+
+        AddCustomSerializer(new ByteSerializer());
+        AddCustomSerializer(new CharSerializer());
+
+        AddCustomSerializer(new DoubleSerializer());
+        AddCustomSerializer(new FloatSerializer());
+
+        AddCustomSerializer(new IntSerializer());
+        AddCustomSerializer(new UIntSerializer());
+
+        AddCustomSerializer(new LongSerializer());
+        AddCustomSerializer(new ULongSerializer());
+        AddCustomSerializer(new ShortSerializer());
+        AddCustomSerializer(new UShortSerializer());
+        AddCustomSerializer(new ListSerializer<bool>());
+
+        AddCustomSerializer(new ListSerializer<double>());
+        AddCustomSerializer(new ListSerializer<float>());
+
+        AddCustomSerializer(new ListSerializer<int>());
+        AddCustomSerializer(new ListSerializer<uint>());
+        AddCustomSerializer(new ListSerializer<long>());
+        AddCustomSerializer(new ListSerializer<ulong>());
+        AddCustomSerializer(new ListSerializer<short>());
+        AddCustomSerializer(new ListSerializer<ushort>());
+
+        AddCustomSerializer(new ListSerializer());
+    }
     public void AddCustomSerializer(CustomSerializer serializer)
     {
         if (!TypesSerializers.ContainsKey(serializer.type))
@@ -441,7 +482,9 @@ public struct Serializer
     }
     public void GenerateCacheForType(Type type)
     {
-
+        if(CachedTypes.ContainsKey(type)){
+            return;
+        }
         if (IsList(type))
         {
 
@@ -461,56 +504,97 @@ public struct Serializer
         //Get get methods and cache for type
         foreach (var prop in type.GetProperties().ToList().OrderBy(pr => pr.Name))
         {
-            if (!CachedTypes.ContainsKey(prop.PropertyType) && IsComplex(prop.PropertyType))
+            if (!CachedTypes.ContainsKey(prop.PropertyType) && prop.PropertyType != typeof(object) && !TypesSerializers.ContainsKey(prop.PropertyType))//&& IsComplex(prop.PropertyType) 
             {
-               // if (IsList(prop.PropertyType))
+                // if (IsList(prop.PropertyType))
                 //{
-               //     GenerateCacheForType(prop.PropertyType.GetGenericArguments()[0]);
-               // }
-               // else
-              //  {
-                    GenerateCacheForType(prop.PropertyType);
-               // }
+                //     GenerateCacheForType(prop.PropertyType.GetGenericArguments()[0]);
+                // }
+                // else
+                //  {
+                GenerateCacheForType(prop.PropertyType);
+                // }
             }
             if (prop.GetMethod == null || prop.SetMethod == null)
             {
                 throw new NotImplementedException($"The property '{prop.Name}' in '{prop.DeclaringType?.FullName}' does not have set or get method. Make sure you have a {{get; set;}} on the declaring property.");
             }
+
+
             props.Add(new()
             {
                 GetMethod = new(prop.GetMethod),
                 SetMethod = new(prop.SetMethod),
                 type = prop.PropertyType,
-                //Name = prop.Name
+                //CanChangeType = prop.PropertyType == typeof(object),
+                CanChangeType = Attribute.IsDefined(prop, typeof(CanHaveOtherTypes)),
+                Name = prop.Name
             });
         }
         CachedTypes[type] = props.ToArray();
     }
 
 
-    public void Serialize(object obj, Stream ms, Type type)
+    public void SerializeType(Type type, Stream stream)
+    {
+        Serialize(type.FullName, stream);
+    }
+    public Type DeserializeType(Stream stream)
+    {
+        var name = Deserialize<string>(stream);
+        Type typeOut;
+        if (TypeNameMap.TryGetValue(name, out typeOut!))
+        {
+            return typeOut;
+        }
+        else
+        {
+            typeOut = Type.GetType(name)!;
+            TypeNameMap[name] = typeOut;
+            return typeOut;
+        }
+    }
+
+
+    public void Serialize(object obj, Stream stream, Type type)
     {
         if (TypesSerializers.TryGetValue(type, out var customSerializer))
         {
-            customSerializer.Serialize(obj, ms, this);
+            customSerializer.Serialize(obj, stream, this);
         }
         else
         {
             //if (IsComplex(type))
             {
-                //if (CachedTypes.TryGetValue(type, out var cachedType))
-                //{
-                var cachedType = CachedTypes[type];
+                AProperty[] cachedType;
+                if (!CachedTypes.TryGetValue(type, out cachedType!))
+                {
+                    GenerateCacheForType(type);
+                    cachedType = CachedTypes[type];
+                }
+
                 for (int i = 0; i < cachedType.Length; i++)
                 {
                     var prop = cachedType[i];
-                    Serialize(prop.GetMethod.Invoke(obj), ms, prop.type);
+                    if (prop.CanChangeType)
+                    {
+                        var a = prop.GetMethod.Invoke(obj);
+                        var objType = a.GetType();
+
+                        SerializeType(objType, stream);
+                        Serialize(a, stream, objType);
+
+                    }
+                    else
+                    {
+                        Serialize(prop.GetMethod.Invoke(obj), stream, prop.type);
+                    }
                 }
                 //}
             }
             //else
             {
-            //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
+                //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
             }
 
         }
@@ -521,14 +605,14 @@ public struct Serializer
         Serialize(obj!, ms, typeof(T));
     }
 
-    public object Deserialize(Stream ms, Type type)
+    public object Deserialize(Stream stream, Type type)
     {
         // if (!IsComplex(type))
         //{
 
         if (TypesSerializers.TryGetValue(type, out var customSerializer))
         {
-            return customSerializer.Deserialize(ms, this, type);
+            return customSerializer.Deserialize(stream, this, type);
         }
         //}
         var obj = Activator.CreateInstance(type)!;
@@ -541,15 +625,25 @@ public struct Serializer
             var prop = cachedType[i];
 
 
-            if (TypesSerializers.TryGetValue(prop.type, out var customSerializer_))
+            if (TypesSerializers.TryGetValue(prop.type, out var customSerializer_) && !prop.CanChangeType)
             {
-                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(ms, this, prop.type));
+                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(stream, this, prop.type));
             }
             else
             {
+                if (prop.CanChangeType)
+                {
+                    var dataType = DeserializeType(stream);
+                    //GenerateCacheForType(dataType);
+
+                    prop.SetMethod.Invoke(obj, Deserialize(stream, dataType));
+                }
+                else
+                {
+                    prop.SetMethod.Invoke(obj, Deserialize(stream, prop.type));
+                }
                 //if (IsComplex(prop.type))
                 {
-                    prop.SetMethod.Invoke(obj, Deserialize(ms, prop.type));
                 }
                 //else
                 {
@@ -570,6 +664,7 @@ public struct Serializer
 
 }
 
+
 internal class Program
 {
     static void PrintArr(byte[] arr)
@@ -583,188 +678,34 @@ internal class Program
     private static void Main(string[] args)
     {
         var ser = new Serializer();
-        var obj = new TestClass()
-        {
-            Param1 = 2,
-            SubClasses = new()
-            {
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-                2,5,6,7,4,2,4,6,5,4,9,5,6,6,
-            },
-            testSubClasses = new(){
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
-                new(){
-                    Param3 = "aaaaaaaaaaa",
-                },
 
-            }
-        };
 
-        ser.AddCustomSerializer(new BoolSerializer());
 
-        ser.AddCustomSerializer(new ByteSerializer());
-        ser.AddCustomSerializer(new ByteArraySerializer());
-        ser.AddCustomSerializer(new StringSerializer());
-        ser.AddCustomSerializer(new CharSerializer());
-
-        ser.AddCustomSerializer(new DoubleSerializer());
-        ser.AddCustomSerializer(new FloatSerializer());
-
-        ser.AddCustomSerializer(new IntSerializer());
-        ser.AddCustomSerializer(new UIntSerializer());
-
-        ser.AddCustomSerializer(new LongSerializer());
-        ser.AddCustomSerializer(new ULongSerializer());
-        ser.AddCustomSerializer(new ShortSerializer());
-        ser.AddCustomSerializer(new UShortSerializer());
-        ser.AddCustomSerializer(new ListSerializer<bool>());
-
-        ser.AddCustomSerializer(new ListSerializer<double>());
-        ser.AddCustomSerializer(new ListSerializer<float>());
-
-        ser.AddCustomSerializer(new ListSerializer<int>());
-        ser.AddCustomSerializer(new ListSerializer<uint>());
-        ser.AddCustomSerializer(new ListSerializer<long>());
-        ser.AddCustomSerializer(new ListSerializer<ulong>());
-        ser.AddCustomSerializer(new ListSerializer<short>());
-        ser.AddCustomSerializer(new ListSerializer<ushort>());
-
-        ser.AddCustomSerializer(new ListSerializer());
 
 
 
         ser.GenerateCacheForType(typeof(TestClass));
 
+        MemoryStream ms = new MemoryStream();
 
-
-        int num = 1000000;
-        var sw = Stopwatch.StartNew();
-
-
-
-        var ms = new MemoryStream();
-        var ms2 = new MemoryStream();
-
-        sw.Restart();
-
+        var obj = new TestClass()
         {
-            for (int i = 0; i < num; i++)
+            Obj = new TestSubClass()
             {
-                ser.Serialize(obj, ms);
+                Param3 = "aaaaaaaaaa"
             }
-            Console.WriteLine($"A: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms.Position}");
-            long aMs = sw.ElapsedMilliseconds;
+        };
 
+        ser.Serialize(obj, ms);
 
+        var data = ms.ToArray();
 
+        PrintArr(data);
 
+        var deser = ser.Deserialize<TestClass>(new MemoryStream(data));
 
-            sw.Restart();
+        Console.WriteLine(((TestSubClass)deser.Obj).Param3);
 
-            for (int i = 0; i < num; i++)
-            {
-                ms2.Write(JsonSerializer.SerializeToUtf8Bytes(obj));
-            }
-            Console.WriteLine($"J: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Ser/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser \t  Len: {ms2.Position}");
-            long jMs = sw.ElapsedMilliseconds;
-
-
-            ms.Clear();//Tools.cs in thirdApp
-            ms2.Clear();//Tools.cs in thirdApp
-
-            ser.Serialize(obj, ms);
-            ms2.Write(JsonSerializer.SerializeToUtf8Bytes(obj));
-
-            byte[] data = ms.ToArray();
-            // PrintArr(data);
-
-            var des = (TestClass)ser.Deserialize(new MemoryStream(data), typeof(TestClass));
-            Console.WriteLine($"A: LenDados: {data.Length} array len: {des.SubClasses.Count} VelDif(maior melhor A): {(float)jMs / aMs}X Dif: {jMs - aMs}");
-
-        }
-
-
-        Console.WriteLine();
-
-        {
-            sw.Restart();
-
-            for (int i = 0; i < num; i++)
-            {
-                ms.Position = 0;
-                ser.Deserialize<TestClass>(ms);
-            }
-            Console.WriteLine($"A: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Des/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser");
-            long aMs = sw.ElapsedMilliseconds;
-
-
-            sw.Restart();
-
-            for (int i = 0; i < num; i++)
-            {
-                ms2.Position = 0;
-                JsonSerializer.Deserialize<TestClass>(ms2);
-            }
-            Console.WriteLine($"J: {sw.ElapsedMilliseconds:000000} \t {(float)num / sw.ElapsedMilliseconds * 1000}Des/Sec \t {(float)sw.ElapsedMilliseconds / num}MS/Ser");
-            long jMs = sw.ElapsedMilliseconds;
-
-            Console.WriteLine($"VelDif(maior melhor A): {(float)jMs / aMs}X Dif: {jMs - aMs}");
-
-
-        }
 
 
     }
