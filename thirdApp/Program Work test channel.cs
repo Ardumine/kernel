@@ -24,10 +24,10 @@ internal class Program
         {
             Console.WriteLine("Pos data rec!!" + aa);
         });
-        //interfMap?.AddEvent((aa) =>
-        //{
-       //    Console.WriteLine("Map data rec!!");
-        //});
+        interfMap?.AddEvent((aa) =>
+        {
+            Console.WriteLine("Map data rec!!");
+        });
         Console.WriteLine("Get: " + interfPos?.Get());
 
         Thread.Sleep(50000);

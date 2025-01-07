@@ -26,12 +26,8 @@ public class ChannelManagerClient
     Queue<DataWritter> dataCache = new();
     void WriteData(DataWritter dataWritter)
     {
-        dataWritter.Copy(TCPClientstream);
-
-        //dataCache.Enqueue(dataWritter);
-        //OnNewData.Set();
-
-
+        dataCache.Enqueue(dataWritter);
+        OnNewData.Set();
     }
     public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
     {
@@ -43,20 +39,8 @@ public class ChannelManagerClient
         tcpClient.Connect(IP, Port);
         TCPClientstream = tcpClient.GetStream();
 
-        /*new Thread(() =>
-        {
-            while (Running)
-            {
-                while (dataCache.Count > 0)
-                {
-                    dataCache.Dequeue().Copy(TCPClientstream);
-                }
-                OnNewData.Reset();
-            }
-        })
-         {
-             Name = $"ChannelManagerClient {IP}:{Port} Send"
-         }.Start();*/
+
+        StartSendThread();
 
         new Thread(handleTCPClient)
         {
@@ -85,44 +69,33 @@ public class ChannelManagerClient
         connectSystem = new(LocalChannelManager, this);
 
         TCPClientstream = tcpClient.GetStream();
+        StartSendThread();
 
-
-        /*new Thread(() =>
-       {
-           while (Running)
-           {
-               while (dataCache.Count > 0 && Running)
-               {
-                   try
-                   {
-                       dataCache.Dequeue().Copy(TCPClientstream);
-                   }
-                   catch
-                   {
-                       if (!tcpClient.Connected && Running)
-                       {
-                           ServerStop(RemoteGuid);
-                       }
-
-                       if (Running && tcpClient.Connected)
-                       {
-                           throw;
-                       }
-                   }
-               }
-               OnNewData.Reset();
-           }
-       })
-        {
-            Name = $"ChannelManagerClient Server Send"
-        }.Start();
-*/
         new Thread(handleTCPClient)
         {
             Name = "ChannelManagerClient Server Read"
         }.Start();
     }
 
+    private void StartSendThread()
+    {
+        new Thread(() =>
+        {
+           while (Running)
+           {
+               while (dataCache.Count > 0)
+               {
+                   dataCache.Dequeue().Copy(TCPClientstream);
+               }
+               OnNewData.Reset();
+               OnNewData.WaitOne();
+
+           }
+        })
+        {
+            Name = $"ChannelManagerClient  Send"
+        }.Start();
+    }
     private void OnConnect()
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.LocalGuid, Disconnect = false });
