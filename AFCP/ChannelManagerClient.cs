@@ -274,7 +274,7 @@ public class ChannelManagerClient
 
     T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        PacketBaseRequest aa = (PacketBaseRequest)Activator.CreateInstance(typeof(T));
+        PacketBaseRequest aa = (PacketBaseRequest)Activator.CreateInstance(typeof(T))!;
         aa.Deserialize(reader);
         return (T)aa;
     }

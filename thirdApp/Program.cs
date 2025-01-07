@@ -5,7 +5,7 @@ using Kernel.Modules.Base;
 
 public class TestClass
 {
-    //public int Param1 { get; set; }
+    public int Param1 { get; set; }
 
     // public List<int> SubClasses { get; set; } = new();
 
@@ -30,268 +30,241 @@ public class TestSubClass
 
 //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types
 
-public class BoolSerializer : CustomSerializer
+public class BoolSerializer : KADataSerializer
 {
     public Type type => typeof(bool);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[1];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return arr[0] == 1;
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.WriteByte(((bool)obj) ? (byte)1 : (byte)0);
+        stream.WriteByte(((bool)obj) ? (byte)1 : (byte)0);
     }
 }
 
-public class ByteSerializer : CustomSerializer
+public class ByteSerializer : KADataSerializer
 {
     public Type type => typeof(byte);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[1];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return arr[0];
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.WriteByte((byte)obj);
+        stream.WriteByte((byte)obj);
     }
 }
 
-public class ByteArraySerializer : CustomSerializer
+public class ByteArraySerializer : KADataSerializer
 {
     public Type type => typeof(byte[]);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
-        byte[] lenArr = new byte[4];
-        ms.ReadExactly(lenArr);
-        uint TamDadosPRec = Tools.GetUInt(lenArr);
-
-        byte[] dados = new byte[TamDadosPRec];
-
-        int lenDadosRecebido = 0;
-        while (lenDadosRecebido != TamDadosPRec)
-        {
-            lenDadosRecebido += ms.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
-        }
-
-
-        return dados;
+        return serializer.DeserializeByteArray4(stream);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(Tools.GetBytes((uint)((byte[])obj).Length));
-        ms.Write((byte[])obj);
+        serializer.SerializeByteArray4((byte[])obj, stream);
     }
 }
 
-public class StringSerializer : CustomSerializer
+public class StringSerializer : KADataSerializer
 {
     public Type type => typeof(string);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
-        /*byte[] lenArr = new byte[4];
-        ms.ReadExactly(lenArr);
-        uint TamDadosPRec = Tools.GetUInt(lenArr);
-
-        byte[] dados = new byte[TamDadosPRec];
-
-        int lenDadosRecebido = 0;
-        while (lenDadosRecebido != TamDadosPRec)
-        {
-            lenDadosRecebido += ms.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
-        }*/
-
-        return Tools.GetString(serializer.Deserialize<byte[]>(ms));
+        return Tools.GetString(serializer.DeserializeByteArray4(stream));
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
         byte[] bytes = Tools.GetBytes((string)obj);
-        ms.Write(Tools.GetBytes((uint)bytes.Length));
-        ms.Write(bytes);
+        serializer.SerializeByteArray4(bytes, stream);
     }
 }
 
 
-public class CharSerializer : CustomSerializer
+public class CharSerializer : KADataSerializer
 {
     public Type type => typeof(char);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[2];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToChar(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((char)obj));
+        stream.Write(BitConverter.GetBytes((char)obj));
     }
 }
 
 //Decimal
 
-public class DoubleSerializer : CustomSerializer
+public class DoubleSerializer : KADataSerializer
 {
     public Type type => typeof(double);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[8];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToDouble(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((double)obj));
+        stream.Write(BitConverter.GetBytes((double)obj));
     }
 }
 
-public class FloatSerializer : CustomSerializer
+public class FloatSerializer : KADataSerializer
 {
     public Type type => typeof(float);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[4];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToSingle(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((float)obj));
+        stream.Write(BitConverter.GetBytes((float)obj));
     }
 }
 
-public class IntSerializer : CustomSerializer
+public class IntSerializer : KADataSerializer
 {
     public Type type => typeof(int);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[4];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return Tools.GetInt(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(Tools.GetBytes((int)obj));
+        stream.Write(Tools.GetBytes((int)obj));
     }
 }
 
-public class UIntSerializer : CustomSerializer
+public class UIntSerializer : KADataSerializer
 {
     public Type type => typeof(uint);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[4];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return Tools.GetUInt(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(Tools.GetBytes((uint)obj));
+        stream.Write(Tools.GetBytes((uint)obj));
     }
 }
 
 //nint nuint
 
-public class LongSerializer : CustomSerializer
+public class LongSerializer : KADataSerializer
 {
     public Type type => typeof(long);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[8];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToInt64(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((long)obj));
+        stream.Write(BitConverter.GetBytes((long)obj));
     }
 }
 
-public class ULongSerializer : CustomSerializer
+public class ULongSerializer : KADataSerializer
 {
     public Type type => typeof(ulong);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[8];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToUInt64(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((ulong)obj));
+        stream.Write(BitConverter.GetBytes((ulong)obj));
     }
 }
 
-public class ShortSerializer : CustomSerializer
+public class ShortSerializer : KADataSerializer
 {
     public Type type => typeof(short);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[2];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToInt16(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((short)obj));
+        stream.Write(BitConverter.GetBytes((short)obj));
     }
 }
 
-public class UShortSerializer : CustomSerializer
+public class UShortSerializer : KADataSerializer
 {
     public Type type => typeof(ushort);
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
         byte[] arr = new byte[2];
-        ms.ReadExactly(arr);
+        stream.ReadExactly(arr);
 
         return BitConverter.ToUInt16(arr);
     }
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
-        ms.Write(BitConverter.GetBytes((ushort)obj));
+        stream.Write(BitConverter.GetBytes((ushort)obj));
     }
 }
 
-public class ListSerializer : CustomSerializer
+public class ListSerializer : KADataSerializer
 {
     public Type type { get; set; } = typeof(List<>);
     public Type DataType { get; set; } = null!;
@@ -303,20 +276,20 @@ public class ListSerializer : CustomSerializer
         return (IList)Activator.CreateInstance(genericListType)!;
     }
 
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
 
         var list = CreateList(DataType);
 
-        var len = serializer.Deserialize<uint>(ms);
+        var len = serializer.Deserialize<uint>(stream);
         for (int i = 0; i < len; i++)
         {
-            list.Add(serializer.Deserialize(ms, DataType));
+            list.Add(serializer.Deserialize(stream, DataType));
         }
         return list;
     }
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
         if (!SpecialDataType)
         {
@@ -325,13 +298,13 @@ public class ListSerializer : CustomSerializer
         {
             var list = (IList)obj;
 
-            ms.Write(Tools.GetBytes((uint)list.Count));
+            stream.Write(Tools.GetBytes((uint)list.Count));
             //var t = list.GetType().GetGenericArguments()[0];
             //var t =  list.GetType().GetGenericTypeDefinition();
             ///Console.WriteLine(t + "   " + DataType);
             for (int i = 0; i < list.Count; i++)
             {
-                serializer.Serialize(list[i]!, ms, DataType);
+                serializer.Serialize(list[i]!, stream, DataType);
             }
         }
 
@@ -339,25 +312,23 @@ public class ListSerializer : CustomSerializer
     }
 }
 
-public class ListSerializer<Ta> : CustomSerializer where Ta : struct
+public class ListSerializer<Ta> : KADataSerializer where Ta : struct
 {
     public Type type { get; set; } = typeof(List<Ta>);
     public bool SpecialDataType { get; set; } = false;
 
-    public object Deserialize(Stream ms, Serializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type)
     {
 
         // var list = new List<Ta>();
-        uint len = serializer.Deserialize<uint>(ms);
-        var data = new Ta[len];
+        var recData = serializer.DeserializeByteArray4(stream);
 
-        var totalLen = len * Marshal.SizeOf(typeof(Ta));
-        int lenToParse = (int)(len / Marshal.SizeOf(typeof(Ta)));
+        var totalLen = recData.Length;
+        int lenToParse = totalLen / Marshal.SizeOf(typeof(Ta));
+        var data = new Ta[lenToParse];
 
-        var byteData = new byte[totalLen];
-        ms.ReadExactly(byteData);
 
-        Buffer.BlockCopy(byteData, 0, data, 0, lenToParse);
+        Buffer.BlockCopy(recData, 0, data, 0, lenToParse);
 
         //for (int i = 0; i < len; i++)
         //{
@@ -368,7 +339,7 @@ public class ListSerializer<Ta> : CustomSerializer where Ta : struct
 
 
 
-    public void Serialize(object obj, Stream ms, Serializer serializer)
+    public void Serialize(object obj, Stream stream, KASerializer serializer)
     {
         if (!SpecialDataType)
         {
@@ -380,20 +351,19 @@ public class ListSerializer<Ta> : CustomSerializer where Ta : struct
             byte[] byteArray = new byte[totalBytes];
 
             Buffer.BlockCopy(list, 0, byteArray, 0, totalBytes);
-            ms.Write(Tools.GetBytes((uint)list.Length));
-            ms.Write(byteArray);
+            serializer.SerializeByteArray4(byteArray, stream);
         }
         else
         {
             var list = (IList)obj;
 
-            ms.Write(Tools.GetBytes((uint)list.Count));
+            stream.Write(Tools.GetBytes((uint)list.Count));
             //var t = list.GetType().GetGenericArguments()[0];
             //var t =  list.GetType().GetGenericTypeDefinition();
             ///Console.WriteLine(t + "   " + DataType);
             for (int i = 0; i < list.Count; i++)
             {
-                serializer.Serialize(list[i]!, ms, typeof(Ta));
+                serializer.Serialize(list[i]!, stream, typeof(Ta));
             }
         }
 
@@ -401,16 +371,16 @@ public class ListSerializer<Ta> : CustomSerializer where Ta : struct
     }
 }
 
-public interface CustomSerializer
+public interface KADataSerializer
 {
     public Type type { get; }
-    public void Serialize(object obj, Stream ms, Serializer serializer);
-    public object Deserialize(Stream ms, Serializer serializer, Type type);
+    public void Serialize(object obj, Stream stream, KASerializer serializer);
+    public object Deserialize(Stream stream, KASerializer serializer, Type type);
 }
 
 
 
-public struct AProperty
+public struct KAProperty
 {
     public required string Name { get; set; }
     public Type type { get; set; }
@@ -419,24 +389,16 @@ public struct AProperty
     public required bool CanChangeType { get; set; }
 }
 
-public struct Serializer
+public class KASerializer
 {
 
-    private bool IsComplex(Type typeIn)
-    {
-        return !(typeIn.IsSubclassOf(typeof(ValueType)) || typeIn.Equals(typeof(string)) || typeIn.Equals(typeof(byte[]))) || IsList(typeIn);//|| typeIn.IsPrimitive 
-    }
-    private bool IsList(Type typeIn)
-    {
-        return typeIn.IsGenericType && typeIn.GetGenericTypeDefinition() == typeof(List<>) && typeIn != typeof(byte[]);
-    }
 
-    private ConcurrentDictionary<Type, AProperty[]> CachedTypes = new();
-    private ConcurrentDictionary<Type, CustomSerializer> TypesSerializers = new();
+    private ConcurrentDictionary<Type, KAProperty[]> CachedTypes = new();
+    private ConcurrentDictionary<Type, KADataSerializer> TypesSerializers = new();
     private ConcurrentDictionary<string, Type> TypeNameMap = new();
 
 
-    public Serializer()
+    public KASerializer()
     {
         AddDefaultSerializer();
     }
@@ -475,14 +437,15 @@ public struct Serializer
 
         AddCustomSerializer(new ListSerializer());
     }
-    public void AddCustomSerializer(CustomSerializer serializer)
+    public void AddCustomSerializer(KADataSerializer serializer)
     {
         if (!TypesSerializers.ContainsKey(serializer.type))
             TypesSerializers[serializer.type] = serializer;
     }
     public void GenerateCacheForType(Type type)
     {
-        if(CachedTypes.ContainsKey(type)){
+        if (CachedTypes.ContainsKey(type))
+        {
             return;
         }
         if (IsList(type))
@@ -500,7 +463,7 @@ public struct Serializer
         }
 
 
-        var props = new List<AProperty>();
+        var props = new List<KAProperty>();
         //Get get methods and cache for type
         foreach (var prop in type.GetProperties().ToList().OrderBy(pr => pr.Name))
         {
@@ -537,11 +500,11 @@ public struct Serializer
 
     public void SerializeType(Type type, Stream stream)
     {
-        Serialize(type.FullName, stream);
+        SerializeByteArray2(Tools.GetBytes(type.FullName!), stream);
     }
     public Type DeserializeType(Stream stream)
     {
-        var name = Deserialize<string>(stream);
+        var name = Tools.GetString(DeserializeByteArray2(stream));
         Type typeOut;
         if (TypeNameMap.TryGetValue(name, out typeOut!))
         {
@@ -566,7 +529,7 @@ public struct Serializer
         {
             //if (IsComplex(type))
             {
-                AProperty[] cachedType;
+                KAProperty[] cachedType;
                 if (!CachedTypes.TryGetValue(type, out cachedType!))
                 {
                     GenerateCacheForType(type);
@@ -600,9 +563,9 @@ public struct Serializer
         }
 
     }
-    public void Serialize<T>(T obj, Stream ms)
+    public void Serialize<T>(T obj, Stream stream)
     {
-        Serialize(obj!, ms, typeof(T));
+        Serialize(obj!, stream, typeof(T));
     }
 
     public object Deserialize(Stream stream, Type type)
@@ -656,12 +619,69 @@ public struct Serializer
         return obj;
 
     }
-    public T Deserialize<T>(Stream ms)
+    public T Deserialize<T>(Stream stream)
     {
-        return (T)Deserialize(ms, typeof(T));
+        return (T)Deserialize(stream, typeof(T));
     }
 
 
+    public byte[] DeserializeByteArray4(Stream stream)
+    {
+        byte[] lenArr = new byte[4];
+        stream.ReadExactly(lenArr);
+        uint TamDadosPRec = Tools.GetUInt(lenArr);
+
+        byte[] dados = new byte[TamDadosPRec];
+
+        int lenDadosRecebido = 0;
+        while (lenDadosRecebido != TamDadosPRec)
+        {
+            lenDadosRecebido += stream.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
+        }
+
+
+        return dados;
+    }
+    public byte[] DeserializeByteArray2(Stream stream)
+    {
+        byte[] lenArr = new byte[2];
+        stream.ReadExactly(lenArr);
+        uint TamDadosPRec = Tools.GetUShort(lenArr);
+
+        byte[] dados = new byte[TamDadosPRec];
+
+        int lenDadosRecebido = 0;
+        while (lenDadosRecebido != TamDadosPRec)
+        {
+            lenDadosRecebido += stream.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
+        }
+
+
+        return dados;
+    }
+
+    public void SerializeByteArray4(byte[] data, Stream stream)
+    {
+        stream.Write(Tools.GetBytes((uint)data.Length));
+        stream.Write(data);
+    }
+    public void SerializeByteArray2(byte[] data, Stream stream)
+    {
+        stream.Write(Tools.GetBytes((ushort)data.Length));
+        stream.Write(data);
+    }
+
+
+
+    private bool IsComplex(Type typeIn)
+    {
+        return !(typeIn.IsSubclassOf(typeof(ValueType)) || typeIn.Equals(typeof(string)) || typeIn.Equals(typeof(byte[]))) || IsList(typeIn);//|| typeIn.IsPrimitive 
+    }
+    private bool IsList(Type typeIn)
+    {
+        return typeIn.IsGenericType && typeIn.GetGenericTypeDefinition() == typeof(List<>) && typeIn != typeof(byte[]);
+    }
+    
 }
 
 
@@ -677,11 +697,7 @@ internal class Program
     }
     private static void Main(string[] args)
     {
-        var ser = new Serializer();
-
-
-
-
+        var ser = new KASerializer();
 
 
         ser.GenerateCacheForType(typeof(TestClass));
@@ -692,7 +708,7 @@ internal class Program
         {
             Obj = new TestSubClass()
             {
-                Param3 = "aaaaaaaaaa"
+                Param3 = "testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest"
             }
         };
 
