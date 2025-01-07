@@ -1,13 +1,13 @@
 
 using System.Linq.Expressions;
 using System.Reflection;
-namespace Kernel.Modules.Base;
+namespace AFCP.FastMethod;
 
 public delegate object ReturnValueDelegate(object instance, object[] arguments);
 public delegate void VoidDelegate(object instance, object[] arguments);
 
 
-public struct FastMethodInfo
+public class FastMethodInfo
 {
     public FastMethodInfo(MethodInfo methodInfo)
     {
