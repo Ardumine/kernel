@@ -125,13 +125,24 @@ public class KASerializer
     }
 
 
-    public void SerializeType(Type type, Stream stream)
+    public void SerializeType(Type? type, Stream stream)
     {
-        SerializeByteArray2(Tools.GetBytes(type.FullName!), stream);
+        if (type == null)
+        {
+            SerializeByteArray2(Tools.GetBytes("null"), stream);
+        }
+        else
+        {
+            SerializeByteArray2(Tools.GetBytes(type?.FullName), stream);
+        }
     }
-    public Type DeserializeType(Stream stream)
+    public Type? DeserializeType(Stream stream)
     {
         var name = Tools.GetString(DeserializeByteArray2(stream));
+        if (name == "null")
+        {
+            return null;
+        }
         Type typeOut;
         if (TypeNameMap.TryGetValue(name, out typeOut!))
         {
@@ -169,11 +180,14 @@ public class KASerializer
                     if (prop.CanChangeType)
                     {
                         var a = prop.GetMethod.Invoke(obj);
-                        var objType = a.GetType();
 
+                        var objType = a?.GetType();
                         SerializeType(objType, stream);
-                        Serialize(a, stream, objType);
 
+                        if (a != null)
+                        {
+                            Serialize(a, stream, objType!);
+                        }
                     }
                     else
                     {
@@ -207,8 +221,12 @@ public class KASerializer
         //}
         var obj = Activator.CreateInstance(type)!;
 
-        var cachedType = CachedTypes[type];
-
+        KAProperty[] cachedType;
+        if (!CachedTypes.TryGetValue(type, out cachedType!))
+        {
+            GenerateCacheForType(type);
+            cachedType = CachedTypes[type];
+        }
 
         for (int i = 0; i < cachedType.Length; i++)
         {
@@ -225,8 +243,14 @@ public class KASerializer
                 {
                     var dataType = DeserializeType(stream);
                     //GenerateCacheForType(dataType);
-
-                    prop.SetMethod.Invoke(obj, Deserialize(stream, dataType));
+                    if (dataType == null)
+                    {
+                        //prop.SetMethod.Invoke(obj, null);
+                    }
+                    else
+                    {
+                        prop.SetMethod.Invoke(obj, Deserialize(stream, dataType));
+                    }
                 }
                 else
                 {

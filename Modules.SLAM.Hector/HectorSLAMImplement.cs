@@ -51,11 +51,13 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
     {
         Running = true;
         lidarDataChannel?.AddEvent(OnLidarData!);
+                posChannel?.Set(new Vector3(2, 5, 90));
        
        new Thread(() =>
         {
             while (Running)
             {
+                Logger.LogI("note");
                 posChannel?.Set(new Vector3(2, 5, 90));
                 Thread.Sleep(1000);
             }

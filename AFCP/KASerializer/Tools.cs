@@ -51,7 +51,7 @@ public static class Tools
     //https://stackoverflow.com/questions/11654562/how-to-convert-byte-array-to-string
     //https://stackoverflow.com/questions/16072709/converting-string-to-byte-array-in-c-sharp
     //https://stackoverflow.com/questions/20273556/fast-string-to-byte-conversion
-    public static unsafe byte[] GetBytes(string str)
+    public static unsafe byte[] GetBytes(string ?str)
     {
         if (str == null)
         {

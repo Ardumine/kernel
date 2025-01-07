@@ -1,9 +1,6 @@
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Text.Json;
 using AFCP.DataTreatment;
-using AFCP.JsonConverters;
 using AFCP.Packets;
 using AFCP.Systems;
 
@@ -22,7 +19,8 @@ public class ChannelManagerClient
     NetworkStream TCPClientstream;
     ConnectSystem connectSystem;
     ChannelManagementSystem channelManagementSystem;
-   
+    AFCP.KASerializer.KASerializer Serializer;
+
     private AutoResetEvent OnNewData = new AutoResetEvent(false);
 
     Queue<DataWritter> dataCache = new();
@@ -37,7 +35,7 @@ public class ChannelManagerClient
         LocalChannelManager = _localChannelManager;
         Running = true;
         tcpClient = new TcpClient();
-
+        Serializer = new();
 
         tcpClient.Connect(IP, Port);
         TCPClientstream = tcpClient.GetStream();
@@ -65,7 +63,6 @@ public class ChannelManagerClient
 
         channelManagementSystem = new(LocalChannelManager);
         connectSystem = new(LocalChannelManager, this);
-    	File.Create("cc");
 
         Thread.Sleep(100);
         OnConnect();//Only when we connect as a client
@@ -79,6 +76,7 @@ public class ChannelManagerClient
 
         Running = true;
         tcpClient = client;
+        Serializer = new();
 
         channelManagementSystem = new(LocalChannelManager);
         connectSystem = new(LocalChannelManager, this);
@@ -183,9 +181,11 @@ public class ChannelManagerClient
         var writter = GenerateRequestHeader(RequestID);
 
         writter.Write(RequestType);
-        
-        Payload.Serialize(writter);
-    
+        var req = new PacketBaseRequestAK();
+        req.req = Payload;
+        //Console.WriteLine("SendRequest" + req.req.GetType());
+        Serializer.Serialize(req, writter.ms);
+
         WriteData(writter);
 
         return (T)tcs.Task.Result;
@@ -216,7 +216,7 @@ public class ChannelManagerClient
 
                     byte msgType = reader.ReadByte();
                     //answerWritterFull.WriteByte(msgType);
-                    Console.WriteLine("msgType" + msgType);
+                    //Console.WriteLine("msgType" + msgType);
 
                     if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
                     {
@@ -226,7 +226,7 @@ public class ChannelManagerClient
                     {
                         answer = ParseChannelSyncRequestPacket(ParsePacketRequest<PacketSyncRequest>(reader));
                     }
-                    else if (msgType == MessagesTypes.ChannelManagementRequest)//Channel management.
+                    else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
                     {
                         answer = channelManagementSystem.Process(ParsePacketRequest<PacketChannelManagementRequest>(reader));
                     }
@@ -239,7 +239,11 @@ public class ChannelManagerClient
                         answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketFunctionRequest>(reader));
                     }
 
-                    answerWritterFull.WriteObject(answer);
+
+                    Serializer.Serialize(new BasePacketAnswerAK()
+                    {
+                        ans = answer
+                    }, answerWritterFull.ms);
                     //answerWritterFull.Copy(TCPClientstream);
                     WriteData(answerWritterFull);
 
@@ -248,7 +252,8 @@ public class ChannelManagerClient
                 {
                     if (_pendingRequests.TryRemove(RequestID, out var tcs))
                     {
-                        var obj = reader.ReadObject<BasePacketAnswer>()!;
+                        //var obj = reader.ReadObject<BasePacketAnswer>()!;
+                        var obj = Serializer.Deserialize<BasePacketAnswerAK>(reader.stream).ans;
                         tcs.SetResult(obj);
                     }
                 }
@@ -274,16 +279,15 @@ public class ChannelManagerClient
 
     T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        PacketBaseRequest aa = (PacketBaseRequest)Activator.CreateInstance(typeof(T))!;
-        aa.Deserialize(reader);
-        return (T)aa;
+        var req = Serializer.Deserialize<PacketBaseRequestAK>(reader.stream);
+        return (T)req.req;
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {
-        LocalChannelManager.AddChannelsSync(data.RemoteChannels, data.RemoteGuid);
+        LocalChannelManager.AddChannelsSync(data.RemoteChannels.ToArray(), data.RemoteGuid);
         var packet = new PacketSyncAnswer()
         {
-            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors(),
+            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors().ToList(),
             RemoteGuid = LocalChannelManager.LocalGuid
         };
 

@@ -1,7 +1,3 @@
-using System.Text;
-using System.Text.Json;
-using AFCP;
-using AFCP.DataTreatment;
 using AFCP.Packets;
 
 namespace AFCP.Systems;
@@ -32,10 +28,8 @@ public class ChannelManagementSystem
             //DataChannel? channel = channelManager.GetDataChannel();
             //var interf = channelManager.GetInterfaceForChannel(a.ChannelPath);
 
-            object? myData = a.NewVal is JsonElement jsonElement
-              ? jsonElement.Deserialize(Type.GetType(a?.DataType!)!, DataWritter.JsonOptions)
-             : Convert.ChangeType(a.NewVal, Type.GetType(a?.DataType!)!);
-            channelManager.OnRemoteDataChange(a!.ChannelPath, myData);
+         
+            channelManager.OnRemoteDataChange(a!.ChannelPath, a.NewVal);
 
             //interf?.OnRemoteChange(myData);
         }

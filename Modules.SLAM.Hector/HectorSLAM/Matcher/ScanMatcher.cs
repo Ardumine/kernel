@@ -5,10 +5,10 @@ using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using Microsoft.Extensions.Logging;
 using BaseSLAM;
 using HectorSLAM.Main;
 using HectorSLAM.Map;
+using Kernel.Logging;
 
 namespace HectorSLAM.Matcher
 {
@@ -17,7 +17,7 @@ namespace HectorSLAM.Matcher
     /// </summary>
     public class ScanMatcher : IDisposable
     {
-        private readonly ILogger? logger;
+        private readonly Logger? logger;
         private readonly ParallelWorker worker;
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace HectorSLAM.Matcher
         /// </summary>
         /// <param name="numThreads">Number of calculation threads to use</param>
         /// <param name="logger">Logging interface</param>
-        public ScanMatcher(int numThreads, ILogger? logger = null)
+        public ScanMatcher(int numThreads, Logger? logger = null)
         {
             this.logger = logger;
             worker = new ParallelWorker(numThreads, "HectorSLAM estimator");
@@ -41,13 +41,13 @@ namespace HectorSLAM.Matcher
         public Vector3 MatchData(MapRepMultiMap multiMap, ScanCloud scan, Vector3 hintPose)
         {
             Vector3 estimate = hintPose;
-            logger?.LogInformation($"Hint pose {hintPose.ToPoseString()}");
+            logger?.LogI($"Hint pose {hintPose.ToPoseString()}");
 
             // Start matching from coarsest map
             for (int index = multiMap.Maps.Length - 1; index >= 0; index--)
             {
                 estimate = MatchData(multiMap.Maps[index], scan, estimate);
-                logger?.LogInformation($"Layer {index} estimate: {estimate.ToPoseString()}");
+                logger?.LogI($"Layer {index} estimate: {estimate.ToPoseString()}");
             }
 
             return estimate;
@@ -98,7 +98,7 @@ namespace HectorSLAM.Matcher
             {
                 if (!Matrix4x4.Invert(H, out Matrix4x4 iH))
                 {
-                    logger?.LogError($"Failed to calculate inverse matrix from {H}");
+                    logger?.LogW($"Failed to calculate inverse matrix from {H}");
                     return false;
                 }
 
@@ -106,13 +106,13 @@ namespace HectorSLAM.Matcher
 
                 if (searchDir.Z > 0.2f)
                 {
-                    logger?.LogWarning($"SearchDir angle change ({MathEx.RadToDeg(searchDir.Z)}°) too large");
+                    logger?.LogW($"SearchDir angle change ({MathEx.RadToDeg(searchDir.Z)}°) too large");
                     searchDir.Z = 0.2f;
                     
                 }
                 else if (searchDir.Z < -0.2f)
                 {
-                    logger?.LogWarning($"SearchDir angle change ({MathEx.RadToDeg(searchDir.Z)}°) too large");
+                    logger?.LogW($"SearchDir angle change ({MathEx.RadToDeg(searchDir.Z)}°) too large");
                     searchDir.Z = -0.2f;
                 }
 

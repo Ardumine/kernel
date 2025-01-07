@@ -1,4 +1,3 @@
-using System.Text.Json;
 using AFCP.DataTreatment;
 using AFCP.Packets;
 
@@ -156,11 +155,11 @@ public class ChannelManager
         var packet = new PacketSyncRequest()
         {
             RemoteGuid = LocalGuid,
-            RemoteChannels = GetLocalChannelDescriptors()
+            RemoteChannels = GetLocalChannelDescriptors().ToList()
         };
         var answer = client.SendRequest<PacketSyncAnswer>(MessagesTypes.ChannelSyncRequest, packet);
         
-        AddChannelsSync(answer.RemoteChannels, answer.RemoteGuid);
+        AddChannelsSync(answer.RemoteChannels.ToArray(), answer.RemoteGuid);
         Externals[answer.RemoteGuid] = client;
     }
 
@@ -259,11 +258,8 @@ public class ChannelManager
 
         var res = Externals[OwningChannelManager].SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
 
-        T? myData = res.Result is JsonElement jsonElement
-         ? JsonSerializer.Deserialize<T>(jsonElement, DataWritter.JsonOptions)!
-         : (T?)res.Result;
-
-        return myData;//Simulate
+    
+        return (T?)res.Result;//Simulate
     }
 
     public object? RunFuncRemote(Guid OwningChannelManager, string channelPath, uint FuncID, object?[]? Params)

@@ -1,19 +1,10 @@
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
-using AFCP.JsonConverters;
 
 namespace AFCP.DataTreatment;
 public class DataWritter
 {
     public MemoryStream ms;
-    public static JsonSerializerOptions JsonOptions = new JsonSerializerOptions()
-    {
-        Converters = {
-            new Vector2JsonConverter(),
-            new Vector3JsonConverter(),
-        }
-    };
 
     public DataWritter()
     {
@@ -75,10 +66,6 @@ public class DataWritter
         ms.Write(bytes);
     }
 
-    public void WriteObject<T>(T obj)
-    {
-        WriteByteArr(JsonSerializer.SerializeToUtf8Bytes(obj, JsonOptions));
-    }
 
     public void Copy(NetworkStream stream)
     {
