@@ -1,7 +1,7 @@
-using AFCP;
-using AFCP.Packets;
+using Kernel.AFCP;
+using Kernel.AFCP.Packets;
 
-namespace AFCP.Systems;
+namespace Kernel.AFCP.Systems;
 public class ConnectSystem
 {
     ChannelManager channelManager;
@@ -36,6 +36,8 @@ public class ConnectSystem
             channelManager.ConnectedKernels.Add(new KernelDescriptor()
             {
                 KernelGuid = a.RemoteKernel,
+                //HostingChannels = a.HostingChannels,
+                //HostingModules = a.HostingModules,
                 channelManagerClient = channelManagerClient
             });
             channelManagerClient.RemoteGuid = a.RemoteKernel;

@@ -1,10 +1,10 @@
-namespace AFCP.KASerializer.Serializers.Guid;
+namespace Kernel.AFCP.KASerializer.Serializers.Guid;
 
 
 public class GuidSerializer : KADataSerializer
 {
     public Type type => typeof(System.Guid);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type)
+    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
     {
         byte[] arr = new byte[16];
         stream.ReadExactly(arr);
@@ -13,7 +13,7 @@ public class GuidSerializer : KADataSerializer
     }
 
     //https://stackoverflow.com/questions/33292204/copying-a-system-guid-to-byte-without-allocating
-    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer)
+    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
     {
         var guid = (System.Guid)obj;
 

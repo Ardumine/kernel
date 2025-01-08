@@ -1,4 +1,4 @@
-using AFCP;
+using Kernel.AFCP;
 using Kernel.Logging;
 namespace Kernel.Modules.Base;
 
@@ -16,11 +16,11 @@ public abstract class BaseImplement : IModuleInterface
 
     public abstract void EndStop();
 
-    public DataChannel? GetDataChannel(string Path)
+    public DataChannelDescriptor? GetDataChannel(string Path)
     {
         return moduleManager.GetDataChannel(SelfMod, Path);
     }
-    public DataChannel InitiateChannel<T>(string Path)
+    public DataChannelDescriptor InitiateChannel<T>(string Path)
     {
         return moduleManager.CreateLocalDataChannel<T>(SelfMod, Path);
     }

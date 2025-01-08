@@ -1,7 +1,7 @@
-using AFCP.DataTreatment;
-using AFCP.KASerializer.Atributes;
+using Kernel.AFCP.DataTreatment;
+using Kernel.AFCP.KASerializer.Atributes;
 
-namespace AFCP.Packets;
+namespace Kernel.AFCP.Packets;
 
 public class PacketBaseRequestAK
 {
@@ -17,6 +17,8 @@ public class PacketBaseRequest
 public class PacketConnectRequest : PacketBaseRequest
 {
     public Guid RemoteKernel { get; set; }
+    //public List<DataChannelDescriptor> HostingChannels { get; init; }
+    //public List<ModuleDescriptor> HostingModules { get; init; }
     public bool Disconnect { get; set; }//Is this a disconnect request? This is so we dont create another packet type just to do the basically same thing.
 
 }
@@ -50,7 +52,9 @@ public class PacketFunctionRequest : PacketBaseRequest
 public class PacketSyncRequest : PacketBaseRequest
 {
     public Guid RemoteGuid { get; set; }
-    public required List<ChannelDescriptor> RemoteChannels { get; set; }
+
+    [CanHaveOtherTypes]
+    public required ChannelDescriptor[] RemoteChannels { get; set; }
 
 }
 
@@ -80,7 +84,7 @@ public static class ChannelMessageSyncMessageTypes
 public class BasePacketAnswerAK
 {
     [CanHaveOtherTypes]
-    public BasePacketAnswer ans {get;set;}
+    public BasePacketAnswer ans { get; set; }
 }
 
 public class BasePacketAnswer
@@ -92,6 +96,9 @@ public class BasePacketAnswer
 public class PacketConnectAnswer : BasePacketAnswer
 {
     public Guid RemoteKernel { get; set; }
+    //public List<DataChannelDescriptor> HostingChannels { get; init; }
+    //public List<ModuleDescriptor> HostingModules { get; init; }
+
 }
 
 public class PacketChannelAnswer : BasePacketAnswer
@@ -103,7 +110,8 @@ public class PacketChannelAnswer : BasePacketAnswer
 public class PacketSyncAnswer : BasePacketAnswer
 {
     public Guid RemoteGuid { get; set; }
-    public required List<ChannelDescriptor> RemoteChannels { get; set; }
+    [CanHaveOtherTypes]
+    public required ChannelDescriptor[] RemoteChannels { get; set; }
 }
 
 public class PacketFunctionAnswer : BasePacketAnswer

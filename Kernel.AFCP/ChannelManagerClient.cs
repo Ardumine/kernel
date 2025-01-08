@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using AFCP.DataTreatment;
-using AFCP.Packets;
-using AFCP.Systems;
+using Kernel.AFCP.DataTreatment;
+using Kernel.AFCP.Packets;
+using Kernel.AFCP.Systems;
 
-namespace AFCP;
+namespace Kernel.AFCP;
 
 public class ChannelManagerClient
 {
@@ -58,7 +58,6 @@ public class ChannelManagerClient
 
     internal ChannelManagerClient(TcpClient client, ChannelManager _localChannelManager)
     {
-
         LocalChannelManager = _localChannelManager;
 
         Running = true;
@@ -81,16 +80,16 @@ public class ChannelManagerClient
     {
         new Thread(() =>
         {
-           while (Running)
-           {
-               while (dataCache.Count > 0)
-               {
-                   dataCache.Dequeue().Copy(TCPClientstream);
-               }
-               OnNewData.Reset();
-               OnNewData.WaitOne();
+            while (Running)
+            {
+                while (dataCache.Count > 0)
+                {
+                    dataCache.Dequeue().Copy(TCPClientstream);
+                }
+                OnNewData.Reset();
+                OnNewData.WaitOne();
 
-           }
+            }
         })
         {
             Name = $"ChannelManagerClient  Send"
@@ -98,12 +97,19 @@ public class ChannelManagerClient
     }
     private void OnConnect()
     {
-        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.LocalGuid, Disconnect = false });
+        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
+        {
+            //HostingChannels = LocalChannelManager.GetLocalChannelDescriptors().Where(t => t.IsDataChannel).Select(t => t as DataChannelDescriptor).ToList()!,
+            RemoteKernel = LocalChannelManager.LocalGuid,
+            Disconnect = false
+        });
 
 
         LocalChannelManager.ConnectedKernels.Add(new KernelDescriptor()
         {
             KernelGuid = connectResponse.RemoteKernel,
+            //HostingChannels = connectResponse.HostingChannels,
+            //HostingModules = connectResponse.HostingModules,
             channelManagerClient = this
         });
 
@@ -261,10 +267,10 @@ public class ChannelManagerClient
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {
-        LocalChannelManager.AddChannelsSync(data.RemoteChannels.ToArray(), data.RemoteGuid);
+        LocalChannelManager.AddChannelsSync(data.RemoteChannels, data.RemoteGuid);
         var packet = new PacketSyncAnswer()
         {
-            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors().ToList(),
+            RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors(),
             RemoteGuid = LocalChannelManager.LocalGuid
         };
 

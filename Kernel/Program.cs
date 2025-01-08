@@ -2,16 +2,17 @@
 using System.Reflection;
 using System.Text;
 using System.Threading.Channels;
-using AFCP;
+using Kernel.AFCP;
 using Kernel.Logging;
 using Kernel.Modules;
 using Kernel.Modules.Base;
+using Kernel.Shared;
 
 namespace Kernel;
 internal class Program
 {
     static List<ModuleDescription> AvailableModules = new();
-    static List<KernelDescriptor> ConnectedKernels = new List<KernelDescriptor>();
+    static List<KernelDescriptor> ConnectedKernels = new ();
     static ModuleManager? moduleManager { get; set; }
     private static void Main(string[] args)
     {

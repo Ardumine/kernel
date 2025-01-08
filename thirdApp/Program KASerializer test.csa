@@ -1,17 +1,20 @@
 using System.Diagnostics;
 using System.Text.Json;
-using AFCP.KASerializer;
-using AFCP.KASerializer.Atributes;
+using Kernel.AFCP.KASerializer;
+using Kernel.AFCP.KASerializer.Atributes;
 
 public class TestClass
 {
-    public int Param1 { get; set; }
+    //public int Param1 { get; set; }
 
-    public List<int> SubClasses { get; set; } = new();
+    //public List<int> SubClasses { get; set; } = new();
 
-    public List<TestSubClass> testSubClasses { get; set; } = new();
     [CanHaveOtherTypes]
-    public object Obj { get; set; }
+    public object[] testSubClasses { get; set; }
+    //public object[] testSubClasses { get; set; }
+
+    //[CanHaveOtherTypes]
+    //public object Obj { get; set; }
 
 }
 
@@ -37,17 +40,23 @@ internal class Program
     {
         var ser = new KASerializer();
 
+        //ser.GenerateCacheForType(typeof(TestSubClass));
 
-        ser.GenerateCacheForType(typeof(TestClass));
+        //ser.GenerateCacheForType(typeof(TestClass));
 
         MemoryStream ms = new MemoryStream();
 
         var obj = new TestClass()
         {
-            Obj = new TestSubClass()
-            {
-                Param3 = "testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttesttest"
-            }
+            testSubClasses = [
+                new TestSubClass(){
+                    Param3 = "aa"
+                },
+                new TestSubClass(){
+                    Param3 = "bb"
+                },
+                "aaaaaaaaa"
+            ]
         };
 
         ser.Serialize(obj, ms);
@@ -58,12 +67,24 @@ internal class Program
 
         var deser = ser.Deserialize<TestClass>(new MemoryStream(data));
 
-        Console.WriteLine(((TestSubClass)deser.Obj).Param3);
+        foreach (var item in deser.testSubClasses)
+        {
+            if (item is TestSubClass tes)
+            {
+                Console.WriteLine(tes.Param3);
+            }
+            else
+            {
+                Console.WriteLine(item);
+            }
+        }
+        //Console.WriteLine(((TestSubClass)deser.Obj).Param3);
 
 
 
     }
 
+#if false
     static void BenchMark(KASerializer ser)
     {
 
@@ -213,6 +234,6 @@ internal class Program
 
         }
     }
-
+#endif
 
 }

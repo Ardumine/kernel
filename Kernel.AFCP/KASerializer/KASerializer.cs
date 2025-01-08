@@ -1,13 +1,13 @@
 using System.Collections.Concurrent;
-using AFCP.KASerializer.Atributes;
-using AFCP.KASerializer.Serializers;
-using AFCP.KASerializer.Serializers.Guid;
-using AFCP.KASerializer.Serializers.Lists;
-using AFCP.KASerializer.Serializers.Numeric;
-using AFCP.KASerializer.Serializers.Text;
-using AFCP.KASerializer.Serializers.Vector;
+using Kernel.AFCP.KASerializer.Atributes;
+using Kernel.AFCP.KASerializer.Serializers;
+using Kernel.AFCP.KASerializer.Serializers.Guid;
+using Kernel.AFCP.KASerializer.Serializers.Lists;
+using Kernel.AFCP.KASerializer.Serializers.Numeric;
+using Kernel.AFCP.KASerializer.Serializers.Text;
+using Kernel.AFCP.KASerializer.Serializers.Vector;
 
-namespace AFCP.KASerializer;
+namespace Kernel.AFCP.KASerializer;
 
 public class KASerializer
 {
@@ -71,13 +71,16 @@ public class KASerializer
     }
     public void GenerateCacheForType(Type type)
     {
-        if (CachedTypes.ContainsKey(type))
+        if (type != null && CachedTypes.ContainsKey(type))
+        {
+            return;
+        }
+        if (type == null)
         {
             return;
         }
         if (IsList(type))
         {
-
             GenerateCacheForType(type.GetGenericArguments()[0]);
 
             AddCustomSerializer(new ListSerializer()
@@ -88,13 +91,32 @@ public class KASerializer
             return;
 
         }
+        if (IsArray(type))
+        {
 
+            GenerateCacheForType(type.GetElementType()!);
+
+            AddCustomSerializer(new ArraySerializer()
+            {
+                type = type,
+                DataType = type.GetElementType()!
+            });
+            return;
+
+        }
 
         var props = new List<KAProperty>();
         //Get get methods and cache for type
         foreach (var prop in type.GetProperties().ToList().OrderBy(pr => pr.Name))
         {
-            if (!CachedTypes.ContainsKey(prop.PropertyType) && prop.PropertyType != typeof(object) && !TypesSerializers.ContainsKey(prop.PropertyType))//&& IsComplex(prop.PropertyType) 
+
+            if (prop.GetMethod == null || prop.SetMethod == null)
+            {
+                throw new NotImplementedException($"The property '{prop.Name}' in '{prop.DeclaringType?.FullName}' does not have set or get method. Make sure you have a {{get; set;}} on the declaring property.");
+            }
+
+
+            if (!CachedTypes.ContainsKey(prop.PropertyType) && !TypesSerializers.ContainsKey(prop.PropertyType) && prop.PropertyType != typeof(object))//&& IsComplex(prop.PropertyType)   
             {
                 // if (IsList(prop.PropertyType))
                 //{
@@ -102,12 +124,9 @@ public class KASerializer
                 // }
                 // else
                 //  {
+                //Console.WriteLine("C: " + prop.PropertyType + prop.Name);
                 GenerateCacheForType(prop.PropertyType);
                 // }
-            }
-            if (prop.GetMethod == null || prop.SetMethod == null)
-            {
-                throw new NotImplementedException($"The property '{prop.Name}' in '{prop.DeclaringType?.FullName}' does not have set or get method. Make sure you have a {{get; set;}} on the declaring property.");
             }
 
 
@@ -116,9 +135,9 @@ public class KASerializer
                 GetMethod = new(prop.GetMethod),
                 SetMethod = new(prop.SetMethod),
                 type = prop.PropertyType,
-                //CanChangeType = prop.PropertyType == typeof(object),
-                CanChangeType = Attribute.IsDefined(prop, typeof(CanHaveOtherTypes)),
-                Name = prop.Name
+                CanChangeType = Attribute.IsDefined(prop, typeof(CanHaveOtherTypes)) ,
+                Name = prop.Name,
+                IsListOrArray = IsList(prop.PropertyType) || IsArray(prop.PropertyType)
             });
         }
         CachedTypes[type] = props.ToArray();
@@ -133,7 +152,7 @@ public class KASerializer
         }
         else
         {
-            SerializeByteArray2(Tools.GetBytes(type?.FullName), stream);
+            SerializeByteArray2(Tools.GetBytes(type?.AssemblyQualifiedName), stream);
         }
     }
     public Type? DeserializeType(Stream stream)
@@ -157,68 +176,78 @@ public class KASerializer
     }
 
 
-    public void Serialize(object obj, Stream stream, Type type)
+    public void Serialize(object obj, Stream stream, Type type, KAProperty fontProp)
     {
+        //Console.WriteLine("Ser: " + obj.GetType() + "    " + fontProp.Name + fontProp.CanChangeType + "       " + type + fontProp.IsListOrArray);
+        if (fontProp.CanChangeType && !fontProp.IsListOrArray)
+        {
+            SerializeType(obj.GetType(), stream);
+            type = obj.GetType();
+        
+        }
+
         if (TypesSerializers.TryGetValue(type, out var customSerializer))
         {
-            customSerializer.Serialize(obj, stream, this);
+            customSerializer.Serialize(obj, stream, this, fontProp);
         }
         else
         {
-            //if (IsComplex(type))
+
+            KAProperty[] cachedType;
+            if (!CachedTypes.TryGetValue(type, out cachedType!))
             {
-                KAProperty[] cachedType;
-                if (!CachedTypes.TryGetValue(type, out cachedType!))
+                GenerateCacheForType(type);
+                cachedType = CachedTypes[type];
+            }
+
+            for (int i = 0; i < cachedType.Length; i++)
+            {
+                var prop = cachedType[i];
+                var val = prop.GetMethod.Invoke(obj);
+                //Console.WriteLine($"        {prop.Name} {prop.IsListOrArray} {prop.CanChangeType}");
+                if (prop.CanChangeType && !prop.IsListOrArray)
                 {
-                    GenerateCacheForType(type);
-                    cachedType = CachedTypes[type];
-                }
+                    var objType = val?.GetType();
+                    SerializeType(objType, stream);
 
-                for (int i = 0; i < cachedType.Length; i++)
-                {
-                    var prop = cachedType[i];
-                    if (prop.CanChangeType)
+                    if (val != null)
                     {
-                        var a = prop.GetMethod.Invoke(obj);
-
-                        var objType = a?.GetType();
-                        SerializeType(objType, stream);
-
-                        if (a != null)
-                        {
-                            Serialize(a, stream, objType!);
-                        }
-                    }
-                    else
-                    {
-                        Serialize(prop.GetMethod.Invoke(obj), stream, prop.type);
+                        Serialize(val, stream, objType!, prop);
                     }
                 }
-                //}
+                else
+                {
+                    Serialize(val, stream, prop.type, prop);
+                }
             }
-            //else
-            {
-                //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
-            }
+            //}
+
+            //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
 
         }
 
     }
     public void Serialize<T>(T obj, Stream stream)
     {
-        Serialize(obj!, stream, typeof(T));
+        Serialize(obj!, stream, typeof(T), new KAProperty()
+        {
+            CanChangeType = false,
+            IsListOrArray = false,
+            Name = ""
+        });
     }
 
-    public object Deserialize(Stream stream, Type type)
+    public object Deserialize(Stream stream, Type type, KAProperty fontProp)
     {
-        // if (!IsComplex(type))
-        //{
-
+        if (fontProp.CanChangeType && !fontProp.IsListOrArray)
+        {
+            type = DeserializeType(stream)!;
+        }
         if (TypesSerializers.TryGetValue(type, out var customSerializer))
         {
-            return customSerializer.Deserialize(stream, this, type);
+            return customSerializer.Deserialize(stream, this, type, fontProp);
         }
-        //}
+
         var obj = Activator.CreateInstance(type)!;
 
         KAProperty[] cachedType;
@@ -235,11 +264,11 @@ public class KASerializer
 
             if (TypesSerializers.TryGetValue(prop.type, out var customSerializer_) && !prop.CanChangeType)
             {
-                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(stream, this, prop.type));
+                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(stream, this, prop.type, prop));
             }
             else
             {
-                if (prop.CanChangeType)
+                if (prop.CanChangeType && !prop.IsListOrArray)
                 {
                     var dataType = DeserializeType(stream);
                     //GenerateCacheForType(dataType);
@@ -249,12 +278,12 @@ public class KASerializer
                     }
                     else
                     {
-                        prop.SetMethod.Invoke(obj, Deserialize(stream, dataType));
+                        prop.SetMethod.Invoke(obj, Deserialize(stream, dataType, prop));
                     }
                 }
                 else
                 {
-                    prop.SetMethod.Invoke(obj, Deserialize(stream, prop.type));
+                    prop.SetMethod.Invoke(obj, Deserialize(stream, prop.type, prop));
                 }
                 //if (IsComplex(prop.type))
                 {
@@ -272,7 +301,12 @@ public class KASerializer
     }
     public T Deserialize<T>(Stream stream)
     {
-        return (T)Deserialize(stream, typeof(T));
+        return (T)Deserialize(stream, typeof(T), new KAProperty()
+        {
+            CanChangeType = false,
+            IsListOrArray = false,
+            Name = ""
+        });
     }
 
 
@@ -323,14 +357,19 @@ public class KASerializer
     }
 
 
-
+    public bool IsList(Type typeIn)
+    {
+        return typeIn.IsGenericType && typeIn.GetGenericTypeDefinition() == typeof(List<>) && typeIn != typeof(byte[]);
+    }
+    public bool IsArray(Type typeIn)
+    {
+        return typeIn.IsArray && typeIn != typeof(byte[]);
+    }
+    
     private bool IsComplex(Type typeIn)
     {
         return !(typeIn.IsSubclassOf(typeof(ValueType)) || typeIn.Equals(typeof(string)) || typeIn.Equals(typeof(byte[]))) || IsList(typeIn);//|| typeIn.IsPrimitive 
     }
-    private bool IsList(Type typeIn)
-    {
-        return typeIn.IsGenericType && typeIn.GetGenericTypeDefinition() == typeof(List<>) && typeIn != typeof(byte[]);
-    }
+ 
 
 }

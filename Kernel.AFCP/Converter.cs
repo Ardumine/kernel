@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace AFCP;
+namespace Kernel.AFCP;
 public class Converter
 {
     public static ushort ByteArrayToUshort(byte[] b, int offset = 0)

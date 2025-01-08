@@ -1,6 +1,5 @@
 using System.Numerics;
-using AFCP;
-using Kernel.Modules;
+using Kernel.AFCP;
 
 internal class Program
 {

@@ -1,8 +1,8 @@
 
-namespace AFCP;
+namespace Kernel.AFCP;
 public class DataChannelInterface : ChannelBase
 {
-    public required virtual DataChannel DataChannel{ get; set; }
+    public required virtual DataChannelDescriptor DataChannel{ get; set; }
     internal virtual void OnRemoteChange(object? NewVal)
     {
 
@@ -169,7 +169,7 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
         if (IsLocal)
         {
             LocalValue = Data;
-            channelManager.NoitifyChannelDataChanged(DataChannel, DataType!, LocalValue);
+            channelManager.NoitifyChannelDataChanged(DataChannel, LocalValue);
         }
         Parallel.For(0, Events.Count, (i) =>
         {
@@ -204,8 +204,9 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
 }
 
 
-public class DataChannel : ChannelBase
+public class DataChannelDescriptor : ChannelBase
 {
+    public required string? DataType { get; set; }
 
     public List<KernelDescriptor> KernelsToNotify = new List<KernelDescriptor>();
     //public required DataChannelInterface<object> channelInterface { get; set; }
@@ -221,7 +222,7 @@ public class DataChannel : ChannelBase
 
     public List<KernelDescriptor> KernelsSubscribed = new List<KernelDescriptor>();
 
-    public DataChannel()
+    public DataChannelDescriptor()
     {
     }
 
@@ -282,6 +283,5 @@ public class ChannelDescriptor
 
     public bool IsDataChannel { get; set; }
 
-    public required string? DataType { get; set; }
     public required bool HighSpeed = false;
 }

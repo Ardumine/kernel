@@ -1,5 +1,5 @@
 using System.Text;
-namespace AFCP.KASerializer;
+namespace Kernel.AFCP.KASerializer;
 public static class Tools
 {
     public static unsafe byte[] GetBytes(int value)

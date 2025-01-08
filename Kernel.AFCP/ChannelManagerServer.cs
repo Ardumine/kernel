@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace AFCP;
+namespace Kernel.AFCP;
 public class ChannelManagerServer
 {
     public bool Running { get; private set; }

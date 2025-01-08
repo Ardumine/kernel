@@ -1,4 +1,4 @@
-namespace AFCP.KASerializer.Atributes;
+namespace Kernel.AFCP.KASerializer.Atributes;
 
 /// <summary>
 /// When the property can have another types. This includes derivation.

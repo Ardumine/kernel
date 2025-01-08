@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace AFCP.DataTreatment;
+namespace Kernel.AFCP.DataTreatment;
 public class DataReader
 {
     public Stream stream;

@@ -1,6 +1,6 @@
-using AFCP.Packets;
+using Kernel.AFCP.Packets;
 
-namespace AFCP.Systems;
+namespace Kernel.AFCP.Systems;
 public class ChannelManagementSystem
 {
     ChannelManager channelManager;
@@ -14,12 +14,12 @@ public class ChannelManagementSystem
         //When another kernel requests to notify when a channel changes it's data.
         if (a.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
-            DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
+            DataChannelDescriptor? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
             channel?.AddNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
-            DataChannel? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
+            DataChannelDescriptor? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
             channel?.RemoveNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
         }
         else if (a.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)

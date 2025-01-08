@@ -1,11 +1,11 @@
 using System.Numerics;
 
-namespace AFCP.KASerializer.Serializers.Vector;
+namespace Kernel.AFCP.KASerializer.Serializers.Vector;
 
 public class Vector2Serializer : KADataSerializer
 {
     public Type type => typeof(Vector2);
-    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type)
+    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
     {
         byte[] arr = new byte[8];
         var vec = new Vector2();
@@ -20,7 +20,7 @@ public class Vector2Serializer : KADataSerializer
     }
 
 
-    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer)
+    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
     {
         var vec = (Vector2)obj;
 
@@ -39,7 +39,7 @@ public class Vector2Serializer : KADataSerializer
 public class Vector3Serializer : KADataSerializer
 {
     public Type type => typeof(Vector3);
-    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type)
+    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
     {
         byte[] arr = new byte[12];
         var vec = new Vector3();
@@ -55,7 +55,7 @@ public class Vector3Serializer : KADataSerializer
     }
 
 
-    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer)
+    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
     {
         var vec = (Vector3)obj;
 

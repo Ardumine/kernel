@@ -1,5 +1,5 @@
 using System.Text.Json;
-using AFCP;
+using Kernel.AFCP;
 using Kernel.Modules.Base;
 
 public class ConfigParser

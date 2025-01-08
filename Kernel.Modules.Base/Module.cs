@@ -1,13 +1,11 @@
-using AFCP;
+using Kernel.AFCP;
 
 namespace Kernel.Modules.Base;
 
-public abstract class Module
+public abstract class Module : ModuleDescriptor
 {
-
     internal BaseImplement? baseImplement;
     public Guid Guid { get; set; }
-    public required string Path { get; set; }
     public List<ConfigChannelDescriptor>? hostingChannels { get; set; }
     public required List<ConfigChannelDescriptor> connectedChannels { get; set; }
 
@@ -25,7 +23,7 @@ public abstract class Module
             }
             return baseImplement;
         }
-        set
+        internal set
         {
             if (!IsOnLocal)
             {
