@@ -111,11 +111,11 @@ public class ChannelManager
     {
         Parallel.For(0, channel.KernelsToNotify.Count, (i) =>
         {
-            NoitifyChannelDataChanged(channel.KernelsToNotify[i], channel.Path, channel.DataType, newVal);
+            NoitifyChannelDataChanged(channel.KernelsToNotify[i], channel.Path,  newVal);
         });
     }
 
-    public void NoitifyChannelDataChanged(KernelDescriptor kernel, string channelPath, string? dataType, object? newVal)
+    public void NoitifyChannelDataChanged(KernelDescriptor kernel, string channelPath, object? newVal)
     {
         if (kernel is not null)
         {
@@ -124,7 +124,6 @@ public class ChannelManager
                 ChannelPath = channelPath,
                 MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
                 NewVal = newVal,
-                DataType = dataType
             });
         }
     }
@@ -163,7 +162,6 @@ public class ChannelManager
         
         var answer = client.SendRequest<PacketSyncAnswer>(MessagesTypes.ChannelSyncRequest, packet);
 
-        
         AddChannelsSync(answer.RemoteChannels, answer.RemoteGuid);
         Externals[answer.RemoteGuid] = client;
     }
@@ -217,7 +215,7 @@ public class ChannelManager
     {
         PacketChannelRequest packet = new PacketChannelRequest()
         {
-            Type = 1,
+            WriteData = true,
             channelPath = channelPath,
             Val = newVal
         };
@@ -253,7 +251,7 @@ public class ChannelManager
     {
         PacketChannelRequest packet = new PacketChannelRequest()
         {
-            Type = 0,
+            WriteData = false,
             channelPath = channelPath,
         };
 

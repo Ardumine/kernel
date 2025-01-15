@@ -4,8 +4,7 @@ using Kernel.AFCP.KASerializer.Atributes;
 namespace Kernel.AFCP.Packets;
 
 
-[CanBeDerived]
-public class PacketBaseRequest
+public interface PacketBaseRequest
 {
 
 }
@@ -22,7 +21,7 @@ public class PacketConnectRequest : PacketBaseRequest
 
 public class PacketChannelRequest : PacketBaseRequest
 {
-    public byte Type { get; set; }
+    public bool WriteData { get; set; }
     public required string channelPath { get; set; }
 
     [CanHaveOtherTypes]
@@ -56,7 +55,7 @@ public class PacketSyncRequest : PacketBaseRequest
 
 public class PacketChannelManagementRequest : PacketBaseRequest
 {
-    public byte MsgType { get; set; }//ChannelMessageSyncMessageTypes
+    public ChannelMessageSyncMessageTypes MsgType { get; set; }
 
     public Guid RequestingKernel { get; set; }
 
@@ -65,25 +64,18 @@ public class PacketChannelManagementRequest : PacketBaseRequest
     [CanHaveOtherTypes]
     public object? NewVal { get; set; }
 
-    public string? DataType { get; set; }
 
 }
 
 
-public static class ChannelMessageSyncMessageTypes
+public enum ChannelMessageSyncMessageTypes
 {
-    public static byte AddEventChannel => 0; //Make the sending kernel receive an event when a channel changes its data
-    public static byte RemoveEventChannel => 1; //Make the remote kernel stop notify when a channel data change.
-    public static byte ChannelDataChange = 2;//When a kernel changes its data in a channel and notifys another kernels. 
+    AddEventChannel, //Make the sending kernel receive an event when a channel changes its data
+    RemoveEventChannel, //Make the remote kernel stop notify when a channel data change.
+    ChannelDataChange,//When a kernel changes its data in a channel and notifys another kernels. 
 }
 
-public class BasePacketAnswerAK
-{
-    [CanHaveOtherTypes]
-    public BasePacketAnswer ans { get; set; }
-}
-
-public class BasePacketAnswer
+public interface BasePacketAnswer
 {
 
 }
@@ -100,7 +92,7 @@ public class PacketConnectAnswer : BasePacketAnswer
 public class PacketChannelAnswer : BasePacketAnswer
 {
     [CanHaveOtherTypes]
-    public object? Result { get; set; }
+    public required object? Result { get; set; }
 }
 
 public class PacketSyncAnswer : BasePacketAnswer

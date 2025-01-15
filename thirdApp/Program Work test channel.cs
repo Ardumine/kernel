@@ -15,6 +15,8 @@ internal class Program
 
         channelManager.Join("127.0.0.1", 8000);
         Console.WriteLine("Connected!");
+
+        Thread.Sleep(2000);
         //var lidarDataChannel = channelManager.GetDataChannel("/slamPos");
         var interfPos = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
         var interfMap = channelManager.GetInterfaceForChannel<byte[]>("/SLAMmap");
@@ -35,7 +37,7 @@ internal class Program
        });
 
         Console.WriteLine("Get: " + interfPos?.Get());
-
+        Console.WriteLine("Done!!!");
         Thread.Sleep(50000);
 
         channelManager.Stop();

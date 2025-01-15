@@ -23,7 +23,7 @@ public class ListSerializer
             for (int i = 0; i < list.Length; i++)
             {
                 var it = list.GetValue(i)!;
-                serializer.Serialize(it, stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.CanBeDerived, prop.IsLongLength));
+                serializer.Serialize(it, stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.IsLongLength,  prop.CanBeDerived));
             }
         }
         else
@@ -35,7 +35,7 @@ public class ListSerializer
             for (int i = 0; i < list.Count; i++)
             {
                 var it = list[i]!;
-                serializer.Serialize(it, stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.CanBeDerived, prop.IsLongLength));
+                serializer.Serialize(it, stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.IsLongLength, prop.CanBeDerived));
             }
         }
 
@@ -49,7 +49,7 @@ public class ListSerializer
 
             for (int i = 0; i < len; i++)
             {
-                array.SetValue(serializer.Deserialize(stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.CanBeDerived, prop.IsLongLength)), i);
+                array.SetValue(serializer.Deserialize(stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.IsLongLength, prop.CanBeDerived)), i);
             }
             return array;
         }
@@ -63,7 +63,7 @@ public class ListSerializer
 
             for (int i = 0; i < len; i++)
             {
-                list.Add(serializer.Deserialize(stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.CanBeDerived, prop.IsLongLength)));
+                list.Add(serializer.Deserialize(stream, prop.ElementType!, serializer.GetKAType(prop.ElementType!, prop.IsLongLength, prop.CanBeDerived)));
             }
             return list;
 

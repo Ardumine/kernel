@@ -162,9 +162,10 @@ public class ChannelManagerClient
 
         var writter = GenerateRequestHeader(RequestID);
 
+        //Console.WriteLine($"Request type send: {RequestType}");
         writter.Write(RequestType);
-        
-        Serializer.Serialize(Payload, writter.ms);
+
+        Serializer.Serialize(Payload, writter.ms, false);
 
         WriteData(writter);
 
@@ -185,19 +186,19 @@ public class ChannelManagerClient
 
                 uint RequestID = reader.ReadUint();
                 bool isAnswer = reader.ReadBool();
+                byte msgType = reader.ReadByte();
 
 
 
                 if (!isAnswer)//Question
                 {
                     var answerWritterFull = GenerateAnwserHeader(RequestID);
+                    answerWritterFull.Write(msgType);
 
                     BasePacketAnswer answer = null!;
 
-                    byte msgType = reader.ReadByte();
                     //answerWritterFull.WriteByte(msgType);
-                    //Console.WriteLine("msgType" + msgType);
-
+                    //Console.WriteLine("msgType: " + msgType);
                     if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
                     {
                         answer = connectSystem.Process(ParsePacketRequest<PacketConnectRequest>(reader));
@@ -218,23 +219,51 @@ public class ChannelManagerClient
                     {
                         answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketFunctionRequest>(reader));
                     }
-
-
-                    Serializer.Serialize(new BasePacketAnswerAK()
+                    else
                     {
-                        ans = answer
-                    }, answerWritterFull.ms);
+                        throw new Exception($"Unknow message type! Msg type received: {msgType}");
+                    }
+
+
+
+                    Serializer.Serialize(answer, answerWritterFull.ms, false);
                     //answerWritterFull.Copy(TCPClientstream);
                     WriteData(answerWritterFull);
 
                 }
                 else
                 {
-                    if (_pendingRequests.TryRemove(RequestID, out var tcs))
+                    if (_pendingRequests.TryRemove(RequestID, out var tcs))//When it receives data and it is an awsner.
                     {
+                        BasePacketAnswer Obj;
+                        if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
+                        {
+                            Obj = Serializer.Deserialize<PacketConnectAnswer>(reader.stream, false)!;
+                        }
+                        else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
+                        {
+                            Obj = Serializer.Deserialize<PacketSyncAnswer>(reader.stream, false)!;
+                        }
+                        else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
+                        {
+                            Obj = Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream, false)!;
+                        }
+                        else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
+                        {
+                            Obj = Serializer.Deserialize<PacketChannelAnswer>(reader.stream, false)!;
+                        }
+                        else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
+                        {
+                            Obj = Serializer.Deserialize<PacketFunctionAnswer>(reader.stream, false)!;
+                        }
+                        else
+                        {
+                            throw new Exception($"Unknow message type! Msg type received: {msgType}");
+                        }
+
                         //var obj = reader.ReadObject<BasePacketAnswer>()!;
-                        var obj = Serializer.Deserialize<BasePacketAnswerAK>(reader.stream).ans;
-                        tcs.SetResult(obj);
+                        //obj = Serializer.Deserialize<BasePacketAnswer>(reader.stream, false)!;
+                        tcs.SetResult(Obj);
                     }
                 }
             }
@@ -257,10 +286,9 @@ public class ChannelManagerClient
     }
 
 
-    T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
+    T ParsePacketRequest<T>(DataReader reader) where T : class, PacketBaseRequest
     {
-        var req = Serializer.Deserialize<PacketBaseRequest>(reader.stream);
-        return (T)req;
+        return Serializer.Deserialize<T>(reader.stream, false)!;
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {
@@ -278,17 +306,18 @@ public class ChannelManagerClient
 
     private PacketChannelAnswer ParseChannelRequestPacket(PacketChannelRequest data)
     {
-        var answer = new PacketChannelAnswer();
-        byte msgType = data.Type;
+        var answer = new PacketChannelAnswer()
+        {
+            Result = 0
+        };
         string channelPath = data.channelPath;
 
 
-        if (msgType == 0)//Read data from channel
+        if (!data.WriteData)//Read data from channel
         {
-            Console.WriteLine("read data!!" + channelPath);
             answer.Result = ReadChannel<object>(channelPath);
         }
-        else if (msgType == 1)//Write data to channel
+        else//Write data to channel  if (msgType == 1)
         {
             LocalChannelManager.SetLocalValue(channelPath, data.Val);
         }

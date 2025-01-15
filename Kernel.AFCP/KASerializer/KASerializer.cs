@@ -72,23 +72,34 @@ public struct KASerializer
     private ConcurrentDictionary<byte[], Type> CachedTypesTo = new(ByteArrayComparer.Default);
     private ConcurrentDictionary<Type, byte[]> CachedTypesFrom = new();
 
-    public void WriteDataType(Type type, Stream stream)
+    public void WriteDataType(Type? type, Stream stream)
     {
         byte[] data;
-        if (!CachedTypesFrom.TryGetValue(type, out data!))
+        if (type == null)
         {
+            data = [0, 0, 0, 0, 0, 0];
+        }
+        else if (!CachedTypesFrom.TryGetValue(type, out data!))
+        {
+
             CachedTypesFrom[type] = Tools.GetBytes(type.AssemblyQualifiedName);
             data = CachedTypesFrom[type];
         }
         WriteByteArray2Len(data, stream);
     }
-    public Type ReadDataType(Stream stream)
+    public Type? ReadDataType(Stream stream)
     {
         var d = ReadByteArray2Len(stream);
+        if (d == new byte[] { 0, 0, 0, 0, 0, 0 })
+        {
+            return null;
+        }
         Type type;
         if (!CachedTypesTo.TryGetValue(d, out type!))
         {
-            CachedTypesTo[d] = Type.GetType(Tools.GetString(d))!;
+            var asStr = Tools.GetString(d);
+            CachedTypesTo[d] = Type.GetType(asStr)!;
+
             return CachedTypesTo[d];
 
         }
@@ -171,29 +182,25 @@ public struct KASerializer
 
 
 
-    public void Serialize(object obj, Stream stream) //, bool WriteType = false
+    public void Serialize(object? obj, Stream stream, bool CanBeDerived = false, bool IsLongLength = false) //, bool WriteType = false
     {
-        bool CanBeDerived = Attribute.IsDefined(obj.GetType(), typeof(CanBeDerived));
-
-        Serialize(obj!, stream, obj.GetType(), new KAType()
-        {
-            DataType = obj.GetType(),
-            IsList = false,
-            IsLongLength = false,
-            IsStructUnmanagedArray = false,
-            CanBeDerived = CanBeDerived,
-            IsArray = false
-        });
+        Serialize(obj, stream, obj?.GetType(), GetKAType(obj?.GetType(), IsLongLength,CanBeDerived));
     }
 
 
-    public void Serialize(object obj, Stream stream, Type dataType, KAType type)
+    public void Serialize(object? obj, Stream stream, Type? dataType, KAType type)
     {
         //Console.WriteLine("Serialize : " + type.Name);
-        if (type.CanBeDerived && !type.IsList && !type.IsArray)
+        if ((type.CanBeDerived && !type.IsList && !type.IsArray) || type.CanBeNull)
         {
-            dataType = obj.GetType();
+
+            dataType = obj?.GetType();
             WriteDataType(dataType, stream);
+
+        }
+        if (dataType == null || obj == null)
+        {
+            return;
         }
 
         if (dataType.IsEnum)
@@ -222,27 +229,22 @@ public struct KASerializer
     }
 
 
-    public T Deserialize<T>(Stream stream) where T : class
+    public T? Deserialize<T>(Stream stream, bool CanBeDerived = false, bool IsLongLength = false) where T : class
     {
-        bool CanBeDerived = Attribute.IsDefined(typeof(T), typeof(CanBeDerived));
-
-        return (T)Deserialize(stream, typeof(T), new KAType()
-        {
-            DataType = typeof(T),
-            IsList = false,
-            IsLongLength = false,
-            IsStructUnmanagedArray = false,
-            CanBeDerived = CanBeDerived,
-            IsArray = false
-        });
+        return (T?)Deserialize(stream, typeof(T), GetKAType(typeof(T), IsLongLength, CanBeDerived));
     }
 
-    public object Deserialize(Stream stream, Type dataType, KAType type)
+    public object? Deserialize(Stream stream, Type? dataType, KAType type)
     {
-        if (type.CanBeDerived && !type.IsList && !type.IsArray)
+        if ((type.CanBeDerived && !type.IsList && !type.IsArray) || type.CanBeNull)
         {
             dataType = ReadDataType(stream);
         }
+        if (dataType == null)
+        {
+            return null;
+        }
+
         if (dataType.IsEnum)
         {
             return enumSerializer.Deserialize(stream, this, dataType);
@@ -337,11 +339,34 @@ public struct KASerializer
 
 
 
-    public KAType GetKAType(Type propType, bool CanBeDerived, bool IsLongLength)
+    public KAType GetKAType(Type? propType, bool IsLongLength, bool? CanBeDerived___ = null)
     {
+        if (propType == null)
+        {
+            return new()
+            {
+                DataType = propType!,
+                IsList = false,
+                IsArray = false,
+                IsLongLength = IsLongLength,
+                IsStructUnmanagedArray = false,
+                CanBeDerived = false,
+                ElementType = null,
+                CanBeNull = true
+            };
+        }
+        bool CanBeDerived;
+        if (CanBeDerived___ == null)
+        {
+            CanBeDerived = Attribute.IsDefined(propType, typeof(CanBeDerived));
+        }
+        else
+        {
+            CanBeDerived = (bool)CanBeDerived___;
+        }
 
         bool IsStructUnmanagedArray = propType.IsArray;
-        bool IsList = typeof(IList).IsAssignableFrom(propType);
+        bool IsList = propType.IsGenericType && typeof(IList).IsAssignableFrom(propType);
         bool IsArray = propType.IsArray;
 
         var elementType = IsList ? propType.GetGenericArguments()[0] : (propType.IsArray ? propType.GetElementType() : null);
@@ -354,7 +379,8 @@ public struct KASerializer
             IsLongLength = IsLongLength,
             IsStructUnmanagedArray = IsStructUnmanagedArray,
             CanBeDerived = CanBeDerived,
-            ElementType = elementType
+            ElementType = elementType,
+            CanBeNull = Nullable.GetUnderlyingType(propType) != null
         };
     }
     public KAProperty[] GetPropertyForClass(Type type)
@@ -367,7 +393,10 @@ public struct KASerializer
             for (int i = 0; i < refProps.Length; i++)
             {
                 var prop = refProps[i];
-
+                if (Attribute.IsDefined(prop, typeof(IgnoreParse)) )
+                {
+                    continue;
+                }
 
                 if (prop.GetMethod == null || prop.SetMethod == null)
                 {
@@ -402,6 +431,9 @@ public struct KASerializer
                         IsStructUnmanagedArray = IsStructUnmanagedArray,
                         CanBeDerived = CanBeDerived,
                         ElementType = elementType,
+
+                        CanBeNull = Nullable.GetUnderlyingType(propType) != null
+
                     }
                 });
 
@@ -447,4 +479,6 @@ public struct KAType
     public Type? ElementType { get; set; }
 
     public required bool IsLongLength { get; set; }
+
+    public required bool CanBeNull { get; set; }
 }

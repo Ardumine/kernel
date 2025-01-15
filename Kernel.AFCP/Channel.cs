@@ -65,7 +65,9 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
         {
             Parallel.For(0, Events.Count, (i) =>
             {
-                Events[i]((T?)e.NewData);
+                var evente = Events[i];
+                T? newData = (T?)e.NewData;
+                evente(newData);
             });
 
         });
@@ -81,7 +83,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
         {
             if (!IsLocal)
             {
-                Console.WriteLine("Add notify!");
+                //Console.WriteLine("Add notify!");
                 channelManager.AddEventRemote(OwningKernel, Path);
             }
         }
