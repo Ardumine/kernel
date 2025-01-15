@@ -1,26 +1,14 @@
+using System;
+using System.IO;
 using System.Numerics;
 
-namespace Kernel.AFCP.KASerializer.Serializers.Vector;
-
-public class Vector2Serializer : KADataSerializer
+namespace Kernel.AFCP.KASerializer.Serializers.VectorSerializer;
+public class Vector2Serializer : ISubSerializer
 {
-    public Type type => typeof(Vector2);
-    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[8];
-        var vec = new Vector2();
-        stream.ReadExactly(arr);
-        fixed (byte* p = arr)
-        {
-            float* f = (float*)p;
-            vec[0] = f[0];
-            vec[1] = f[1];
-        }
-        return  vec;
-    }
+    public Type[] Types => [typeof(Vector2)];
 
-
-    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
+    //https://stackoverflow.com/questions/33292204/copying-a-system-guid-to-byte-without-allocating
+    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
     {
         var vec = (Vector2)obj;
 
@@ -34,28 +22,30 @@ public class Vector2Serializer : KADataSerializer
         stream.Write(bytes);
 
     }
-}
-
-public class Vector3Serializer : KADataSerializer
-{
-    public Type type => typeof(Vector3);
-    public unsafe object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
+    public unsafe object Deserialize(Stream stream, KASerializer serializer, KAType type)
     {
-        byte[] arr = new byte[12];
-        var vec = new Vector3();
-        stream.ReadExactly(arr);
+        byte[] arr = serializer.ReadByteArray(8, stream);
+        var vec = new Vector2();
+
         fixed (byte* p = arr)
         {
             float* f = (float*)p;
             vec[0] = f[0];
             vec[1] = f[1];
-            vec[2] = f[2];
         }
-        return  vec;
+        return vec;
     }
 
 
-    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
+}
+
+
+public class Vector3Serializer : ISubSerializer
+{
+    public Type[] Types => [typeof(Vector3)];
+
+    //https://stackoverflow.com/questions/33292204/copying-a-system-guid-to-byte-without-allocating
+    public unsafe void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
     {
         var vec = (Vector3)obj;
 
@@ -66,8 +56,26 @@ public class Vector3Serializer : KADataSerializer
             f[0] = vec.X;
             f[1] = vec.Y;
             f[2] = vec.Z;
+
         }
         stream.Write(bytes);
 
     }
+    public unsafe object Deserialize(Stream stream, KASerializer serializer, KAType type)
+    {
+        byte[] arr = serializer.ReadByteArray(12, stream);
+        var vec = new Vector3();
+
+        fixed (byte* p = arr)
+        {
+            float* f = (float*)p;
+            vec.X = f[0];
+            vec.Y = f[1];
+            vec.Z = f[2];
+        }
+        return vec;
+    }
+
+
 }
+

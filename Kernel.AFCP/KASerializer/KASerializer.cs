@@ -1,375 +1,450 @@
+using System;
+using System.Collections;
 using System.Collections.Concurrent;
-using Kernel.AFCP.KASerializer.Atributes;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+
 using Kernel.AFCP.KASerializer.Serializers;
-using Kernel.AFCP.KASerializer.Serializers.Guid;
-using Kernel.AFCP.KASerializer.Serializers.Lists;
-using Kernel.AFCP.KASerializer.Serializers.Numeric;
-using Kernel.AFCP.KASerializer.Serializers.Text;
-using Kernel.AFCP.KASerializer.Serializers.Vector;
+using Kernel.AFCP.KASerializer.Serializers.EnumSerializer;
+using Kernel.AFCP.KASerializer.Serializers.ListSerliazer;
+using Kernel.AFCP.KASerializer.Serializers.NumericSerliazer;
+using Kernel.AFCP.KASerializer.Serializers.StringSerializer;
+using Kernel.AFCP.KASerializer.Serializers.StructArraySerializer;
+using Kernel.AFCP.KASerializer.Serializers.VectorSerializer;
+
+using Kernel.AFCP.KASerializer.Atributes;
+using Kernel.AFCP.FastMethod;
 
 namespace Kernel.AFCP.KASerializer;
 
-public class KASerializer
+public struct KASerializer
 {
+    public ConcurrentDictionary<Type, ISubSerializer> subSerializers = new();
+    public ConcurrentDictionary<Type, KAProperty[]> typeProps = new();
 
-
-    private ConcurrentDictionary<Type, KAProperty[]> CachedTypes = new();
-    private ConcurrentDictionary<Type, KADataSerializer> TypesSerializers = new();
-    private ConcurrentDictionary<string, Type> TypeNameMap = new();
-
+    private StructArraySerializer structArraySerializer;
+    private EnumSerializer enumSerializer;
+    private ListSerializer listSerializer;
 
     public KASerializer()
     {
-        AddDefaultSerializer();
+        structArraySerializer = new();
+        enumSerializer = new();
+        listSerializer = new();
+        AddDefaultSerializers();
+
     }
 
-    public void AddDefaultSerializer()
+    public void AddDefaultSerializers()
     {
-        AddCustomSerializer(new ByteArraySerializer());
-        AddCustomSerializer(new StringSerializer());
+        AddSubSerializer(new IntSerializer());
+        AddSubSerializer(new UIntSerializer());
 
-        AddCustomSerializer(new BoolSerializer());
+        AddSubSerializer(new FloatSerializer());
+        AddSubSerializer(new DoubleSerializer());
 
-        AddCustomSerializer(new ByteSerializer());
-        AddCustomSerializer(new CharSerializer());
-
-        AddCustomSerializer(new DoubleSerializer());
-        AddCustomSerializer(new FloatSerializer());
-
-        AddCustomSerializer(new IntSerializer());
-        AddCustomSerializer(new UIntSerializer());
-
-        AddCustomSerializer(new LongSerializer());
-        AddCustomSerializer(new ULongSerializer());
-        AddCustomSerializer(new ShortSerializer());
-        AddCustomSerializer(new UShortSerializer());
-        AddCustomSerializer(new ListSerializer<bool>());
-
-        AddCustomSerializer(new ListSerializer<double>());
-        AddCustomSerializer(new ListSerializer<float>());
-
-        AddCustomSerializer(new ListSerializer<int>());
-        AddCustomSerializer(new ListSerializer<uint>());
-        AddCustomSerializer(new ListSerializer<long>());
-        AddCustomSerializer(new ListSerializer<ulong>());
-        AddCustomSerializer(new ListSerializer<short>());
-        AddCustomSerializer(new ListSerializer<ushort>());
+        AddSubSerializer(new StringSerializer());
+        AddSubSerializer(new GuidSerializer());
 
 
-        AddCustomSerializer(new Vector2Serializer());
-        AddCustomSerializer(new Vector3Serializer());
+        AddSubSerializer(new BoolSerializer());
 
-        AddCustomSerializer(new GuidSerializer());
+        AddSubSerializer(new Vector2Serializer());
+        AddSubSerializer(new Vector3Serializer());
+
+        //AddSubSerializer(new EnumSerializer());
 
 
-        AddCustomSerializer(new ListSerializer());
     }
-    public void AddCustomSerializer(KADataSerializer serializer)
+    public void AddSubSerializer(ISubSerializer ser)
     {
-        if (!TypesSerializers.ContainsKey(serializer.type))
-            TypesSerializers[serializer.type] = serializer;
-    }
-    public void GenerateCacheForType(Type type)
-    {
-        if (type != null && CachedTypes.ContainsKey(type))
+        foreach (var type in ser.Types)
         {
-            return;
+            subSerializers[type] = ser;
         }
-        if (type == null)
-        {
-            return;
-        }
-        if (IsList(type))
-        {
-            GenerateCacheForType(type.GetGenericArguments()[0]);
-
-            AddCustomSerializer(new ListSerializer()
-            {
-                type = type,
-                DataType = type.GetGenericArguments()[0]
-            });
-            return;
-
-        }
-        if (IsArray(type))
-        {
-
-            GenerateCacheForType(type.GetElementType()!);
-
-            AddCustomSerializer(new ArraySerializer()
-            {
-                type = type,
-                DataType = type.GetElementType()!
-            });
-            return;
-
-        }
-
-        var props = new List<KAProperty>();
-        //Get get methods and cache for type
-        foreach (var prop in type.GetProperties().ToList().OrderBy(pr => pr.Name))
-        {
-
-            if (prop.GetMethod == null || prop.SetMethod == null)
-            {
-                throw new NotImplementedException($"The property '{prop.Name}' in '{prop.DeclaringType?.FullName}' does not have set or get method. Make sure you have a {{get; set;}} on the declaring property.");
-            }
-
-
-            if (!CachedTypes.ContainsKey(prop.PropertyType) && !TypesSerializers.ContainsKey(prop.PropertyType) && prop.PropertyType != typeof(object))//&& IsComplex(prop.PropertyType)   
-            {
-                // if (IsList(prop.PropertyType))
-                //{
-                //     GenerateCacheForType(prop.PropertyType.GetGenericArguments()[0]);
-                // }
-                // else
-                //  {
-                //Console.WriteLine("C: " + prop.PropertyType + prop.Name);
-                GenerateCacheForType(prop.PropertyType);
-                // }
-            }
-
-
-            props.Add(new()
-            {
-                GetMethod = new(prop.GetMethod),
-                SetMethod = new(prop.SetMethod),
-                type = prop.PropertyType,
-                CanChangeType = Attribute.IsDefined(prop, typeof(CanHaveOtherTypes)) ,
-                Name = prop.Name,
-                IsListOrArray = IsList(prop.PropertyType) || IsArray(prop.PropertyType)
-            });
-        }
-        CachedTypes[type] = props.ToArray();
     }
 
 
-    public void SerializeType(Type? type, Stream stream)
+    #region Data type writing
+    private ConcurrentDictionary<byte[], Type> CachedTypesTo = new(ByteArrayComparer.Default);
+    private ConcurrentDictionary<Type, byte[]> CachedTypesFrom = new();
+
+    public void WriteDataType(Type type, Stream stream)
     {
-        if (type == null)
+        byte[] data;
+        if (!CachedTypesFrom.TryGetValue(type, out data!))
         {
-            SerializeByteArray2(Tools.GetBytes("null"), stream);
+            CachedTypesFrom[type] = Tools.GetBytes(type.AssemblyQualifiedName);
+            data = CachedTypesFrom[type];
+        }
+        WriteByteArray2Len(data, stream);
+    }
+    public Type ReadDataType(Stream stream)
+    {
+        var d = ReadByteArray2Len(stream);
+        Type type;
+        if (!CachedTypesTo.TryGetValue(d, out type!))
+        {
+            CachedTypesTo[d] = Type.GetType(Tools.GetString(d))!;
+            return CachedTypesTo[d];
+
+        }
+        return type;
+    }
+
+    #endregion
+
+    #region Byte array writing and reading
+    public void WriteByteArray2Len(byte[] bytes, Stream stream)
+    {
+        stream.Write(Tools.GetBytes((ushort)bytes.Length));
+        stream.Write(bytes);
+    }
+
+    public void WriteByteArray4Len(byte[] bytes, Stream stream)
+    {
+        stream.Write(Tools.GetBytes((uint)bytes.Length));
+        stream.Write(bytes);
+    }
+
+    public byte[] ReadByteArray2Len(Stream stream)
+    {
+        byte[] bytesLen = new byte[2];
+        stream.ReadExactly(bytesLen);
+        uint len = Tools.GetUShort(bytesLen);
+
+        byte[] bytes = new byte[len];
+        stream.ReadExactly(bytes);
+
+        return bytes;
+    }
+
+    public byte[] ReadByteArray4Len(Stream stream)
+    {
+        byte[] bytesLen = new byte[4];
+        stream.ReadExactly(bytesLen);
+        uint len = Tools.GetUInt(bytesLen);
+
+        byte[] bytes = new byte[len];
+        stream.ReadExactly(bytes);
+
+        return bytes;
+    }
+
+    public byte[] ReadByteArray(int len, Stream stream)
+    {
+        byte[] bytes = new byte[len];
+        stream.ReadExactly(bytes);
+
+        return bytes;
+    }
+
+    public void WriteByteArray(byte[] bytes, bool BigData, Stream stream)
+    {
+        if (BigData)
+        {
+            WriteByteArray4Len(bytes, stream);
         }
         else
         {
-            SerializeByteArray2(Tools.GetBytes(type?.AssemblyQualifiedName), stream);
+            WriteByteArray2Len(bytes, stream);
         }
     }
-    public Type? DeserializeType(Stream stream)
+
+    public byte[] ReadByteArray(bool BigData, Stream stream)
     {
-        var name = Tools.GetString(DeserializeByteArray2(stream));
-        if (name == "null")
+        if (BigData)
         {
-            return null;
-        }
-        Type typeOut;
-        if (TypeNameMap.TryGetValue(name, out typeOut!))
-        {
-            return typeOut;
+            return ReadByteArray4Len(stream);
         }
         else
         {
-            typeOut = Type.GetType(name)!;
-            TypeNameMap[name] = typeOut;
-            return typeOut;
+            return ReadByteArray2Len(stream);
         }
     }
 
 
-    public void Serialize(object obj, Stream stream, Type type, KAProperty fontProp)
+    #endregion
+
+
+
+    public void Serialize(object obj, Stream stream) //, bool WriteType = false
     {
-        //Console.WriteLine("Ser: " + obj.GetType() + "    " + fontProp.Name + fontProp.CanChangeType + "       " + type + fontProp.IsListOrArray);
-        if (fontProp.CanChangeType && !fontProp.IsListOrArray)
+        bool CanBeDerived = Attribute.IsDefined(obj.GetType(), typeof(CanBeDerived));
+
+        Serialize(obj!, stream, obj.GetType(), new KAType()
         {
-            SerializeType(obj.GetType(), stream);
-            type = obj.GetType();
-        
-        }
-
-        if (TypesSerializers.TryGetValue(type, out var customSerializer))
-        {
-            customSerializer.Serialize(obj, stream, this, fontProp);
-        }
-        else
-        {
-
-            KAProperty[] cachedType;
-            if (!CachedTypes.TryGetValue(type, out cachedType!))
-            {
-                GenerateCacheForType(type);
-                cachedType = CachedTypes[type];
-            }
-
-            for (int i = 0; i < cachedType.Length; i++)
-            {
-                var prop = cachedType[i];
-                var val = prop.GetMethod.Invoke(obj);
-                //Console.WriteLine($"        {prop.Name} {prop.IsListOrArray} {prop.CanChangeType}");
-                if (prop.CanChangeType && !prop.IsListOrArray)
-                {
-                    var objType = val?.GetType();
-                    SerializeType(objType, stream);
-
-                    if (val != null)
-                    {
-                        Serialize(val, stream, objType!, prop);
-                    }
-                }
-                else
-                {
-                    Serialize(val, stream, prop.type, prop);
-                }
-            }
-            //}
-
-            //    throw new NotImplementedException($"The type {type.FullName} is not totally implemented");
-
-        }
-
-    }
-    public void Serialize<T>(T obj, Stream stream)
-    {
-        Serialize(obj!, stream, typeof(T), new KAProperty()
-        {
-            CanChangeType = false,
-            IsListOrArray = false,
-            Name = ""
+            DataType = obj.GetType(),
+            IsList = false,
+            IsLongLength = false,
+            IsStructUnmanagedArray = false,
+            CanBeDerived = CanBeDerived,
+            IsArray = false
         });
     }
 
-    public object Deserialize(Stream stream, Type type, KAProperty fontProp)
+
+    public void Serialize(object obj, Stream stream, Type dataType, KAType type)
     {
-        if (fontProp.CanChangeType && !fontProp.IsListOrArray)
+        //Console.WriteLine("Serialize : " + type.Name);
+        if (type.CanBeDerived && !type.IsList && !type.IsArray)
         {
-            type = DeserializeType(stream)!;
-        }
-        if (TypesSerializers.TryGetValue(type, out var customSerializer))
-        {
-            return customSerializer.Deserialize(stream, this, type, fontProp);
+            dataType = obj.GetType();
+            WriteDataType(dataType, stream);
         }
 
-        var obj = Activator.CreateInstance(type)!;
-
-        KAProperty[] cachedType;
-        if (!CachedTypes.TryGetValue(type, out cachedType!))
+        if (dataType.IsEnum)
         {
-            GenerateCacheForType(type);
-            cachedType = CachedTypes[type];
+            enumSerializer.Serialize(obj, stream);
+        }
+        else if (type.IsList || type.IsArray)
+        {
+            listSerializer.Serialize(obj, stream, this, type);
+        }
+        else if (subSerializers.TryGetValue(dataType, out var subSerializer))
+        {
+            subSerializer.Serialize(obj, stream, this, type);
+        }
+        else if (IsClassOrStruct(dataType))
+        {
+            SerializeClass(obj, dataType, stream);
         }
 
-        for (int i = 0; i < cachedType.Length; i++)
+
+        else
         {
-            var prop = cachedType[i];
+            throw new Exception($"Unable to serialize type {dataType.FullName}");
+        }
+
+    }
 
 
-            if (TypesSerializers.TryGetValue(prop.type, out var customSerializer_) && !prop.CanChangeType)
+    public T Deserialize<T>(Stream stream) where T : class
+    {
+        bool CanBeDerived = Attribute.IsDefined(typeof(T), typeof(CanBeDerived));
+
+        return (T)Deserialize(stream, typeof(T), new KAType()
+        {
+            DataType = typeof(T),
+            IsList = false,
+            IsLongLength = false,
+            IsStructUnmanagedArray = false,
+            CanBeDerived = CanBeDerived,
+            IsArray = false
+        });
+    }
+
+    public object Deserialize(Stream stream, Type dataType, KAType type)
+    {
+        if (type.CanBeDerived && !type.IsList && !type.IsArray)
+        {
+            dataType = ReadDataType(stream);
+        }
+        if (dataType.IsEnum)
+        {
+            return enumSerializer.Deserialize(stream, this, dataType);
+        }
+        else if (type.IsList || type.IsArray)
+        {
+            return listSerializer.Deserialize(stream, this, type);
+        }
+        else if (subSerializers.TryGetValue(dataType, out var subSerializer))
+        {
+            return subSerializer.Deserialize(stream, this, type);
+        }
+        else if (IsClassOrStruct(dataType))
+        {
+            return DeserializeClass(dataType, stream);
+        }
+
+        else
+        {
+            throw new Exception($"Unable to deserialize type {dataType.FullName}");
+        }
+
+    }
+
+
+
+
+
+    private ObjectActivator CreateInstance(Type type)
+    {
+        if (type == null)
+        {
+            throw new NullReferenceException("type");
+        }
+        ConstructorInfo? emptyConstructor = type.GetConstructor(Type.EmptyTypes);
+        if (emptyConstructor == null)
+        {
+            throw new Exception($"Unable to create type for deserialization.: {type}");
+        }
+        var dynamicMethod = new DynamicMethod("CreateInstance", type, Type.EmptyTypes, true);
+        ILGenerator ilGenerator = dynamicMethod.GetILGenerator();
+        ilGenerator.Emit(OpCodes.Nop);
+        ilGenerator.Emit(OpCodes.Newobj, emptyConstructor);
+        ilGenerator.Emit(OpCodes.Ret);
+        return (ObjectActivator)dynamicMethod.CreateDelegate(typeof(ObjectActivator));
+    }
+    public delegate object ObjectActivator();
+
+
+    public void SerializeClass(object obj, Type objType, Stream stream)
+    {
+        var props = GetPropertyForClass(objType);
+        KAProperty prop;
+
+        for (int i = 0; i < props.Length; i++)
+        {
+            prop = props[i];
+            var val = prop.GetMethod.Invoke(obj);
+
+            if (prop.Type.IsStructUnmanagedArray)
             {
-                prop.SetMethod.Invoke(obj, customSerializer_.Deserialize(stream, this, prop.type, prop));
+                structArraySerializer.Serialize(val, prop.Type.ElementType!, stream, this, prop.Type.IsLongLength);
             }
             else
             {
-                if (prop.CanChangeType && !prop.IsListOrArray)
+                Serialize(val, stream, prop.Type.DataType, prop.Type);
+
+            }
+        }
+    }
+
+    public object DeserializeClass(Type objType, Stream stream)
+    {
+        var newObj = CreateInstance(objType)();
+        var props = GetPropertyForClass(objType);
+        KAProperty prop;
+        for (int i = 0; i < props.Length; i++)
+        {
+            prop = props[i];
+            if (prop.Type.IsStructUnmanagedArray)
+            {
+                prop.SetMethod.Invoke(newObj, structArraySerializer.Deserialize(prop.Type.ElementType!, stream, this, prop.Type.IsLongLength));
+            }
+            else
+            {
+                prop.SetMethod.Invoke(newObj, Deserialize(stream, prop.Type.DataType, prop.Type));
+            }
+        }
+        return newObj;
+    }
+
+
+
+
+    public KAType GetKAType(Type propType, bool CanBeDerived, bool IsLongLength)
+    {
+
+        bool IsStructUnmanagedArray = propType.IsArray;
+        bool IsList = typeof(IList).IsAssignableFrom(propType);
+        bool IsArray = propType.IsArray;
+
+        var elementType = IsList ? propType.GetGenericArguments()[0] : (propType.IsArray ? propType.GetElementType() : null);
+
+        return new()
+        {
+            DataType = propType,
+            IsList = IsList,
+            IsArray = IsArray,
+            IsLongLength = IsLongLength,
+            IsStructUnmanagedArray = IsStructUnmanagedArray,
+            CanBeDerived = CanBeDerived,
+            ElementType = elementType
+        };
+    }
+    public KAProperty[] GetPropertyForClass(Type type)
+    {
+        KAProperty[] Props;
+        if (!typeProps.TryGetValue(type, out Props!))
+        {
+            var listProps = new List<KAProperty>();
+            var refProps = type.GetProperties().ToList().OrderBy(s => s.Name).ToArray();
+            for (int i = 0; i < refProps.Length; i++)
+            {
+                var prop = refProps[i];
+
+
+                if (prop.GetMethod == null || prop.SetMethod == null)
                 {
-                    var dataType = DeserializeType(stream);
-                    //GenerateCacheForType(dataType);
-                    if (dataType == null)
+                    throw new Exception($"The property {prop.Name} in the class '{type.FullName}' does not have an public get or set accessor. Make sure you have a {{ get; set; }}.");
+                }
+
+                var propType = prop.PropertyType;
+
+                bool IsStructUnmanagedArray = Attribute.IsDefined(prop, typeof(FastParseStructArray)) && propType.IsArray;
+                bool IsList = propType.IsGenericType && typeof(IList).IsAssignableFrom(propType);
+                bool IsArray = propType.IsArray;
+
+                bool CanBeDerived = Attribute.IsDefined(prop, typeof(CanHaveOtherTypes));
+                bool IsLongLength = Attribute.IsDefined(prop, typeof(IsLongLength));
+
+                //Console.WriteLine(prop.Name + IsList + IsArray);
+
+                var elementType = IsList ? propType.GetGenericArguments()[0] : (IsArray ? propType.GetElementType() : null);
+
+                listProps.Add(new KAProperty()
+                {
+                    Name = prop.Name,
+                    GetMethod = new(prop.GetMethod),
+                    SetMethod = new(prop.SetMethod),
+                    Type = new()
                     {
-                        //prop.SetMethod.Invoke(obj, null);
+                        DataType = propType,
+                        IsList = IsList,
+                        IsArray = IsArray,
+
+                        IsLongLength = IsLongLength,
+                        IsStructUnmanagedArray = IsStructUnmanagedArray,
+                        CanBeDerived = CanBeDerived,
+                        ElementType = elementType,
                     }
-                    else
-                    {
-                        prop.SetMethod.Invoke(obj, Deserialize(stream, dataType, prop));
-                    }
-                }
-                else
-                {
-                    prop.SetMethod.Invoke(obj, Deserialize(stream, prop.type, prop));
-                }
-                //if (IsComplex(prop.type))
-                {
-                }
-                //else
-                {
-                    //throw new NotImplementedException($"The complex type '{type.FullName}' is not implemented.");
-                }
+                });
+
+
 
             }
 
+            Props = listProps.ToArray();
         }
-        return obj;
-
+        return Props;
     }
-    public T Deserialize<T>(Stream stream)
+
+
+
+    public bool IsClassOrStruct(Type type)
     {
-        return (T)Deserialize(stream, typeof(T), new KAProperty()
-        {
-            CanChangeType = false,
-            IsListOrArray = false,
-            Name = ""
-        });
+
+        return type.IsValueType && !type.IsPrimitive || type.IsClass;
     }
+}
 
 
-    public byte[] DeserializeByteArray4(Stream stream)
-    {
-        byte[] lenArr = new byte[4];
-        stream.ReadExactly(lenArr);
-        uint TamDadosPRec = Tools.GetUInt(lenArr);
+public struct KAProperty
+{
+    public required string Name { get; set; }
 
-        byte[] dados = new byte[TamDadosPRec];
+    public FastMethodInfo GetMethod { get; set; }
+    public FastMethodInfo SetMethod { get; set; }
 
-        int lenDadosRecebido = 0;
-        while (lenDadosRecebido != TamDadosPRec)
-        {
-            lenDadosRecebido += stream.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
-        }
+    public required KAType Type { get; set; }
+}
 
+public struct KAType
+{
+    public required Type DataType { get; set; }
 
-        return dados;
-    }
-    public byte[] DeserializeByteArray2(Stream stream)
-    {
-        byte[] lenArr = new byte[2];
-        stream.ReadExactly(lenArr);
-        uint TamDadosPRec = Tools.GetUShort(lenArr);
+    public required bool CanBeDerived { get; set; }
 
-        byte[] dados = new byte[TamDadosPRec];
+    public required bool IsList { get; set; }
+    public required bool IsArray { get; set; }
+    public required bool IsStructUnmanagedArray { get; set; }
 
-        int lenDadosRecebido = 0;
-        while (lenDadosRecebido != TamDadosPRec)
-        {
-            lenDadosRecebido += stream.Read(dados, lenDadosRecebido, (int)(TamDadosPRec - lenDadosRecebido));//int32 = 4 bytes
-        }
+    public Type? ElementType { get; set; }
 
-
-        return dados;
-    }
-
-    public void SerializeByteArray4(byte[] data, Stream stream)
-    {
-        stream.Write(Tools.GetBytes((uint)data.Length));
-        stream.Write(data);
-    }
-    public void SerializeByteArray2(byte[] data, Stream stream)
-    {
-        stream.Write(Tools.GetBytes((ushort)data.Length));
-        stream.Write(data);
-    }
-
-
-    public bool IsList(Type typeIn)
-    {
-        return typeIn.IsGenericType && typeIn.GetGenericTypeDefinition() == typeof(List<>) && typeIn != typeof(byte[]);
-    }
-    public bool IsArray(Type typeIn)
-    {
-        return typeIn.IsArray && typeIn != typeof(byte[]);
-    }
-    
-    private bool IsComplex(Type typeIn)
-    {
-        return !(typeIn.IsSubclassOf(typeof(ValueType)) || typeIn.Equals(typeof(string)) || typeIn.Equals(typeof(byte[]))) || IsList(typeIn);//|| typeIn.IsPrimitive 
-    }
- 
-
+    public required bool IsLongLength { get; set; }
 }

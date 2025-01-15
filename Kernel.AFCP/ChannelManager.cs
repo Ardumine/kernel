@@ -160,12 +160,10 @@ public class ChannelManager
             RemoteGuid = LocalGuid,
             RemoteChannels = GetLocalChannelDescriptors()
         };
+        
         var answer = client.SendRequest<PacketSyncAnswer>(MessagesTypes.ChannelSyncRequest, packet);
 
-        foreach (var item in answer.RemoteChannels)
-        {
-            Console.WriteLine(item.Path);
-        }
+        
         AddChannelsSync(answer.RemoteChannels, answer.RemoteGuid);
         Externals[answer.RemoteGuid] = client;
     }
@@ -176,7 +174,7 @@ public class ChannelManager
         var descriptors = new List<ChannelDescriptor>();
         foreach (var channel in Channels.Where(ch => ch.IsLocal))
         {
-            descriptors.Add(channel);
+            descriptors.Add(channel as ChannelDescriptor);
         }
         return descriptors.ToArray();
     }

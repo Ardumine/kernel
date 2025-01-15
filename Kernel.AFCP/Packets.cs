@@ -3,12 +3,8 @@ using Kernel.AFCP.KASerializer.Atributes;
 
 namespace Kernel.AFCP.Packets;
 
-public class PacketBaseRequestAK
-{
-    [CanHaveOtherTypes]
-    public PacketBaseRequest req { get; set; }
-}
 
+[CanBeDerived]
 public class PacketBaseRequest
 {
 

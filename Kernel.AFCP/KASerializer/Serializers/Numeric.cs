@@ -1,149 +1,96 @@
-namespace Kernel.AFCP.KASerializer.Serializers.Numeric;
 
-//Decimal
+using System;
+using System.IO;
 
-public class DoubleSerializer : KADataSerializer
+namespace Kernel.AFCP.KASerializer.Serializers.NumericSerliazer;
+
+public class IntSerializer : ISubSerializer
 {
-    public Type type => typeof(double);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[8];
-        stream.ReadExactly(arr);
+    public Type[] Types => [typeof(int)];
 
-        return BitConverter.ToDouble(arr);
-    }
-
-
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((double)obj));
-    }
-}
-
-public class FloatSerializer : KADataSerializer
-{
-    public Type type => typeof(float);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[4];
-        stream.ReadExactly(arr);
-
-        return BitConverter.ToSingle(arr);
-    }
-
-
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((float)obj));
-    }
-}
-
-public class IntSerializer : KADataSerializer
-{
-    public Type type => typeof(int);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[4];
-        stream.ReadExactly(arr);
-
-        return Tools.GetInt(arr);
-    }
-
-
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
+    public void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
     {
         stream.Write(Tools.GetBytes((int)obj));
     }
-}
-
-public class UIntSerializer : KADataSerializer
-{
-    public Type type => typeof(uint);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
+    public object Deserialize(Stream stream, KASerializer serializer, KAType type)
     {
-        byte[] arr = new byte[4];
-        stream.ReadExactly(arr);
-
-        return Tools.GetUInt(arr);
+        byte[] bytes = serializer.ReadByteArray(4, stream);
+        return Tools.GetInt(bytes);
     }
+}
+public class UIntSerializer : ISubSerializer
+{
+    public Type[] Types => [typeof(uint)];
 
 
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
+    public void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
     {
         stream.Write(Tools.GetBytes((uint)obj));
     }
+    public object Deserialize(Stream stream, KASerializer serializer, KAType type)
+    {
+        byte[] bytes = serializer.ReadByteArray(4, stream);
+        return Tools.GetUInt(bytes);
+    }
+
+
 }
 
-//nint nuint
 
-public class LongSerializer : KADataSerializer
+
+
+
+public class FloatSerializer : ISubSerializer
 {
-    public Type type => typeof(long);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[8];
-        stream.ReadExactly(arr);
+    public Type[] Types => [typeof(float), typeof(Single)];
 
-        return BitConverter.ToInt64(arr);
+
+    public void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
+    {
+        stream.Write(Tools.GetBytes((float)obj));
+    }
+    public object Deserialize(Stream stream, KASerializer serializer, KAType type)
+    {
+        byte[] bytes = serializer.ReadByteArray(4, stream);
+        return Tools.GetFloat(bytes);
     }
 
 
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((long)obj));
-    }
 }
-
-public class ULongSerializer : KADataSerializer
+public class DoubleSerializer : ISubSerializer
 {
-    public Type type => typeof(ulong);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[8];
-        stream.ReadExactly(arr);
+    public Type[] Types => [typeof(double), typeof(Double)];
 
-        return BitConverter.ToUInt64(arr);
+
+    public void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
+    {
+        stream.Write(Tools.GetBytes((double)obj));
+    }
+    public object Deserialize(Stream stream, KASerializer serializer, KAType type)
+    {
+        byte[] bytes = serializer.ReadByteArray(8, stream);
+        return Tools.GetDouble(bytes);
     }
 
 
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((ulong)obj));
-    }
 }
 
-public class ShortSerializer : KADataSerializer
+
+
+public class BoolSerializer : ISubSerializer
 {
-    public Type type => typeof(short);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[2];
-        stream.ReadExactly(arr);
+    public Type[] Types => [typeof(bool), typeof(Boolean)];
 
-        return BitConverter.ToInt16(arr);
+
+    public void Serialize(object obj, Stream stream, KASerializer serializer, KAType type)
+    {
+        stream.WriteByte(((bool)obj) ? (byte)1 : (byte)0);
+    }
+    public object Deserialize(Stream stream, KASerializer serializer, KAType type)
+    {
+        return serializer.ReadByteArray(1, stream)[0] == 1;
     }
 
 
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((short)obj));
-    }
 }
 
-public class UShortSerializer : KADataSerializer
-{
-    public Type type => typeof(ushort);
-    public object Deserialize(Stream stream, KASerializer serializer, Type type, KAProperty prop)
-    {
-        byte[] arr = new byte[2];
-        stream.ReadExactly(arr);
-
-        return BitConverter.ToUInt16(arr);
-    }
-
-
-    public void Serialize(object obj, Stream stream, KASerializer serializer, KAProperty prop)
-    {
-        stream.Write(BitConverter.GetBytes((ushort)obj));
-    }
-}

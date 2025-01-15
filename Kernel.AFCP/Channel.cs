@@ -1,8 +1,10 @@
 
+using Kernel.AFCP.KASerializer.Atributes;
+
 namespace Kernel.AFCP;
 public class DataChannelInterface : ChannelBase
 {
-    public required virtual DataChannelDescriptor DataChannel{ get; set; }
+    public required virtual DataChannelDescriptor DataChannel { get; set; }
     internal virtual void OnRemoteChange(object? NewVal)
     {
 
@@ -232,9 +234,13 @@ public class DataChannelDescriptor : ChannelBase
 
 public class ModuleChannel : ChannelBase
 {
+    [IgnoreParse]
+    public Func<uint, object?[]?, object?>? LocalTargetFunction { get; set; }
 
-    public Func<uint, object?[]?, object?>? LocalTargetFunction;
-    private ChannelManager channelManager;
+    [IgnoreParse]
+    private ChannelManager channelManager { get; set; }
+
+    public ModuleChannel(){}
     public ModuleChannel(ChannelManager channelManager_)
     {
         channelManager = channelManager_;

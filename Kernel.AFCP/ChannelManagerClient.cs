@@ -163,11 +163,8 @@ public class ChannelManagerClient
         var writter = GenerateRequestHeader(RequestID);
 
         writter.Write(RequestType);
-        var req = new PacketBaseRequestAK()
-        {
-            req = Payload
-        };
-        Serializer.Serialize(req, writter.ms);
+        
+        Serializer.Serialize(Payload, writter.ms);
 
         WriteData(writter);
 
@@ -262,8 +259,8 @@ public class ChannelManagerClient
 
     T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        var req = Serializer.Deserialize<PacketBaseRequestAK>(reader.stream);
-        return (T)req.req;
+        var req = Serializer.Deserialize<PacketBaseRequest>(reader.stream);
+        return (T)req;
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Kernel.AFCP.KASerializer;
 using Kernel.AFCP.KASerializer.Atributes;
 
+
 public class TestClass
 {
     //public int Param1 { get; set; }
@@ -10,32 +11,44 @@ public class TestClass
     //public List<int> SubClasses { get; set; } = new();
 
     [CanHaveOtherTypes]
-    public object[] testSubClasses { get; set; }
+    public object testSubClasses { get; set; }
     //public object[] testSubClasses { get; set; }
 
     //[CanHaveOtherTypes]
     //public object Obj { get; set; }
 
 }
-
-
 public class TestSubClass
 {
-    public string Param3 { get; set; }
+    public StructTeste Param3 { get; set; }
 }
+public class StructTeste
+{
+    public uint Val { get; set; }
+}
+
+
 
 //https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types
 
 internal class Program
 {
-    static void PrintArr(byte[] arr)
+    static void PrintArray(byte[] array)
     {
-        for (int i = 0; i < arr.Length; i++)
+        for (int i = 0; i < array.Length; i++)
         {
-            Console.Write(arr[i] + " ");
+            Console.Write(array[i] + ", ");
         }
         Console.WriteLine();
+
+        for (int i = 0; i < array.Length; i++)
+        {
+            Console.Write((char)array[i] + ", ");
+        }
+
+        Console.WriteLine();
     }
+
     private static void Main(string[] args)
     {
         var ser = new KASerializer();
@@ -48,37 +61,42 @@ internal class Program
 
         var obj = new TestClass()
         {
-            testSubClasses = [
-                new TestSubClass(){
-                    Param3 = "aa"
-                },
-                new TestSubClass(){
-                    Param3 = "bb"
-                },
-                "aaaaaaaaa"
-            ]
+            testSubClasses =
+                new TestSubClass()
+                {
+                    Param3 = new StructTeste()
+                    {
+                        Val = 54
+                    }
+                }
+
         };
 
         ser.Serialize(obj, ms);
 
         var data = ms.ToArray();
 
-        PrintArr(data);
+        PrintArray(data);
 
         var deser = ser.Deserialize<TestClass>(new MemoryStream(data));
-
-        foreach (var item in deser.testSubClasses)
-        {
-            if (item is TestSubClass tes)
-            {
-                Console.WriteLine(tes.Param3);
-            }
-            else
-            {
-                Console.WriteLine(item);
-            }
-        }
-        //Console.WriteLine(((TestSubClass)deser.Obj).Param3);
+        /*
+                foreach (var item in deser.testSubClasses)
+                {
+                    if (item is StructTeste str)
+                    {
+                        Console.WriteLine(str.Val);
+                    }
+                    if (item is TestSubClass tes)
+                    {
+                        Console.WriteLine(tes.Param3);
+                    }
+                    else
+                    {
+                        Console.WriteLine(item);
+                    }
+                }
+                */
+        Console.WriteLine(((TestSubClass)deser.testSubClasses).Param3.Val);
 
 
 

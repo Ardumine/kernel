@@ -14,11 +14,12 @@ internal class Program
         //var moduleManager = new ModuleManager(channelManager);
 
         channelManager.Join("127.0.0.1", 8000);
-
+        Console.WriteLine("Connected!");
         //var lidarDataChannel = channelManager.GetDataChannel("/slamPos");
         var interfPos = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
         var interfMap = channelManager.GetInterfaceForChannel<byte[]>("/SLAMmap");
 
+        var interfLidar = channelManager.GetInterfaceForChannel<byte[]>("/lidarData");
         interfPos?.AddEvent((aa) =>
         {
             Console.WriteLine("Pos data rec!!" + aa);
@@ -27,6 +28,12 @@ internal class Program
         {
             Console.WriteLine("Map data rec!!");
         });
+       
+        interfLidar?.AddEvent((aa) =>
+       {
+           Console.WriteLine("Lidar data rec!!");
+       });
+
         Console.WriteLine("Get: " + interfPos?.Get());
 
         Thread.Sleep(50000);
