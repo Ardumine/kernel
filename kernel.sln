@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -15,13 +15,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kernel.Logging", "Kernel.Lo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Module2", "Module2\Module2.csproj", "{579F18C6-D644-4F1A-BF15-5924BF52E613}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AFCP", "AFCP\AFCP.csproj", "{D6691448-41E9-4DFF-B442-65E47EB81174}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kernel.AFCP", "Kernel.AFCP\Kernel.AFCP.csproj", "{D6691448-41E9-4DFF-B442-65E47EB81174}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modules.YDLidar", "Modules.YDLidar\Modules.YDLidar.csproj", "{AB968193-1B31-47EE-815F-8FFD436BAA7B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Modules.SLAM.Hector", "Modules.SLAM.Hector\Modules.SLAM.Hector.csproj", "{1379C20C-B38C-4513-8BEB-AABE595CB6B3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "hviz", "hviz\hviz.csproj", "{FC04DFCC-2C04-4F86-868B-6D5E15A2D6A3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kernel.Shared", "Kernel.Shared\Kernel.Shared.csproj", "{81512F53-CF6F-47E1-96A4-CE982B9E201F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -88,5 +90,9 @@ Global
 		{FC04DFCC-2C04-4F86-868B-6D5E15A2D6A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FC04DFCC-2C04-4F86-868B-6D5E15A2D6A3}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{FC04DFCC-2C04-4F86-868B-6D5E15A2D6A3}.Release|Any CPU.Build.0 = Debug|Any CPU
+		{81512F53-CF6F-47E1-96A4-CE982B9E201F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81512F53-CF6F-47E1-96A4-CE982B9E201F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81512F53-CF6F-47E1-96A4-CE982B9E201F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81512F53-CF6F-47E1-96A4-CE982B9E201F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

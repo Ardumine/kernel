@@ -1,5 +1,5 @@
 
-using AFCP;
+using Kernel.AFCP;
 using YDLidarSDK;
 
 namespace Ardumine.Modules.YDLidar;

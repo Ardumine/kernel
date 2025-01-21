@@ -26,7 +26,7 @@ with open(csprojPath, "+w") as fich:
       <Private>false</Private>
     </ProjectReference>
     
-    <ProjectReference Include="..\AFCP\AFCP.csproj">
+    <ProjectReference Include="..\Kernel.AFCP\Kernel.AFCP.csproj">
       <Private>false</Private>
     </ProjectReference>
 

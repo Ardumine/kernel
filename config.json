@@ -11,7 +11,7 @@
             "Path": "/modules/mod1",
             
             "StartOnBoot": true,
-            "startAfter" : ".kernel"
+            "startAfter" : "kernel"
 
         },
         {

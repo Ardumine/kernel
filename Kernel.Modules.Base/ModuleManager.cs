@@ -1,13 +1,13 @@
 using Kernel.Modules.Base;
-using AFCP;
-using AFCP.FastMethod;
+using Kernel.AFCP;
+using Kernel.AFCP.FastMethod;
 
 namespace Kernel.Modules;
 
 public class ModuleManager
 {
     public List<Module> RunningModules = new List<Module>();
-    public ChannelManager channelManager;
+    private ChannelManager channelManager;
     public ModuleManager(ChannelManager _channelManager)
     {
         channelManager = _channelManager;
@@ -69,7 +69,7 @@ public class ModuleManager
 
 
 
-    public DataChannel CreateLocalDataChannel<T>(Module mod, string Path)
+    public DataChannelDescriptor CreateLocalDataChannel<T>(Module mod, string Path)
     {
         var channelDesc = ResolvePathForMod(mod, Path);
         if (channelDesc == null)
@@ -79,7 +79,7 @@ public class ModuleManager
         return channelManager.CreateLocalDataChannel<T>(channelDesc.Path, channelDesc.HighData);
     }
 
-    public DataChannel? GetDataChannel(Module mod, string Path)
+    public DataChannelDescriptor? GetDataChannel(Module mod, string Path)
     {
         var channelDesc = ResolvePathForMod(mod, Path);
         if (channelDesc == null)

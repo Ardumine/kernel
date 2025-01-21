@@ -1,8 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Text;
-using System.Threading.Channels;
-using AFCP;
+﻿using Kernel.AFCP;
 using Kernel.Logging;
 using Kernel.Modules;
 using Kernel.Modules.Base;
@@ -11,20 +7,29 @@ namespace Kernel;
 internal class Program
 {
     static List<ModuleDescription> AvailableModules = new();
-    static List<KernelDescriptor> ConnectedKernels = new List<KernelDescriptor>();
+    static List<KernelDescriptor> ConnectedKernels = new();
     static ModuleManager? moduleManager { get; set; }
     private static void Main(string[] args)
     {
         var logger = new Logger("kernel");
 
+        //We create our channel manager. 
         var channelManager = new ChannelManager() { ConnectedKernels = ConnectedKernels };
-        ChannelManager.Defaulte = channelManager;
 
-        var channelServer = new ChannelManagerServer(8000, channelManager);
+        var AFCPServer = new AfcpServer(8000);
+
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager);
+
+
         moduleManager = new ModuleManager(channelManager);
         var moduleLoader = new ModuleLoader();
 
+
+
+
+
         var config = ConfigParser.Load("config.json");
+
 
         //Load the DLLs and get the available modules.
         AvailableModules = moduleLoader.LoadModules(config.ModulesDlls);
@@ -35,7 +40,7 @@ internal class Program
         };
 
         logger.LogI("Starting AFCP...");
-        channelServer.Start();
+        AFCPServer.Start();
 
         foreach (var moduleConfig in config.StartupModules)
         {
@@ -78,7 +83,7 @@ internal class Program
             mod.Running = false;
         }
 
-        channelServer.Stop();
+        AFCPServer.Stop();
     }
     static void StartersTreeStart(string path)
     {

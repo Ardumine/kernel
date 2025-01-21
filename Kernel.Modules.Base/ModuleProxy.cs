@@ -1,4 +1,4 @@
-using AFCP;
+using Kernel.AFCP;
 
 namespace Kernel.Modules.Base;
 

@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Kernel.Modules.Base\Kernel.Modules.Base.csproj"/>
     <ProjectReference Include="..\Kernel.Logging\Kernel.Logging.csproj"/>
-    <ProjectReference Include="..\AFCP\AFCP.csproj"/>
+    <ProjectReference Include="..\Kernel.AFCP\Kernel.AFCP.csproj"/>
+    <ProjectReference Include="..\Kernel.Shared\Kernel.Shared.csproj"/>
   </ItemGroup>
 </Project>

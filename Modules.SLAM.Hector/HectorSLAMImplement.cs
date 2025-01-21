@@ -1,6 +1,6 @@
 
 using System.Numerics;
-using AFCP;
+using Kernel.AFCP;
 using Ardumine.Modules.YDLidar;
 using BaseSLAM;
 using HectorSLAM.Main;
@@ -56,10 +56,12 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
          {
              while (Running)
              {
+                Logger.LogI("Data!");
                  posChannel?.Set(new Vector3(2, 5, 90));
                  Thread.Sleep(1000);
              }
          });
+        thFake.Start();
 
     }
 
