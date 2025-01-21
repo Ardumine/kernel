@@ -6,25 +6,24 @@ using Kernel.AFCP.Systems;
 
 namespace Kernel.AFCP;
 
-public class ChannelManagerClient
+public class ChannelManagerAfcpClientConector
 {
 
     public ChannelManager LocalChannelManager { get; set; }
-    //public AfcpServer? ServerOwner { get; set; }
-    // public Guid RemoteGuid = new();
-
+    public KernelDescriptor RemoteKernel { get; set; }
+    
     private AfcpClient afcpClient;
 
     private ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>> _pendingRequests = new ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>>();
 
-    public KernelDescriptor RemoteKernel { get; set; }
-    ConnectSystem connectSystem;
-    ChannelManagementSystem channelManagementSystem;
-    AFCP.KASerializer.KASerializer Serializer;
+    private ConnectSystem connectSystem;
+    private ChannelManagementSystem channelManagementSystem;
+    private KASerializer.KASerializer Serializer;
 
-    public ChannelManagerClient(AfcpClient cl, ChannelManager _localChannelManager)
+    //Are we a server?
+    public ChannelManagerAfcpClientConector(AfcpClient client, ChannelManager _localChannelManager)
     {
-        afcpClient = cl;
+        afcpClient = client;
         LocalChannelManager = _localChannelManager;
         Serializer = new();
 
@@ -38,10 +37,9 @@ public class ChannelManagerClient
         connectSystem = new(LocalChannelManager, this);
     }
 
-
-    public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
+    //Are we a client?
+    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager)
     {
-
         LocalChannelManager = _localChannelManager;
         Serializer = new();
         afcpClient = new AfcpClient();
@@ -55,20 +53,19 @@ public class ChannelManagerClient
         channelManagementSystem = new(LocalChannelManager);
         connectSystem = new(LocalChannelManager, this);
 
-        Thread.Sleep(100);
-        OnConnect();//Only when we connect as a client
-
+        //Thread.Sleep(100);
+        OnClientConnect();//Only when we connect as a client
     }
    
 
 
 
 
-    private void OnConnect()
+    private void OnClientConnect()
     {
         HandShake();
-
     }
+
     private void HandShake()
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
@@ -81,10 +78,9 @@ public class ChannelManagerClient
         var remoteKernel = new KernelDescriptor()
         {
             KernelGuid = connectResponse.RemoteKernel,
-            ConnectedVia = this,
             //HostingChannels = connectResponse.HostingChannels,
             //HostingModules = connectResponse.HostingModules,
-            channelManagerClient = this
+            ConnectedVia = this
         };
         RemoteKernel = remoteKernel;
         LocalChannelManager.ConnectedKernels.Add(remoteKernel);

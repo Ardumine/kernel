@@ -23,6 +23,6 @@ public class ChannelManagerAFCPServerConector
     {
         Console.WriteLine("Client connected!");
         var afcpClient = new AfcpClient(tcpClient, "Server", 0);
-        var client = new ChannelManagerClient(afcpClient,   ChannelManager);
+        var client = new ChannelManagerAfcpClientConector(afcpClient,   ChannelManager);
     }
 }

@@ -5,9 +5,9 @@ namespace Kernel.AFCP.Systems;
 public class ConnectSystem
 {
     ChannelManager channelManager;
-    ChannelManagerClient channelManagerClient;
+    ChannelManagerAfcpClientConector channelManagerClient;
 
-    public ConnectSystem(ChannelManager _channelManager, ChannelManagerClient _channelManagerClient)
+    public ConnectSystem(ChannelManager _channelManager, ChannelManagerAfcpClientConector _channelManagerClient)
     {
         channelManager = _channelManager;
         channelManagerClient = _channelManagerClient;
@@ -21,13 +21,11 @@ public class ConnectSystem
                 Thread.Sleep(100);//Let have some time to deliver
                 channelManagerClient.OnRemoteDisconnect(a.RemoteKernel);
 
-
             }).Start();
             return new PacketConnectAnswer()
             {
                 RemoteKernel = channelManager.LocalGuid
             };
-
         }
         else
         {
@@ -35,7 +33,6 @@ public class ConnectSystem
             channelManager.ConnectedKernels.Add(new KernelDescriptor()
             {
                 KernelGuid = a.RemoteKernel,
-                channelManagerClient = channelManagerClient,
                 ConnectedVia = channelManagerClient,
                 
             });

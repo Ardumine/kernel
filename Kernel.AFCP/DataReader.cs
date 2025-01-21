@@ -1,4 +1,5 @@
 using System.Text;
+using Kernel.AFCP.KASerializer;
 
 namespace Kernel.AFCP.DataTreatment;
 public class DataReader
@@ -29,14 +30,14 @@ public class DataReader
         byte[] arr = new byte[4];
         stream.ReadExactly(arr);
 
-        return BitConverter.ToUInt32(arr);
+        return Tools.GetUInt(arr);
     }
     public int ReadInt()
     {
         byte[] lenArr = new byte[4];
         stream.ReadExactly(lenArr);
 
-        return BitConverter.ToInt32(lenArr);
+        return Tools.GetInt(lenArr);
     }
 
 
@@ -70,14 +71,14 @@ public class DataReader
     {
         byte[] data = ReadByteArr();
      
-        return Encoding.UTF8.GetString(data);
+        return Tools.GetString(data);
     }
 
     public byte[] ReadByteArr()
     {
         byte[] lenArr = new byte[4];
         stream.ReadExactly(lenArr);
-        uint TamDadosPRec = BitConverter.ToUInt32(lenArr);
+        uint TamDadosPRec = Tools.GetUInt(lenArr);
 
         byte[] dados = new byte[TamDadosPRec];
 
@@ -95,7 +96,7 @@ public class DataReader
         MemoryStream ms = new();
         byte[] lenArr = new byte[4];
         stream.ReadExactly(lenArr);
-        uint TamDadosPRec = BitConverter.ToUInt32(lenArr);
+        uint TamDadosPRec = Tools.GetUInt(lenArr);
 
         byte[] dados = new byte[TamDadosPRec];
 

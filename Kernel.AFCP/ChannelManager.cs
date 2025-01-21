@@ -13,7 +13,7 @@ public class ChannelManager
     /// <summary>
     /// Maps a Kernel GUID to a client.
     /// </summary>
-    private Dictionary<Guid, ChannelManagerClient> Externals = new Dictionary<Guid, ChannelManagerClient>();
+    private Dictionary<Guid, ChannelManagerAfcpClientConector> Externals = new Dictionary<Guid, ChannelManagerAfcpClientConector>();
 
 
 
@@ -23,7 +23,7 @@ public class ChannelManager
     }
     public void Stop()
     {
-        foreach (ChannelManagerClient client in Externals.Values)
+        foreach (ChannelManagerAfcpClientConector client in Externals.Values)
         {
             client.RequestDisconect();
         }
@@ -118,7 +118,7 @@ public class ChannelManager
     {
         if (kernel is not null)
         {
-            kernel.channelManagerClient.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
+            kernel.ConnectedVia.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
             {
                 ChannelPath = channelPath,
                 MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
@@ -150,7 +150,7 @@ public class ChannelManager
 
     public void Join(string IPAddress, int port)
     {
-        var client = new ChannelManagerClient(IPAddress, port, this);
+        var client = new ChannelManagerAfcpClientConector(IPAddress, port, this);
 
         var packet = new PacketSyncRequest()
         {

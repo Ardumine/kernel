@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using Kernel.AFCP.KASerializer;
 
 namespace Kernel.AFCP.DataTreatment;
 public class DataWritter: IDisposable
@@ -25,11 +26,11 @@ public class DataWritter: IDisposable
     }
     public void Write(uint data)
     {
-        memoryStream.Write(BitConverter.GetBytes(data));
+        memoryStream.Write(Tools.GetBytes(data));
     }
     public void Write(int data)
     {
-        memoryStream.Write(BitConverter.GetBytes(data));
+        memoryStream.Write(Tools.GetBytes(data));
     }
 
 
@@ -51,18 +52,18 @@ public class DataWritter: IDisposable
   public unsafe void Write(string? data)
     {
         data = TreatString(data);
-        WriteByteArr(Encoding.UTF8.GetBytes(data));
+        WriteByteArr(Tools.GetBytes(data));
     }
 
     public void WriteByteArr(byte[] bytes)
     {
-        memoryStream.Write(BitConverter.GetBytes((uint)bytes.Length));
+        memoryStream.Write(Tools.GetBytes((uint)bytes.Length));
         memoryStream.Write(bytes);
     }
 
     public void WriteByteArr(Span<byte> bytes)
     {
-        memoryStream.Write(BitConverter.GetBytes((uint)bytes.Length));
+        memoryStream.Write(Tools.GetBytes((uint)bytes.Length));
         memoryStream.Write(bytes);
     }
 
