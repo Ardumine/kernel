@@ -1,5 +1,7 @@
 using System.Numerics;
+using Ardumine.Modules.Module1;
 using Kernel.AFCP;
+using Kernel.Modules;
 
 internal class Program
 {
@@ -11,7 +13,7 @@ internal class Program
 
         var channelManager = new ChannelManager() { ConnectedKernels = ConnectedKernels };
 
-        //var moduleManager = new ModuleManager(channelManager);
+        var moduleManager = new ModuleManager(channelManager);
 
         channelManager.Join("127.0.0.1", 8000);
         Console.WriteLine("Connected!");
@@ -38,6 +40,9 @@ internal class Program
 
         Console.WriteLine("Get: " + interfPos?.Get());
         Console.WriteLine("Done!!!");
+                var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
+        interfaceMod1.CoolFunc();
+
         Thread.Sleep(50000);
 
         channelManager.Stop();
