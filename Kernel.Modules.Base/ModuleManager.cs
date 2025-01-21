@@ -7,7 +7,7 @@ namespace Kernel.Modules;
 public class ModuleManager
 {
     public List<Module> RunningModules = new List<Module>();
-    public ChannelManager channelManager;
+    private ChannelManager channelManager;
     public ModuleManager(ChannelManager _channelManager)
     {
         channelManager = _channelManager;

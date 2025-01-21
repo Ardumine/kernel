@@ -14,13 +14,12 @@ public class ConnectSystem
     }
     public BasePacketAnswer Process(PacketConnectRequest a)
     {
-
         if (a.Disconnect)
         {
             new Thread(() =>
             {
                 Thread.Sleep(100);//Let have some time to deliver
-                channelManagerClient.ServerStop(a.RemoteKernel);
+                channelManagerClient.OnRemoteDisconnect(a.RemoteKernel);
 
 
             }).Start();
@@ -36,11 +35,10 @@ public class ConnectSystem
             channelManager.ConnectedKernels.Add(new KernelDescriptor()
             {
                 KernelGuid = a.RemoteKernel,
-                //HostingChannels = a.HostingChannels,
-                //HostingModules = a.HostingModules,
-                channelManagerClient = channelManagerClient
+                channelManagerClient = channelManagerClient,
+                ConnectedVia = channelManagerClient,
+                
             });
-            channelManagerClient.RemoteGuid = a.RemoteKernel;
 
             return new PacketConnectAnswer()
             {

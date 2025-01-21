@@ -2,34 +2,34 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace Kernel.AFCP.DataTreatment;
-public class DataWritter
+public class DataWritter: IDisposable
 {
-    public MemoryStream ms;
+    public MemoryStream memoryStream;
 
     public DataWritter()
     {
-        ms = new MemoryStream();
+        memoryStream = new MemoryStream();
     }
     public void Write(bool b)
     {
-        ms.WriteByte(b ? (byte)1 : (byte)0);
+        memoryStream.WriteByte(b ? (byte)1 : (byte)0);
     }
 
     public void Write(byte b)
     {
-        ms.WriteByte(b);
+        memoryStream.WriteByte(b);
     }
     public void Write(Guid guid)
     {
-        ms.Write(guid.ToByteArray());
+        memoryStream.Write(guid.ToByteArray());
     }
     public void Write(uint data)
     {
-        ms.Write(BitConverter.GetBytes(data));
+        memoryStream.Write(BitConverter.GetBytes(data));
     }
     public void Write(int data)
     {
-        ms.Write(BitConverter.GetBytes(data));
+        memoryStream.Write(BitConverter.GetBytes(data));
     }
 
 
@@ -56,24 +56,24 @@ public class DataWritter
 
     public void WriteByteArr(byte[] bytes)
     {
-        ms.Write(BitConverter.GetBytes((uint)bytes.Length));
-        ms.Write(bytes);
+        memoryStream.Write(BitConverter.GetBytes((uint)bytes.Length));
+        memoryStream.Write(bytes);
     }
 
     public void WriteByteArr(Span<byte> bytes)
     {
-        ms.Write(BitConverter.GetBytes((uint)bytes.Length));
-        ms.Write(bytes);
+        memoryStream.Write(BitConverter.GetBytes((uint)bytes.Length));
+        memoryStream.Write(bytes);
     }
 
 
     public void Copy(NetworkStream stream)
     {
         //stream.Write(ms.ToArray());
-        ms.Position = 0;
+        memoryStream.Position = 0;
         byte[] buffer = new byte[32768];//https://stackoverflow.com/questions/230128/how-do-i-copy-the-contents-of-one-stream-to-another
         int read;
-        while ((read = ms.Read(buffer, 0, buffer.Length)) > 0)
+        while ((read = memoryStream.Read(buffer, 0, buffer.Length)) > 0)
         {
             stream.Write(buffer, 0, read);
         }
@@ -81,4 +81,8 @@ public class DataWritter
 
     }
 
+    public void Dispose()
+    {
+        memoryStream.Dispose();
+    }
 }

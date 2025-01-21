@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Net.Sockets;
+
 using Kernel.AFCP.DataTreatment;
 using Kernel.AFCP.Packets;
 using Kernel.AFCP.Systems;
@@ -9,43 +9,47 @@ namespace Kernel.AFCP;
 public class ChannelManagerClient
 {
 
-    public bool Running { get; set; }
     public ChannelManager LocalChannelManager { get; set; }
-    public ChannelManagerServer? ServerOwner { get; set; }
-    public Guid RemoteGuid = new();
+    //public AfcpServer? ServerOwner { get; set; }
+    // public Guid RemoteGuid = new();
+
+    private AfcpClient afcpClient;
 
     private ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>> _pendingRequests = new ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>>();
-    TcpClient tcpClient;
-    NetworkStream TCPClientstream;
+
+    public KernelDescriptor RemoteKernel { get; set; }
     ConnectSystem connectSystem;
     ChannelManagementSystem channelManagementSystem;
     AFCP.KASerializer.KASerializer Serializer;
 
-    private AutoResetEvent OnNewData = new AutoResetEvent(false);
-
-    Queue<DataWritter> dataCache = new();
-    void WriteData(DataWritter dataWritter)
+    public ChannelManagerClient(AfcpClient cl, ChannelManager _localChannelManager)
     {
-        dataCache.Enqueue(dataWritter);
-        OnNewData.Set();
-    }
-    public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
-    {
+        afcpClient = cl;
         LocalChannelManager = _localChannelManager;
-        Running = true;
-        tcpClient = new TcpClient();
         Serializer = new();
 
-        tcpClient.Connect(IP, Port);
-        TCPClientstream = tcpClient.GetStream();
+
+        
+        afcpClient.OnDataRec += OnDataRec;
+        afcpClient.OnClientDisconnect += OnDisconnect;
 
 
-        StartSendThread();
+        channelManagementSystem = new(LocalChannelManager);
+        connectSystem = new(LocalChannelManager, this);
+    }
 
-        new Thread(handleTCPClient)
-        {
-            Name = $"ChannelManagerClient {IP}:{Port} Read"
-        }.Start();
+
+    public ChannelManagerClient(string IP, int Port, ChannelManager _localChannelManager)
+    {
+
+        LocalChannelManager = _localChannelManager;
+        Serializer = new();
+        afcpClient = new AfcpClient();
+        afcpClient.Connect(IP, Port);
+
+
+        afcpClient.OnDataRec += OnDataRec;
+        afcpClient.OnClientDisconnect += OnDisconnect;
 
 
         channelManagementSystem = new(LocalChannelManager);
@@ -55,47 +59,17 @@ public class ChannelManagerClient
         OnConnect();//Only when we connect as a client
 
     }
+   
 
-    internal ChannelManagerClient(TcpClient client, ChannelManager _localChannelManager)
-    {
-        LocalChannelManager = _localChannelManager;
 
-        Running = true;
-        tcpClient = client;
-        Serializer = new();
 
-        channelManagementSystem = new(LocalChannelManager);
-        connectSystem = new(LocalChannelManager, this);
 
-        TCPClientstream = tcpClient.GetStream();
-        StartSendThread();
-
-        new Thread(handleTCPClient)
-        {
-            Name = "ChannelManagerClient Server Read"
-        }.Start();
-    }
-
-    private void StartSendThread()
-    {
-        new Thread(() =>
-        {
-            while (Running)
-            {
-                while (dataCache.Count > 0)
-                {
-                    dataCache.Dequeue().Copy(TCPClientstream);
-                }
-                OnNewData.Reset();
-                OnNewData.WaitOne();
-
-            }
-        })
-        {
-            Name = $"ChannelManagerClient  Send"
-        }.Start();
-    }
     private void OnConnect()
+    {
+        HandShake();
+
+    }
+    private void HandShake()
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
@@ -104,36 +78,32 @@ public class ChannelManagerClient
             Disconnect = false
         });
 
-
-        LocalChannelManager.ConnectedKernels.Add(new KernelDescriptor()
+        var remoteKernel = new KernelDescriptor()
         {
             KernelGuid = connectResponse.RemoteKernel,
+            ConnectedVia = this,
             //HostingChannels = connectResponse.HostingChannels,
             //HostingModules = connectResponse.HostingModules,
             channelManagerClient = this
-        });
-
+        };
+        RemoteKernel = remoteKernel;
+        LocalChannelManager.ConnectedKernels.Add(remoteKernel);
     }
 
-    //Use this one when you are the one needing to stop the connection and not caused by an other kernel.
-    public void RequestStopAndStop()
+
+    public void RequestDisconect()
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.LocalGuid, Disconnect = true });
 
-        OnNewData.Set();
+        afcpClient.OnDisconnect(DisconnectReason.RequestedBySelf);
 
-        LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(connectResponse.RemoteKernel)!);
-        Running = false;
-        tcpClient.Close();
-
-        _pendingRequests.Clear();
 
     }
 
     //When another asks to us stop, then this runs. Only if this client is an server and not a client, run this.
-    public void ServerStop(Guid remoteKernel)
+    public void OnRemoteDisconnect(Guid remoteKernel)
     {
-        Console.WriteLine("Server stop");
+        Console.WriteLine("Remote requested diconnect.");
         LocalChannelManager.RemoveKernel(LocalChannelManager.GetKernel(remoteKernel)!);
 
         foreach (var item in _pendingRequests.Values)
@@ -142,16 +112,105 @@ public class ChannelManagerClient
         }
 
         _pendingRequests.Clear();
+        afcpClient.OnDisconnect(DisconnectReason.RequestedByRemote);
 
 
-        Running = false;
-        OnNewData.Set();
-
-        tcpClient.Close();
-        ServerOwner?.Clients.Remove(this);
-        tcpClient.Dispose();
-        TCPClientstream.Dispose();
     }
+
+
+    private void OnDisconnect(DisconnectReason reason)
+    {
+        LocalChannelManager.RemoveKernel(RemoteKernel);
+
+        _pendingRequests.Clear();
+    }
+    private void OnDataRec(DataReader reader)
+    {
+        uint RequestID = reader.ReadUint();
+        bool isAnswer = reader.ReadBool();
+        byte msgType = reader.ReadByte();
+
+
+
+        if (!isAnswer)//Question
+        {
+            var answerWritterFull = GenerateAnwserHeader(RequestID);
+            answerWritterFull.Write(msgType);
+
+            BasePacketAnswer answer = null!;
+
+            //answerWritterFull.WriteByte(msgType);
+            //Console.WriteLine("Requested msgType: " + msgType);
+            if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
+            {
+                answer = connectSystem.Process(ParsePacketRequest<PacketConnectRequest>(reader));
+            }
+            else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
+            {
+                answer = ParseChannelSyncRequestPacket(ParsePacketRequest<PacketSyncRequest>(reader));
+            }
+            else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
+            {
+                answer = channelManagementSystem.Process(ParsePacketRequest<PacketChannelManagementRequest>(reader));
+            }
+            else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
+            {
+                answer = ParseChannelRequestPacket(ParsePacketRequest<PacketChannelRequest>(reader));
+            }
+            else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
+            {
+                answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketFunctionRequest>(reader));
+            }
+            else
+            {
+                throw new Exception($"Unknow message type! Msg type received: {msgType}");
+            }
+
+
+
+            Serializer.Serialize(answer, answerWritterFull.memoryStream, false);
+            //answerWritterFull.Copy(TCPClientstream);
+            afcpClient.WriteData(answerWritterFull);
+
+        }
+        else
+        {
+            if (_pendingRequests.TryRemove(RequestID, out var tcs))//When it receives data and it is an awsner.
+            {
+                BasePacketAnswer Obj;
+                if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
+                {
+                    Obj = Serializer.Deserialize<PacketConnectAnswer>(reader.stream, false)!;
+                }
+                else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
+                {
+                    Obj = Serializer.Deserialize<PacketSyncAnswer>(reader.stream, false)!;
+                }
+                else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
+                {
+                    Obj = Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream, false)!;
+                }
+                else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
+                {
+                    Obj = Serializer.Deserialize<PacketChannelAnswer>(reader.stream, false)!;
+                }
+                else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
+                {
+                    Obj = Serializer.Deserialize<PacketFunctionAnswer>(reader.stream, false)!;
+                }
+                else
+                {
+                    throw new Exception($"Unknow message type! Msg type received: {msgType}");
+                }
+
+                //var obj = reader.ReadObject<BasePacketAnswer>()!;
+                //obj = Serializer.Deserialize<BasePacketAnswer>(reader.stream, false)!;
+                tcs.SetResult(Obj);
+            }
+        }
+
+    }
+
 
     private uint LatestRequestID = 0;
     public T SendRequest<T>(byte RequestType, PacketBaseRequest Payload) where T : BasePacketAnswer
@@ -165,124 +224,12 @@ public class ChannelManagerClient
         //Console.WriteLine($"Request type send: {RequestType}");
         writter.Write(RequestType);
 
-        Serializer.Serialize(Payload, writter.ms, false);
+        Serializer.Serialize(Payload, writter.memoryStream, false);
 
-        WriteData(writter);
+        afcpClient.WriteData(writter);
 
         return (T)tcs.Task.Result;
 
-    }
-
-
-
-
-    private void handleTCPClient()
-    {
-        while (Running)
-        {
-            try
-            {
-                var reader = new DataReader(TCPClientstream);
-
-                uint RequestID = reader.ReadUint();
-                bool isAnswer = reader.ReadBool();
-                byte msgType = reader.ReadByte();
-
-
-
-                if (!isAnswer)//Question
-                {
-                    var answerWritterFull = GenerateAnwserHeader(RequestID);
-                    answerWritterFull.Write(msgType);
-
-                    BasePacketAnswer answer = null!;
-
-                    //answerWritterFull.WriteByte(msgType);
-                    //Console.WriteLine("msgType: " + msgType);
-                    if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
-                    {
-                        answer = connectSystem.Process(ParsePacketRequest<PacketConnectRequest>(reader));
-                    }
-                    else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
-                    {
-                        answer = ParseChannelSyncRequestPacket(ParsePacketRequest<PacketSyncRequest>(reader));
-                    }
-                    else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
-                    {
-                        answer = channelManagementSystem.Process(ParsePacketRequest<PacketChannelManagementRequest>(reader));
-                    }
-                    else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
-                    {
-                        answer = ParseChannelRequestPacket(ParsePacketRequest<PacketChannelRequest>(reader));
-                    }
-                    else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
-                    {
-                        answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketFunctionRequest>(reader));
-                    }
-                    else
-                    {
-                        throw new Exception($"Unknow message type! Msg type received: {msgType}");
-                    }
-
-
-
-                    Serializer.Serialize(answer, answerWritterFull.ms, false);
-                    //answerWritterFull.Copy(TCPClientstream);
-                    WriteData(answerWritterFull);
-
-                }
-                else
-                {
-                    if (_pendingRequests.TryRemove(RequestID, out var tcs))//When it receives data and it is an awsner.
-                    {
-                        BasePacketAnswer Obj;
-                        if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
-                        {
-                            Obj = Serializer.Deserialize<PacketConnectAnswer>(reader.stream, false)!;
-                        }
-                        else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
-                        {
-                            Obj = Serializer.Deserialize<PacketSyncAnswer>(reader.stream, false)!;
-                        }
-                        else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
-                        {
-                            Obj = Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream, false)!;
-                        }
-                        else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
-                        {
-                            Obj = Serializer.Deserialize<PacketChannelAnswer>(reader.stream, false)!;
-                        }
-                        else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
-                        {
-                            Obj = Serializer.Deserialize<PacketFunctionAnswer>(reader.stream, false)!;
-                        }
-                        else
-                        {
-                            throw new Exception($"Unknow message type! Msg type received: {msgType}");
-                        }
-
-                        //var obj = reader.ReadObject<BasePacketAnswer>()!;
-                        //obj = Serializer.Deserialize<BasePacketAnswer>(reader.stream, false)!;
-                        tcs.SetResult(Obj);
-                    }
-                }
-            }
-            catch
-            {
-                if (!tcpClient.Connected && Running)
-                {
-                    ServerStop(RemoteGuid);
-                }
-
-                if (Running && tcpClient.Connected)
-                {
-                    throw;
-                }
-
-
-            }
-        }
-        Console.WriteLine("exit");
     }
 
 

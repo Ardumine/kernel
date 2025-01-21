@@ -1,14 +1,13 @@
-using Kernel.AFCP.DataTreatment;
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP;
 public class ChannelManager
 {
-    public static ChannelManager? Defaulte { get; set; }
     public required List<KernelDescriptor> ConnectedKernels;
     private List<ChannelBase> Channels = new List<ChannelBase>();
 
     public Guid LocalGuid { get; set; }
+
 
 
     /// <summary>
@@ -24,9 +23,9 @@ public class ChannelManager
     }
     public void Stop()
     {
-        foreach (ChannelManagerClient external in Externals.Values)
+        foreach (ChannelManagerClient client in Externals.Values)
         {
-            external.RequestStopAndStop();
+            client.RequestDisconect();
         }
     }
 
@@ -151,7 +150,6 @@ public class ChannelManager
 
     public void Join(string IPAddress, int port)
     {
-
         var client = new ChannelManagerClient(IPAddress, port, this);
 
         var packet = new PacketSyncRequest()

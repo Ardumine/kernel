@@ -13,6 +13,7 @@ public class DataChannelInterface : ChannelBase
 
     public virtual object? Data { get; set; }
 }
+
 public abstract class DataChannelInterface<T> : DataChannelInterface
 {
     public List<Action<T?>> Events = new();

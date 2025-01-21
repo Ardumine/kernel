@@ -2,23 +2,28 @@ using System.Net;
 using System.Net.Sockets;
 
 namespace Kernel.AFCP;
-public class ChannelManagerServer
+public class AfcpServer
 {
     public bool Running { get; private set; }
 
     private TcpListener tcpListener;
-    public List<ChannelManagerClient> Clients = new List<ChannelManagerClient>();
-    private ChannelManager channelManager;
-    public ChannelManagerServer(int port, ChannelManager _channelManager)
+
+    public delegate void OnTCPClientConnectedEvent(TcpClient client);
+    public event OnTCPClientConnectedEvent? OnTCPClientConnected;
+
+
+    //private ChannelManager channelManager;
+    public AfcpServer(int port)
     {
         tcpListener = new(IPAddress.Any, port);
-        channelManager = _channelManager;
+        //channelManager = _channelManager;
     }
     public void Start()
     {
         tcpListener.Start();
         Running = true;
-        new Thread(tcpHandler){
+        new Thread(tcpHandler)
+        {
             Name = $"ChannelManagerServer {tcpListener.LocalEndpoint}"
         }.Start();
     }
@@ -36,7 +41,10 @@ public class ChannelManagerServer
             try
             {
                 var client = tcpListener.AcceptTcpClient();
-                Clients.Add(new ChannelManagerClient(client, channelManager){ServerOwner = this});
+                if (OnTCPClientConnected != null)
+                {
+                    OnTCPClientConnected.Invoke(client);
+                }
             }
             catch
             {

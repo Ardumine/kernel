@@ -38,10 +38,10 @@ internal class Program
            Console.WriteLine("Lidar data rec!!");
        });
 
-        Console.WriteLine("Get: " + interfPos?.Get());
+        //Console.WriteLine("Get: " + interfPos?.Get());
         Console.WriteLine("Done!!!");
-                var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
-        interfaceMod1.CoolFunc();
+        //        var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
+        //interfaceMod1.CoolFunc();
 
         Thread.Sleep(50000);
 
