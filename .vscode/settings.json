@@ -11,6 +11,8 @@
     "**/Thumbs.db": true,
     ".vscode/": true,
     "**/bin/": true,
-    "**/obj/": true
+    "**/obj/": true,
+    ".gitignore": true
+
   }
 }
