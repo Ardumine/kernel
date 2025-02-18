@@ -9,14 +9,14 @@ public class AfcpClient : IDisposable
     public bool Running { get; private set; }
 
 
-    private TcpClient TcpClient { get; set; }
-    private NetworkStream TCPClientstream;
+    private TcpClient? TcpClient { get; set; }
+    private NetworkStream? TCPClientstream;
 
     private AutoResetEvent OnNewData = new AutoResetEvent(false);
     private Queue<DataWritter> DataCache = new();
 
-    private Thread handleTCPClientReadThread;
-    private Thread handleTCPClientWriteThread;
+    private Thread? handleTCPClientReadThread;
+    private Thread? handleTCPClientWriteThread;
 
 
     public delegate void OnDataRecEvent(DataReader reader);
@@ -25,7 +25,9 @@ public class AfcpClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    public AfcpClient(){}
+    public AfcpClient(){
+        
+    }
 
     public AfcpClient(TcpClient client, string IP, int Port)
     {
@@ -81,7 +83,7 @@ public class AfcpClient : IDisposable
             while (DataCache.Count > 0)
             {
                 var writter = DataCache.Dequeue();
-                writter.Copy(TCPClientstream);
+                writter.Copy(TCPClientstream!);
 
                 writter.Dispose();
             }
@@ -97,7 +99,7 @@ public class AfcpClient : IDisposable
         {
             try
             {
-                var reader = new DataReader(TCPClientstream);
+                var reader = new DataReader(TCPClientstream!);
                 if (OnDataRec != null)
                 {
                     OnDataRec.Invoke(reader);
@@ -105,7 +107,7 @@ public class AfcpClient : IDisposable
             }
             catch
             {
-                if (!TcpClient.Connected && Running)
+                if (!TcpClient!.Connected && Running)
                 {
                     OnDisconnect(DisconnectReason.ConnectionLost);
                     Running = false;
@@ -134,8 +136,8 @@ public class AfcpClient : IDisposable
 
     public void Dispose()
     {
-        TcpClient.Dispose();
-        TCPClientstream.Dispose();
+        TcpClient?.Dispose();
+        TCPClientstream?.Dispose();
         OnNewData.Dispose();
         DataCache.Clear();
 

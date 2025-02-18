@@ -8,7 +8,7 @@ public class DataChannelInterface : ChannelBase
     {
 
     }
-    public virtual object ValueAsObj { get; set; }
+    public virtual object? ValueAsObj { get; set; }
 
 }
 
@@ -246,7 +246,6 @@ public class ModuleChannel : ChannelBase
     [IgnoreParse]
     private ChannelManager channelManager { get; set; }
 
-    public ModuleChannel() { }
     public ModuleChannel(ChannelManager channelManager_)
     {
         channelManager = channelManager_;

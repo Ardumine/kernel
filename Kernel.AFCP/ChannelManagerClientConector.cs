@@ -10,8 +10,8 @@ public class ChannelManagerAfcpClientConector
 {
 
     public ChannelManager LocalChannelManager { get; set; }
-    public KernelDescriptor RemoteKernel { get; set; }
-    
+    public KernelDescriptor? RemoteKernel { get; set; }
+
     private AfcpClient afcpClient;
 
     private ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>> _pendingRequests = new ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>>();
@@ -28,7 +28,7 @@ public class ChannelManagerAfcpClientConector
         Serializer = new();
 
 
-        
+
         afcpClient.OnDataRec += OnDataRec;
         afcpClient.OnClientDisconnect += OnDisconnect;
 
@@ -56,7 +56,7 @@ public class ChannelManagerAfcpClientConector
         //Thread.Sleep(100);
         OnClientConnect();//Only when we connect as a client
     }
-   
+
 
 
 
@@ -116,7 +116,10 @@ public class ChannelManagerAfcpClientConector
 
     private void OnDisconnect(DisconnectReason reason)
     {
-        LocalChannelManager.RemoveKernel(RemoteKernel);
+        if (RemoteKernel != null)
+        {
+            LocalChannelManager.RemoveKernel(RemoteKernel);
+        }
 
         _pendingRequests.Clear();
     }
@@ -229,7 +232,7 @@ public class ChannelManagerAfcpClientConector
     }
 
 
-    T ParsePacketRequest<T>(DataReader reader) where T :  PacketBaseRequest
+    T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
         return Serializer.Deserialize<T>(reader.stream)!;
     }
