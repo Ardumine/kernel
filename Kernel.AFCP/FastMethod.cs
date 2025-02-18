@@ -3,8 +3,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 namespace Kernel.AFCP.FastMethod;
 
-public delegate object ReturnValueDelegate(object instance, object[] arguments);
-public delegate void VoidDelegate(object instance, object[] arguments);
+public delegate object ReturnValueDelegate(object instance, object?[]? arguments);
+public delegate void VoidDelegate(object instance, object?[]? arguments);
 
 
 public class FastMethodInfo

@@ -2,7 +2,6 @@
 using System;
 using System.IO;
 
-namespace Kernel.AFCP.KASerializer;
 
 public static class Tools
 {

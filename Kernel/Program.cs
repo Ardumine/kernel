@@ -25,9 +25,6 @@ internal class Program
         var moduleLoader = new ModuleLoader();
 
 
-
-
-
         var config = ConfigParser.Load("config.json");
 
 
@@ -67,7 +64,6 @@ internal class Program
 
         string startingTrigger = "kernel";
         StartersTreeStart(startingTrigger);
-
 
         logger.LogOK("Kernel started!");
         Console.ReadLine();//Wait for stop signal

@@ -4,7 +4,7 @@ using Kernel.AFCP.KASerializer.Atributes;
 namespace Kernel.AFCP.Packets;
 
 
-public interface PacketBaseRequest
+public class PacketBaseRequest
 {
 
 }
@@ -24,7 +24,6 @@ public class PacketChannelRequest : PacketBaseRequest
     public bool WriteData { get; set; }
     public required string channelPath { get; set; }
 
-    [CanHaveOtherTypes]
     public object? Val { get; set; }
 
 
@@ -35,7 +34,6 @@ public class PacketFunctionRequest : PacketBaseRequest
     public required string ChannelPath { get; set; }
     public uint FuncID { get; set; }
 
-    [CanHaveOtherTypes]
 
     public object?[]? Params { get; set; }
 
@@ -48,7 +46,6 @@ public class PacketSyncRequest : PacketBaseRequest
 {
     public Guid RemoteGuid { get; set; }
 
-    [CanHaveOtherTypes]
     public required ChannelDescriptor[] RemoteChannels { get; set; }
 
 }
@@ -61,7 +58,6 @@ public class PacketChannelManagementRequest : PacketBaseRequest
 
     public required string ChannelPath { get; set; }
 
-    [CanHaveOtherTypes]
     public object? NewVal { get; set; }
 
 
@@ -75,7 +71,7 @@ public enum ChannelMessageSyncMessageTypes
     ChannelDataChange,//When a kernel changes its data in a channel and notifys another kernels. 
 }
 
-public interface BasePacketAnswer
+public class BasePacketAnswer
 {
 
 }
@@ -91,25 +87,21 @@ public class PacketConnectAnswer : BasePacketAnswer
 
 public class PacketChannelAnswer : BasePacketAnswer
 {
-    [CanHaveOtherTypes]
     public required object? Result { get; set; }
 }
 
 public class PacketSyncAnswer : BasePacketAnswer
 {
     public Guid RemoteGuid { get; set; }
-    [CanHaveOtherTypes]
     public required ChannelDescriptor[] RemoteChannels { get; set; }
 }
 
 public class PacketFunctionAnswer : BasePacketAnswer
 {
-    [CanHaveOtherTypes]
     public object? Out { get; set; }
 }
 
 public class PacketChannelManagementAnswer : BasePacketAnswer
 {
-    [CanHaveOtherTypes]
     public object? Out { get; set; }
 }

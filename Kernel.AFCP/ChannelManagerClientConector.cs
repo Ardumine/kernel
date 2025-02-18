@@ -10,15 +10,15 @@ public class ChannelManagerAfcpClientConector
 {
 
     public ChannelManager LocalChannelManager { get; set; }
-    public KernelDescriptor RemoteKernel { get; set; }
-    
+    public KernelDescriptor? RemoteKernel { get; set; }
+
     private AfcpClient afcpClient;
 
     private ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>> _pendingRequests = new ConcurrentDictionary<uint, TaskCompletionSource<BasePacketAnswer>>();
 
     private ConnectSystem connectSystem;
     private ChannelManagementSystem channelManagementSystem;
-    private KASerializer.KASerializer Serializer;
+    private Serializer Serializer;
 
     //Are we a server?
     public ChannelManagerAfcpClientConector(AfcpClient client, ChannelManager _localChannelManager)
@@ -28,7 +28,7 @@ public class ChannelManagerAfcpClientConector
         Serializer = new();
 
 
-        
+
         afcpClient.OnDataRec += OnDataRec;
         afcpClient.OnClientDisconnect += OnDisconnect;
 
@@ -56,7 +56,7 @@ public class ChannelManagerAfcpClientConector
         //Thread.Sleep(100);
         OnClientConnect();//Only when we connect as a client
     }
-   
+
 
 
 
@@ -116,7 +116,10 @@ public class ChannelManagerAfcpClientConector
 
     private void OnDisconnect(DisconnectReason reason)
     {
-        LocalChannelManager.RemoveKernel(RemoteKernel);
+        if (RemoteKernel != null)
+        {
+            LocalChannelManager.RemoveKernel(RemoteKernel);
+        }
 
         _pendingRequests.Clear();
     }
@@ -164,7 +167,7 @@ public class ChannelManagerAfcpClientConector
 
 
 
-            Serializer.Serialize(answer, answerWritterFull.memoryStream, false);
+            Serializer.Serialize(answerWritterFull.memoryStream, answer);
             //answerWritterFull.Copy(TCPClientstream);
             afcpClient.WriteData(answerWritterFull);
 
@@ -176,23 +179,23 @@ public class ChannelManagerAfcpClientConector
                 BasePacketAnswer Obj;
                 if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
                 {
-                    Obj = Serializer.Deserialize<PacketConnectAnswer>(reader.stream, false)!;
+                    Obj = Serializer.Deserialize<PacketConnectAnswer>(reader.stream)!;
                 }
                 else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
                 {
-                    Obj = Serializer.Deserialize<PacketSyncAnswer>(reader.stream, false)!;
+                    Obj = Serializer.Deserialize<PacketSyncAnswer>(reader.stream)!;
                 }
                 else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
                 {
-                    Obj = Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream, false)!;
+                    Obj = Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream)!;
                 }
                 else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
                 {
-                    Obj = Serializer.Deserialize<PacketChannelAnswer>(reader.stream, false)!;
+                    Obj = Serializer.Deserialize<PacketChannelAnswer>(reader.stream)!;
                 }
                 else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
                 {
-                    Obj = Serializer.Deserialize<PacketFunctionAnswer>(reader.stream, false)!;
+                    Obj = Serializer.Deserialize<PacketFunctionAnswer>(reader.stream)!;
                 }
                 else
                 {
@@ -220,7 +223,7 @@ public class ChannelManagerAfcpClientConector
         //Console.WriteLine($"Request type send: {RequestType}");
         writter.Write(RequestType);
 
-        Serializer.Serialize(Payload, writter.memoryStream, false);
+        Serializer.Serialize(writter.memoryStream, Payload);
 
         afcpClient.WriteData(writter);
 
@@ -229,9 +232,9 @@ public class ChannelManagerAfcpClientConector
     }
 
 
-    T ParsePacketRequest<T>(DataReader reader) where T : class, PacketBaseRequest
+    T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        return Serializer.Deserialize<T>(reader.stream, false)!;
+        return Serializer.Deserialize<T>(reader.stream)!;
     }
     private BasePacketAnswer ParseChannelSyncRequestPacket(PacketSyncRequest data)
     {
