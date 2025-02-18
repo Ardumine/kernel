@@ -18,12 +18,12 @@ internal class Program
         channelManager.Join("127.0.0.1", 8000);
         Console.WriteLine("Connected!");
 
-        Thread.Sleep(2000);
+
         //var lidarDataChannel = channelManager.GetDataChannel("/slamPos");
         var interfPos = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
         var interfMap = channelManager.GetInterfaceForChannel<byte[]>("/SLAMmap");
 
-        var interfLidar = channelManager.GetInterfaceForChannel<byte[]>("/lidarData");
+       // var interfLidar = channelManager.GetInterfaceForChannel<byte[]>("/lidarData");
         interfPos?.AddEvent((aa) =>
         {
             Console.WriteLine("Pos data rec!!" + aa);
@@ -33,12 +33,8 @@ internal class Program
             Console.WriteLine("Map data rec!!");
         });
        
-        interfLidar?.AddEvent((aa) =>
-       {
-           Console.WriteLine("Lidar data rec!!");
-       });
-
-        //Console.WriteLine("Get: " + interfPos?.Get());
+ 
+        Console.WriteLine("Get: " + interfPos?.Get());
         Console.WriteLine("Done!!!");
         //        var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
         //interfaceMod1.CoolFunc();

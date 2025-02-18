@@ -110,7 +110,7 @@ public class ChannelManager
     {
         Parallel.For(0, channel.KernelsToNotify.Count, (i) =>
         {
-            NoitifyChannelDataChanged(channel.KernelsToNotify[i], channel.Path,  newVal);
+            NoitifyChannelDataChanged(channel.KernelsToNotify[i], channel.Path, newVal);
         });
     }
 
@@ -157,7 +157,7 @@ public class ChannelManager
             RemoteGuid = LocalGuid,
             RemoteChannels = GetLocalChannelDescriptors()
         };
-        
+
         var answer = client.SendRequest<PacketSyncAnswer>(MessagesTypes.ChannelSyncRequest, packet);
 
         AddChannelsSync(answer.RemoteChannels, answer.RemoteGuid);
@@ -170,7 +170,7 @@ public class ChannelManager
         var descriptors = new List<ChannelDescriptor>();
         foreach (var channel in Channels.Where(ch => ch.IsLocal))
         {
-            descriptors.Add(channel as ChannelDescriptor);
+            descriptors.Add(channel);
         }
         return descriptors.ToArray();
     }
@@ -280,9 +280,9 @@ public class ChannelManager
     }
     public T? GetLocalValue<T>(string channelPath)
     {
-        var aa = (LocalDataChannelInterface<T>)dataChannelInterfaces.Where(inter => inter.Path == channelPath).FirstOrDefault();
+        DataChannelInterface? dataChannel = dataChannelInterfaces.Where(inter => inter.Path == channelPath).FirstOrDefault();
 
-        return aa.Data;
+        return (T?)dataChannel?.ValueAsObj;
     }
 
     public List<DataChannelInterface> dataChannelInterfaces = new();

@@ -68,7 +68,6 @@ internal class Program
         string startingTrigger = "kernel";
         StartersTreeStart(startingTrigger);
 
-
         logger.LogOK("Kernel started!");
         Console.ReadLine();//Wait for stop signal
 
