@@ -25,9 +25,6 @@ internal class Program
         var moduleLoader = new ModuleLoader();
 
 
-
-
-
         var config = ConfigParser.Load("config.json");
 
 
