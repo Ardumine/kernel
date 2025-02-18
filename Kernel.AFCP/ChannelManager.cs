@@ -182,7 +182,7 @@ public class ChannelManager
         {
             if (channel.IsDataChannel)
             {
-                var dataChannel = channel as DataChannelDescriptor;
+                var dataChannel = (DataChannelDescriptor)channel;
                 Channels.Add(new DataChannelDescriptor()
                 {
                     IsLocal = false,
@@ -280,9 +280,9 @@ public class ChannelManager
     }
     public T? GetLocalValue<T>(string channelPath)
     {
-        var aa = dataChannelInterfaces.Where(inter => inter.Path == channelPath).FirstOrDefault();
+        var aa = (LocalDataChannelInterface<T>)dataChannelInterfaces.Where(inter => inter.Path == channelPath).FirstOrDefault();
 
-        return (T?)aa?.Data;
+        return aa.Data;
     }
 
     public List<DataChannelInterface> dataChannelInterfaces = new();

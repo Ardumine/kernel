@@ -1,4 +1,3 @@
-
 using Kernel.AFCP.KASerializer.Atributes;
 
 namespace Kernel.AFCP;
@@ -11,12 +10,13 @@ public class DataChannelInterface : ChannelBase
     }
 
 
-    public virtual object? Data { get; set; }
 }
 
 public abstract class DataChannelInterface<T> : DataChannelInterface
 {
     public List<Action<T?>> Events = new();
+    public  virtual T? Data { get; set; }
+
 
     public virtual void AddEvent(Action<T?> evente)
     {
@@ -76,7 +76,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
 
 
 
-    public override object? Data { get => Get(); set => Set((T?)value); }
+    public override T? Data { get => Get(); set => Set(value); }
 
     public override void AddEvent(Action<T?> evente)
     {
@@ -153,11 +153,10 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
     public LocalDataChannelInterface(ChannelManager channelManager_)
     {
         channelManager = channelManager_;
-
     }
 
     private T? LocalValue;
-    public override object? Data { get => Get(); set => Set((T?)value); }
+    public  override T? Data { get => Get(); set => Set(value); }
 
 
     public override void AddEvent(Action<T?> evente)
