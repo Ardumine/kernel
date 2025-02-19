@@ -2,10 +2,10 @@ using Kernel.AFCP;
 
 namespace Kernel.Modules.Base;
 
-public abstract class Module : ModuleDescriptor
+public abstract class RModule : ModuleDescriptor
 {
     internal BaseImplement? baseImplement;
-    public Guid Guid { get; set; }
+    public Guid ModuleGuid { get; set; }
     public List<ConfigChannelDescriptor>? hostingChannels { get; set; }
     public required List<ConfigChannelDescriptor> connectedChannels { get; set; }
 
@@ -17,7 +17,7 @@ public abstract class Module : ModuleDescriptor
     {
         get
         {
-            if (!IsOnLocal)
+            if (!IsLocal)
             {
                 throw new Exception("Module not running in this kernel! Only the kernel that owns this module can run the functions internally. Even if you want to run functions from the module, always use GetInterface<[Module Interface]>([Path to the module])");
             }
@@ -25,7 +25,7 @@ public abstract class Module : ModuleDescriptor
         }
         internal set
         {
-            if (!IsOnLocal)
+            if (!IsLocal)
             {
                 throw new Exception("Module not running in this kernel! Only the kernel that owns this module can run the functions internally. Even if you want to run functions from the module, always use GetInterface<[Module Interface]>([Path to the module])");
             }
@@ -34,11 +34,11 @@ public abstract class Module : ModuleDescriptor
     }
 
     public bool Running { get; set; }
-    public bool IsOnLocal { get; set; }
+    public bool IsLocal { get; set; }
 
 
     public abstract ModuleDescription Description { get; }
-    public ModuleChannel? Channel { get; internal set; }
+    public ModuleChannel? ModuleChannel { get; internal set; }
 }
 
 public class ConfigChannelDescriptor

@@ -6,7 +6,7 @@ public class ChannelManager
     public required List<KernelDescriptor> ConnectedKernels;
     private List<ChannelBase> Channels = new List<ChannelBase>();
 
-    public Guid LocalGuid { get; set; }
+    public Guid ChannelManagedGuid { get; set; }
 
 
 
@@ -19,7 +19,7 @@ public class ChannelManager
 
     public ChannelManager()
     {
-        LocalGuid = Guid.NewGuid();
+        ChannelManagedGuid = Guid.NewGuid();
     }
     public void Stop()
     {
@@ -59,7 +59,7 @@ public class ChannelManager
             DataType = typeof(T).AssemblyQualifiedName,
             HighSpeed = highSpeed,
             IsLocal = true,
-            OwningKernel = LocalGuid,
+            OwningKernel = ChannelManagedGuid,
             IsDataChannel = true,
             Path = Path,
         };
@@ -67,7 +67,7 @@ public class ChannelManager
         {
             HighSpeed = highSpeed,
             IsLocal = true,
-            OwningKernel = LocalGuid,
+            OwningKernel = ChannelManagedGuid,
             Path = Path,
             DataChannel = channel
         };
@@ -88,12 +88,13 @@ public class ChannelManager
         {
             IsLocal = true,
             Path = Path,
-            OwningKernel = LocalGuid,
+            OwningKernel = ChannelManagedGuid,
             IsDataChannel = false,
             LocalTargetFunction = func,
             HighSpeed = highSpeed,
-
         };
+        channel.StartLocalEvents();
+
 
         Channels.Add(channel);
         //NoitifyNewChannelCreateLocally(channel);
@@ -127,7 +128,7 @@ public class ChannelManager
         }
     }
 
-    public DataChannelDescriptor? GetDataChannel(string? Path)
+    public DataChannelDescriptor? GetDataChannelDescriptor(string? Path)
     {
         var channel = Channels.Where(ch => ch.Path == Path && ch.IsDataChannel && ch is DataChannelDescriptor).FirstOrDefault();
         return (DataChannelDescriptor?)channel;
@@ -154,7 +155,7 @@ public class ChannelManager
 
         var packet = new PacketSyncRequest()
         {
-            RemoteGuid = LocalGuid,
+            RemoteGuid = ChannelManagedGuid,
             RemoteChannels = GetLocalChannelDescriptors()
         };
 
@@ -170,7 +171,30 @@ public class ChannelManager
         var descriptors = new List<ChannelDescriptor>();
         foreach (var channel in Channels.Where(ch => ch.IsLocal))
         {
-            descriptors.Add(channel);
+          if (channel.IsDataChannel)
+            {
+                var dataChannel = (DataChannelDescriptor)channel;
+                descriptors.Add(new DataChannelDescriptor()
+                {
+                    IsLocal = false,
+                    Path = dataChannel.Path,
+                    OwningKernel = ChannelManagedGuid,
+                    IsDataChannel = true,
+                    DataType = dataChannel.DataType,
+                    HighSpeed = dataChannel.HighSpeed
+                });
+            }
+            else
+            {
+                descriptors.Add(new ModuleChannelDescriptor()
+                {
+                    IsLocal = false,
+                    Path = channel.Path,
+                    OwningKernel = ChannelManagedGuid,
+                    IsDataChannel = false,
+                    HighSpeed = channel.HighSpeed
+                });
+            }
         }
         return descriptors.ToArray();
     }
@@ -227,7 +251,7 @@ public class ChannelManager
         {
             MsgType = ChannelMessageSyncMessageTypes.AddEventChannel,
             ChannelPath = channelPath,
-            RequestingKernel = LocalGuid
+            RequestingKernel = ChannelManagedGuid
         };
 
         Externals[OwningChannelManager].SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
@@ -238,7 +262,7 @@ public class ChannelManager
         {
             MsgType = ChannelMessageSyncMessageTypes.RemoveEventChannel,
             ChannelPath = channelPath,
-            RequestingKernel = LocalGuid
+            RequestingKernel = ChannelManagedGuid
         };
 
         Externals[OwningChannelManager].SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
@@ -288,7 +312,7 @@ public class ChannelManager
     public List<DataChannelInterface> dataChannelInterfaces = new();
     public DataChannelInterface<T> GetInterfaceForChannel<T>(string Path)
     {
-        var dataChannel = GetDataChannel(Path);
+        var dataChannel = GetDataChannelDescriptor(Path);
         var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
         if (channelInterface == null && !dataChannel!.IsLocal)
         {
@@ -306,7 +330,7 @@ public class ChannelManager
 
     public DataChannelInterface GetInterfaceForChannel(string Path)
     {
-        var dataChannel = GetDataChannel(Path)!;
+        var dataChannel = GetDataChannelDescriptor(Path)!;
         var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
         if (channelInterface == null && !dataChannel.IsLocal)
         {

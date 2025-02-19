@@ -25,7 +25,7 @@ public class ConnectSystem
             }).Start();
             return new PacketConnectAnswer()
             {
-                RemoteKernel = channelManager.LocalGuid
+                RemoteKernel = channelManager.ChannelManagedGuid
             };
         }
         else
@@ -40,7 +40,7 @@ public class ConnectSystem
 
             return new PacketConnectAnswer()
             {
-                RemoteKernel = channelManager.LocalGuid
+                RemoteKernel = channelManager.ChannelManagedGuid
             };
         }
 

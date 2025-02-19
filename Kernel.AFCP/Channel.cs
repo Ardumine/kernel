@@ -1,4 +1,6 @@
+using System.Threading.Channels;
 using Kernel.AFCP.KASerializer.Atributes;
+
 
 namespace Kernel.AFCP;
 public class DataChannelInterface : ChannelBase
@@ -238,7 +240,14 @@ public class DataChannelDescriptor : ChannelBase
 
 }
 
-public class ModuleChannel : ChannelBase
+public class ModuleChannelDescriptor : ChannelBase
+{
+    public ModuleChannelDescriptor() : base()
+    {
+
+    }
+}
+public class ModuleChannel : ModuleChannelDescriptor
 {
     [IgnoreParse]
     public Func<uint, object?[]?, object?>? LocalTargetFunction { get; set; }
@@ -246,15 +255,16 @@ public class ModuleChannel : ChannelBase
     [IgnoreParse]
     private ChannelManager channelManager { get; set; }
 
-    public ModuleChannel(ChannelManager channelManager_)
+    public ModuleChannel(ChannelManager channelManager_) : base()
     {
         channelManager = channelManager_;
-        Init();
-
     }
 
 
-    public void Init()
+    /// <summary>
+    /// Only run this when a module is local.
+    /// </summary>
+    public void StartLocalEvents()
     {
         //Add event on channel run
         channelManager.AddEventFunctionRequest(Path, (s, e) =>
@@ -280,19 +290,17 @@ public class ModuleChannel : ChannelBase
 
 public class ChannelBase : ChannelDescriptor
 {
-    //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
-
 }
 
-public class ChannelDescriptor
+public class ChannelDescriptor()
 {
-    public required bool IsLocal { get; set; }
+    public required bool IsLocal { get; init; }
 
-    public required string Path { get; set; }
+    public required string Path { get; init; }
 
-    public required Guid OwningKernel { get; set; }
+    public required Guid OwningKernel { get; init; }
 
-    public bool IsDataChannel { get; set; }
+    public bool IsDataChannel { get; init; }
 
     public required bool HighSpeed = false;
 }

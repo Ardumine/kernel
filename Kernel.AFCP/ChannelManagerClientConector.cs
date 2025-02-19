@@ -71,7 +71,7 @@ public class ChannelManagerAfcpClientConector
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
             //HostingChannels = LocalChannelManager.GetLocalChannelDescriptors().Where(t => t.IsDataChannel).Select(t => t as DataChannelDescriptor).ToList()!,
-            RemoteKernel = LocalChannelManager.LocalGuid,
+            RemoteKernel = LocalChannelManager.ChannelManagedGuid,
             Disconnect = false
         });
 
@@ -89,7 +89,7 @@ public class ChannelManagerAfcpClientConector
 
     public void RequestDisconect()
     {
-        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.LocalGuid, Disconnect = true });
+        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.ChannelManagedGuid, Disconnect = true });
 
         afcpClient.OnDisconnect(DisconnectReason.RequestedBySelf);
 
@@ -139,7 +139,7 @@ public class ChannelManagerAfcpClientConector
             BasePacketAnswer answer = null!;
 
             //answerWritterFull.WriteByte(msgType);
-            //Console.WriteLine("Requested msgType: " + msgType);
+            //Console.WriteLine("Received msgType Req: " + msgType);
             if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
             {
                 answer = connectSystem.Process(ParsePacketRequest<PacketConnectRequest>(reader));
@@ -220,7 +220,7 @@ public class ChannelManagerAfcpClientConector
 
         var writter = GenerateRequestHeader(RequestID);
 
-        //Console.WriteLine($"Request type send: {RequestType}");
+       // Console.WriteLine($"Request type send: {RequestType}");
         writter.Write(RequestType);
 
         Serializer.Serialize(writter.memoryStream, Payload);
@@ -242,7 +242,7 @@ public class ChannelManagerAfcpClientConector
         var packet = new PacketSyncAnswer()
         {
             RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors(),
-            RemoteGuid = LocalChannelManager.LocalGuid
+            RemoteGuid = LocalChannelManager.ChannelManagedGuid
         };
 
 
@@ -277,7 +277,6 @@ public class ChannelManagerAfcpClientConector
     {
         var answer = new PacketFunctionAnswer();
         string channelPath = data.ChannelPath;
-
         var funcOut = LocalChannelManager.RunLocalFunc(channelPath, data.FuncID, data.Params);
         answer.Out = funcOut;
         return answer;

@@ -42,7 +42,7 @@ internal class Program
         foreach (var moduleConfig in config.StartupModules)
         {
             var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
-            var mod = moduleManager.CreateModuleRunningLocal(modDesc!, moduleConfig.Path);
+            var mod = moduleManager.CreateLocalModuleInstance(modDesc!, moduleConfig.Path);
             mod.StartOnBoot = moduleConfig.StartOnBoot;
             mod.Config = moduleConfig.Config;
 
@@ -56,7 +56,7 @@ internal class Program
             mod.startAfter = moduleConfig.startAfter;
         }
 
-        foreach (var mod in logger.CreateIterator(moduleManager.RunningModules, "Preparing modules..."))
+        foreach (var mod in logger.CreateIterator(moduleManager.LocalModulesInstances, "Preparing modules..."))
         {
             var impl = moduleManager.GetLocalImplement(mod);
             impl.Prepare();
@@ -72,7 +72,7 @@ internal class Program
         logger.Space();
         logger.LogI("Stop");
 
-        foreach (var mod in logger.CreateIterator(moduleManager.RunningModules.Where(m => m.Running), "Stoping modules..."))
+        foreach (var mod in logger.CreateIterator(moduleManager.LocalModulesInstances.Where(m => m.Running), "Stoping modules..."))
         {
             var impl = moduleManager.GetLocalImplement(mod);
             impl.EndStop();
@@ -91,7 +91,7 @@ internal class Program
             implMod.Start();
         }
 
-        foreach (var mod in moduleManager!.RunningModules.Where(m => m.startAfter == path))
+        foreach (var mod in moduleManager!.LocalModulesInstances.Where(m => m.startAfter == path))
         {
             StartersTreeStart(mod.Path);
         }
