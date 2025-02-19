@@ -31,43 +31,42 @@ public class ModuleManager
 
     public DataChannelDescriptor CreateLocalDataChannel<T>(RModule mod, string Path)
     {
-        var channelDesc = ResolvePathForMod(mod, Path);
-        if (channelDesc == null)
+        var realChannelPath = ResolveChannelPathForMod(mod, Path);
+        if (realChannelPath == null)
         {
             throw new Exception("Error: no channel registred with that name: " + Path);
         }
-        return channelManager.CreateLocalDataChannel<T>(channelDesc.Path, channelDesc.HighData);
+        return channelManager.CreateLocalDataChannel<T>(realChannelPath);
     }
 
     public DataChannelDescriptor? GetDataChannel(RModule mod, string Path)
     {
-        var channelDesc = ResolvePathForMod(mod, Path);
-        if (channelDesc == null)
+        var realChannelPath = ResolveChannelPathForMod(mod, Path);
+        if (realChannelPath == null)
         {
-            throw new Exception("Error: no channel registred with that name: " + Path);
+            throw new Exception("Error: no channel registred with the name: " + Path);
         }
-        return channelManager.GetDataChannelDescriptor(channelDesc.Path);
+        return channelManager.GetDataChannel(realChannelPath);
     }
 
     public DataChannelInterface<T> GetInterfaceForChannel<T>(RModule mod, string Path)
     {
-
-        var channelDesc = ResolvePathForMod(mod, Path);
-        if (channelDesc == null)
+        var realChannelPath = ResolveChannelPathForMod(mod, Path);
+        if (realChannelPath == null)
         {
-            throw new Exception("Error: no channel registred with that name: " + Path);
+            throw new Exception("Error: no channel registred with the name: " + Path);
         }
-        return channelManager.GetInterfaceForChannel<T>(channelDesc.Path);
+        return channelManager.GetInterfaceForChannel<T>(realChannelPath);
 
     }
 
 
 
-    private ConfigChannelDescriptor? ResolvePathForMod(RModule mod, string path)
+    private string? ResolveChannelPathForMod(RModule mod, string path)
     {
         if (path[0] == '#')//Is a relative path for the module?
         {
-            return mod.connectedChannels.Where(ch => ch.Name == path)?.FirstOrDefault();
+            return mod.connectedChannels.Where(ch => ch.Name == path)?.FirstOrDefault()?.Path;
         }
         return null;
     }

@@ -8,6 +8,7 @@ public abstract class BaseImplement
     public required Logger Logger { get;  set; }
     public required RModule SelfMod { get;  set;}
 
+    public required IModuleConector moduleConector { get; set; }
    
 
     public abstract void Prepare();

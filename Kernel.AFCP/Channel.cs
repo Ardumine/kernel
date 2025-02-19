@@ -113,7 +113,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            channelManager.SetValueRemote(OwningKernel, Path, Data, HighSpeed);
+            channelManager.SetValueRemote(OwningKernel, Path, Data);
         }
 
         Parallel.For(0, Events.Count, (i) =>
@@ -126,7 +126,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            return channelManager.GetValueRemote<T>(OwningKernel, Path, HighSpeed);
+            return channelManager.GetValueRemote<T>(OwningKernel, Path);
         }
         //DONT REMOVE THIS. IF YOU GET HIS THEN YOU ARE DOING SOMETHING WRONG
         throw new NotImplementedException();
@@ -242,8 +242,7 @@ public class DataChannelDescriptor : ChannelBase
 
 public class ModuleChannelDescriptor : ChannelBase
 {
-    public ModuleChannelDescriptor() : base()
-    {
+    public ModuleChannelDescriptor() : base(){
 
     }
 }
@@ -290,17 +289,18 @@ public class ModuleChannel : ModuleChannelDescriptor
 
 public class ChannelBase : ChannelDescriptor
 {
+    //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
+    public  ChannelBase() : base() { }
 }
 
 public class ChannelDescriptor()
 {
-    public required bool IsLocal { get; init; }
+    public required bool IsLocal { get; set; }
 
-    public required string Path { get; init; }
+    public required string Path { get; set; }
 
-    public required Guid OwningKernel { get; init; }
+    public required Guid OwningKernel { get; set; }
 
-    public bool IsDataChannel { get; init; }
+    public bool IsDataChannel { get; set; }
 
-    public required bool HighSpeed = false;
 }

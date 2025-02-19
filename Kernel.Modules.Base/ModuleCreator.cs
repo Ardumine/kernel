@@ -36,7 +36,7 @@ public class ModuleActivator
         channelManager.CreateLocalModuleChannel(mod.Path, (fID, Params) =>
         {
             return RunFuncLocal(mod.Path, fID, Params);
-        }, true);
+        });
 
 
         return channelManager.GetModuleChannel(mod.Path);
@@ -86,10 +86,13 @@ public class ModuleActivator
         impl.ModuleManager = moduleManager;
         impl.SelfMod = mod;
 
+        impl.moduleConector = ModuleConectorHelper.GetModuleConector(moduleManager, mod);
         impl.Logger = new Logging.Logger($"{mod.Path}");
 
         mod.Implement = impl;
     }
+
+    
 
 
     private object? RunFuncLocal(string Path, uint FuncID, object?[]? Params)
