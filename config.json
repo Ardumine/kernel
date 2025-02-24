@@ -10,12 +10,19 @@
             "ModuleName": "Module1",
             "Path": "/modules/mod1",
             "StartOnBoot": true,
-            "startAfter": "kernel"
+            "startAfter": "kernel",
+            "hostingChannels": [
+                {
+                    "Path": "/test",
+                    "Name": "#test",
+                    "HighData": true
+                }
+            ]
         },
         {
             "ModuleName": "Module2",
             "Path": "/modules/mod2",
-            "StartOnBoot": false,
+            "StartOnBoot": true,
             "startAfter": "/modules/mod1"
         },
         {

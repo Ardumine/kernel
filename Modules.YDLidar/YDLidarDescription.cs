@@ -2,7 +2,7 @@ using Kernel.Modules.Base;
 
 namespace Ardumine.Modules.YDLidar;
 
-public class YDLidarDescription : ModuleDescription
+public class YDLidarDescription : IModuleLoadDescription
 {
     public string Name => "YDLidar";
 
@@ -11,7 +11,5 @@ public class YDLidarDescription : ModuleDescription
     public string Version => "0.1.0";
 
     public Type ImplementType => typeof(YDLidarImplement);
-    public Type BaseType => typeof(YDLidar);
-
     public Type InterfaceType => typeof(IYDLidar);
 }

@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Kernel.Modules.Base\Kernel.Modules.Base.csproj" />
     <ProjectReference Include="..\Modules.YDLidar\Modules.YDLidar.csproj" />
     <ProjectReference Include="..\Module1\Module1.csproj" />
+    <ProjectReference Include="..\Kernel\Kernel.csproj" />
 
   </ItemGroup>
 

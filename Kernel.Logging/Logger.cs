@@ -87,9 +87,9 @@ public class Logger
     }
     public void ClearCurrentConsoleLine()
     {
-        Console.CursorLeft = 0;
-        Console.Write(new string(' ', Console.WindowWidth));
-        Console.CursorLeft = 0;
+        //Console.CursorLeft = 0;
+        //Console.Write(new string(' ', Console.WindowWidth));
+        //Console.CursorLeft = 0;
     }
 
 

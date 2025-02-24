@@ -1,6 +1,7 @@
 using Kernel.AFCP;
+using Kernel.Modules.Base;
 
-namespace Kernel.Modules.Base;
+namespace Kernel.Modules;
 
 public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, IModuleInterface
 {

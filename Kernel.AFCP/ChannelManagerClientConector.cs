@@ -9,8 +9,10 @@ namespace Kernel.AFCP;
 public class ChannelManagerAfcpClientConector
 {
 
-    public ChannelManager LocalChannelManager { get; set; }
+    public ChannelManager LocalChannelManager { get; init; }
     public KernelDescriptor? RemoteKernel { get; set; }
+    public KernelDescriptor LocalKernel { get; init; }
+
 
     private AfcpClient afcpClient;
 
@@ -21,7 +23,7 @@ public class ChannelManagerAfcpClientConector
     private Serializer Serializer;
 
     //Are we a server?
-    public ChannelManagerAfcpClientConector(AfcpClient client, ChannelManager _localChannelManager)
+    public ChannelManagerAfcpClientConector(AfcpClient client, ChannelManager _localChannelManager, KernelDescriptor _LocalKernel)
     {
         afcpClient = client;
         LocalChannelManager = _localChannelManager;
@@ -32,13 +34,20 @@ public class ChannelManagerAfcpClientConector
         afcpClient.OnDataRec += OnDataRec;
         afcpClient.OnClientDisconnect += OnDisconnect;
 
+        LocalKernel = _LocalKernel;
+
 
         channelManagementSystem = new(LocalChannelManager);
-        connectSystem = new(LocalChannelManager, this);
+        connectSystem = new()
+        {
+            channelManager = LocalChannelManager,
+            channelManagerClient = this,
+            LocalKernel = LocalKernel
+        };
     }
 
     //Are we a client?
-    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager)
+    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, KernelDescriptor _LocalKernel)
     {
         LocalChannelManager = _localChannelManager;
         Serializer = new();
@@ -49,11 +58,17 @@ public class ChannelManagerAfcpClientConector
         afcpClient.OnDataRec += OnDataRec;
         afcpClient.OnClientDisconnect += OnDisconnect;
 
+        LocalKernel = _LocalKernel;
 
         channelManagementSystem = new(LocalChannelManager);
-        connectSystem = new(LocalChannelManager, this);
+        connectSystem = new()
+        {
+            channelManager = LocalChannelManager,
+            channelManagerClient = this,
+            LocalKernel = LocalKernel
+        };
 
-        //Thread.Sleep(100);
+        //Thread.Sleep(10);
         OnClientConnect();//Only when we connect as a client
     }
 
@@ -71,13 +86,13 @@ public class ChannelManagerAfcpClientConector
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
             //HostingChannels = LocalChannelManager.GetLocalChannelDescriptors().Where(t => t.IsDataChannel).Select(t => t as DataChannelDescriptor).ToList()!,
-            RemoteKernel = LocalChannelManager.ChannelManagedGuid,
+            RemoteKernel = LocalKernel.Guid,
             Disconnect = false
         });
 
         var remoteKernel = new KernelDescriptor()
         {
-            KernelGuid = connectResponse.RemoteKernel,
+            Guid = connectResponse.RemoteKernel,
             //HostingChannels = connectResponse.HostingChannels,
             //HostingModules = connectResponse.HostingModules,
             ConnectedVia = this
@@ -89,7 +104,11 @@ public class ChannelManagerAfcpClientConector
 
     public void RequestDisconect()
     {
-        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest() { RemoteKernel = LocalChannelManager.ChannelManagedGuid, Disconnect = true });
+        var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
+        {
+            RemoteKernel = LocalKernel.Guid,
+            Disconnect = true
+        });
 
         afcpClient.OnDisconnect(DisconnectReason.RequestedBySelf);
 
@@ -220,7 +239,7 @@ public class ChannelManagerAfcpClientConector
 
         var writter = GenerateRequestHeader(RequestID);
 
-       // Console.WriteLine($"Request type send: {RequestType}");
+        // Console.WriteLine($"Request type send: {RequestType}");
         writter.Write(RequestType);
 
         Serializer.Serialize(writter.memoryStream, Payload);
@@ -242,7 +261,7 @@ public class ChannelManagerAfcpClientConector
         var packet = new PacketSyncAnswer()
         {
             RemoteChannels = LocalChannelManager.GetLocalChannelDescriptors(),
-            RemoteGuid = LocalChannelManager.ChannelManagedGuid
+            RemoteGuid = LocalKernel.Guid
         };
 
 

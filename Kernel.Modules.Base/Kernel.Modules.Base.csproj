@@ -11,10 +11,9 @@
       <Private>false</Private>
     </ProjectReference>
 
-    <ProjectReference Include="..\Kernel.AFCP\Kernel.AFCP.csproj">
+    <ProjectReference Include="..\Kernel.Shared\Kernel.Shared.csproj">
       <Private>false</Private>
     </ProjectReference>
-
 
   </ItemGroup>
 

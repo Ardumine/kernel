@@ -1,27 +1,28 @@
-
-using Kernel.AFCP;
+using Kernel.Modules.Base;
 using YDLidarSDK;
 
 namespace Ardumine.Modules.YDLidar;
-public class YDLidarImplement : Kernel.Modules.Base.BaseImplement, IYDLidar
+public class YDLidarImplement : BaseImplement, IYDLidar
 {
     public CYdLidar lidarClass = new CYdLidar();
     private bool Run { get; set; }
 
-    private DataChannelInterface<LidarPoint[]>? ChannelLidarData;
+    private IDataChannelInterface<LidarPoint[]>? LidarDataChannel;
 
     public override void Prepare()
     {
         InitiateChannel<LidarPoint[]>("#lidarData");
-        ChannelLidarData = GetChannelInterface<LidarPoint[]>("#lidarData");
+        LidarDataChannel = GetChannelInterface<LidarPoint[]>("#lidarData");
     }
 
     public override void Start()
     {
-        var config = SelfMod.Config!;
+        //var config = SelfMod.Config!;
         Logger.LogI("Starting lidar...");
 
-        ConnectLidar(((System.Text.Json.JsonElement)config["Port"]).ToString());
+        //ConnectLidar(((System.Text.Json.JsonElement)config["Port"]).ToString());
+        ConnectLidar(GetConfigValue<string>("Port")!);
+        
         Run = true;
         
         var thread = new Thread(Loop){
@@ -158,7 +159,7 @@ public class YDLidarImplement : Kernel.Modules.Base.BaseImplement, IYDLidar
             }
 
         }
-        ChannelLidarData?.Set(points.ToArray());
+        LidarDataChannel?.Set(points.ToArray());
     }
 
 

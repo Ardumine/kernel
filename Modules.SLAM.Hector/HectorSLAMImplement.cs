@@ -1,16 +1,16 @@
 
 using System.Numerics;
-using Kernel.AFCP;
 using Ardumine.Modules.YDLidar;
 using BaseSLAM;
 using HectorSLAM.Main;
+using Kernel.Modules.Base;
 
 namespace Ardumine.Modules.SLAM.Hector;
-public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLAM
+public class HectorSLAMImplement : BaseImplement, IHectorSLAM
 {
-    DataChannelInterface<Vector3>? posChannel;
-    DataChannelInterface<byte[]>? mapChannel;
-    DataChannelInterface<LidarPoint[]>? lidarDataChannel;
+    private IDataChannelInterface<Vector3>? posChannel;
+    private IDataChannelInterface<byte[]>? mapChannel;
+    private IDataChannelInterface<LidarPoint[]>? lidarDataChannel;
 
     HectorSLAMProcessor? hectorSlam;
     int tam = 1000;//90 //Medido em cm. 1m = 100cm 1dm = 100mm
@@ -44,23 +44,26 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
 
 
     }
-    public bool Running { get; set; }
+    public bool ThreadsRunning { get; set; }
     private DateTime TimeSinceLastUpdate { get; set; }
 
     public override void Start()
     {
-        Running = true;
-        lidarDataChannel?.AddEvent(OnLidarData!);
+        ThreadsRunning = true;
+        lidarDataChannel?.AddChangeEvent(OnLidarData!);
 
         var thFake = new Thread(() =>
-         {
-             while (Running)
-             {
+        {
+            while (ThreadsRunning)
+            {
                 Logger.LogI("Data!");
-                 posChannel?.Set(new Vector3(2, 5, 90));
-                 Thread.Sleep(1000);
-             }
-         });
+                posChannel?.Set(new Vector3(2, 5, 90));
+                Thread.Sleep(1000);
+            }
+        })
+        {
+            Name = "Thread HectorSLAM fake pos"
+        };
         thFake.Start();
 
     }
@@ -110,11 +113,10 @@ public class HectorSLAMImplement : Kernel.Modules.Base.BaseImplement, IHectorSLA
     }
     public override void EndStop()
     {
-        Running = false;
+        ThreadsRunning = false;
 
-        lidarDataChannel?.RemoveEvent(OnLidarData!);
+        lidarDataChannel?.RemoveChangeEvent(OnLidarData!);
         hectorSlam?.Dispose();
-
     }
 
 }

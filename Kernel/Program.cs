@@ -6,22 +6,37 @@ using Kernel.Modules.Base;
 namespace Kernel;
 internal class Program
 {
-    static List<ModuleDescription> AvailableModules = new();
+    static List<IModuleLoadDescription> AvailableModules = new();
     static List<KernelDescriptor> ConnectedKernels = new();
-    static ModuleManager? moduleManager { get; set; }
     private static void Main(string[] args)
     {
+        Thread.CurrentThread.Name = "Main Thread";
         var logger = new Logger("kernel");
 
-        //We create our channel manager. 
-        var channelManager = new ChannelManager() { ConnectedKernels = ConnectedKernels };
+        var localKernelDescriptor = new KernelDescriptor()
+        {
+            Guid = Guid.NewGuid()
+        };
 
+
+        //Create the channel manager.
+        var channelManager = new ChannelManager()
+        {
+            ConnectedKernels = ConnectedKernels,
+            LocalKernel = localKernelDescriptor
+        };
+
+
+        //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager);
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager)
+        {
+            LocalKernel = localKernelDescriptor
+        };
 
 
-        moduleManager = new ModuleManager(channelManager);
+        var moduleManager = new ModuleManager(channelManager, localKernelDescriptor);
         var moduleLoader = new ModuleLoader();
 
 
@@ -42,28 +57,16 @@ internal class Program
         foreach (var moduleConfig in config.StartupModules)
         {
             var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
-            var mod = moduleManager.CreateLocalModuleInstance(modDesc!, moduleConfig.Path);
-            mod.StartOnBoot = moduleConfig.StartOnBoot;
-            mod.Config = moduleConfig.Config;
-
-            mod.connectedChannels =
-            [
-                .. moduleConfig.connectedChannels == null ? new() :  moduleConfig.connectedChannels,
-                .. moduleConfig.hostingChannels == null ? new() :  moduleConfig.hostingChannels,
-            ];
-            mod.hostingChannels = moduleConfig.hostingChannels;
-
-            mod.startAfter = moduleConfig.startAfter;
+            var mod = moduleManager.CreateLocalModuleInstance(modDesc!, moduleConfig.Path, moduleConfig);
         }
 
-        foreach (var mod in logger.CreateIterator(moduleManager.LocalModulesInstances, "Preparing modules..."))
+        foreach (var mod in logger.CreateIterator(moduleManager.LocalRModules, "Preparing modules..."))
         {
             var impl = moduleManager.GetLocalImplement(mod);
-            impl.Prepare();
+            impl?.Prepare();
         }
 
-        string startingTrigger = "kernel";
-        StartersTreeStart(startingTrigger);
+        moduleManager.StartModulesViaTree();
 
         logger.LogOK("Kernel started!");
         Console.ReadLine();//Wait for stop signal
@@ -72,30 +75,9 @@ internal class Program
         logger.Space();
         logger.LogI("Stop");
 
-        foreach (var mod in logger.CreateIterator(moduleManager.LocalModulesInstances.Where(m => m.Running), "Stoping modules..."))
-        {
-            var impl = moduleManager.GetLocalImplement(mod);
-            impl.EndStop();
-            mod.Running = false;
-        }
-
+        moduleManager.StopModulesViaTree();
         AFCPServer.Stop();
-    }
-    static void StartersTreeStart(string path)
-    {
-        if (path != "kernel")
-        {
-            var implMod = moduleManager?.GetLocalImplement(path)!;
-            var mod = moduleManager?.GetModule(path)!;
-            mod.Running = true;
-            implMod.Start();
-        }
-
-        foreach (var mod in moduleManager!.LocalModulesInstances.Where(m => m.startAfter == path))
-        {
-            StartersTreeStart(mod.Path);
-        }
-
+        logger.LogI("Done");
     }
 
 }
