@@ -1,7 +1,4 @@
 using System.Text.Json;
-using Kernel.AFCP;
-using Kernel.Modules.Base;
-
 public class ConfigParser
 {
     public static ConfigFile.Config Load(string FileName)
@@ -27,21 +24,27 @@ namespace ConfigFile
     {
         public required string[] ModulesDlls { get; set; }
 
-        public required StartupModule[] StartupModules { get; set; }
+        public required StartupModuleConfig[] StartupModules { get; set; }
     }
 
-    public partial class StartupModule
+    public partial class StartupModuleConfig
     {
         public required string ModuleName { get; set; }
 
         public required string Path { get; set; }
         public bool StartOnBoot { get; set; }
         public string? startAfter { get; set; }
-        public List<ConfigChannelDescriptor>? hostingChannels { get; set; }
-        public List<ConfigChannelDescriptor>? connectedChannels { get; set; }
+        public List<ConfigChannelDescriptor> hostingChannels { get; set; } = new();
+        public List<ConfigChannelDescriptor> connectedChannels { get; set; } = new();
 
         public Dictionary<string, object>? Config { get; set; }
 
     }
 
+}
+public class ConfigChannelDescriptor
+{
+    public required string Path { get; set; }
+    public required string Name { get; set; }
+    public bool HighData { get; set; }
 }

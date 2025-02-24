@@ -1,4 +1,6 @@
+using System.Threading.Channels;
 using Kernel.AFCP.KASerializer.Atributes;
+
 
 namespace Kernel.AFCP;
 public class DataChannelInterface : ChannelBase
@@ -111,7 +113,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            channelManager.SetValueRemote(OwningKernel, Path, Data, HighSpeed);
+            channelManager.SetValueRemote(OwningKernel, Path, Data);
         }
 
         Parallel.For(0, Events.Count, (i) =>
@@ -124,7 +126,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            return channelManager.GetValueRemote<T>(OwningKernel, Path, HighSpeed);
+            return channelManager.GetValueRemote<T>(OwningKernel, Path);
         }
         //DONT REMOVE THIS. IF YOU GET HIS THEN YOU ARE DOING SOMETHING WRONG
         throw new NotImplementedException();
@@ -238,7 +240,13 @@ public class DataChannelDescriptor : ChannelBase
 
 }
 
-public class ModuleChannel : ChannelBase
+public class ModuleChannelDescriptor : ChannelBase
+{
+    public ModuleChannelDescriptor() : base(){
+
+    }
+}
+public class ModuleChannel : ModuleChannelDescriptor
 {
     [IgnoreParse]
     public Func<uint, object?[]?, object?>? LocalTargetFunction { get; set; }
@@ -246,15 +254,16 @@ public class ModuleChannel : ChannelBase
     [IgnoreParse]
     private ChannelManager channelManager { get; set; }
 
-    public ModuleChannel(ChannelManager channelManager_)
+    public ModuleChannel(ChannelManager channelManager_) : base()
     {
         channelManager = channelManager_;
-        Init();
-
     }
 
 
-    public void Init()
+    /// <summary>
+    /// Only run this when a module is local.
+    /// </summary>
+    public void StartLocalEvents()
     {
         //Add event on channel run
         channelManager.AddEventFunctionRequest(Path, (s, e) =>
@@ -281,10 +290,10 @@ public class ModuleChannel : ChannelBase
 public class ChannelBase : ChannelDescriptor
 {
     //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
-
+    public  ChannelBase() : base() { }
 }
 
-public class ChannelDescriptor
+public class ChannelDescriptor()
 {
     public required bool IsLocal { get; set; }
 
@@ -294,5 +303,4 @@ public class ChannelDescriptor
 
     public bool IsDataChannel { get; set; }
 
-    public required bool HighSpeed = false;
 }

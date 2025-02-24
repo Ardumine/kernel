@@ -1,11 +1,11 @@
 using System.Net.Sockets;
-using Kernel.AFCP;
 namespace Kernel.AFCP;
 
 public class ChannelManagerAFCPServerConector
 {
     public AfcpServer AFCPServer { get; private set; }
-    public ChannelManager ChannelManager { get; set; }
+    public ChannelManager ChannelManager { get; private set; }
+    public required KernelDescriptor LocalKernel { get; init; }
 
 
     public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager)
@@ -23,6 +23,6 @@ public class ChannelManagerAFCPServerConector
     {
         Console.WriteLine("Client connected!");
         var afcpClient = new AfcpClient(tcpClient, "Server", 0);
-        var client = new ChannelManagerAfcpClientConector(afcpClient,   ChannelManager);
+        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel);
     }
 }

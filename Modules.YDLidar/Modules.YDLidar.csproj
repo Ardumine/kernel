@@ -14,10 +14,6 @@
     <ProjectReference Include="..\Kernel.Logging\Kernel.Logging.csproj">
       <Private>false</Private>
     </ProjectReference>
-
-<ProjectReference Include="..\Kernel.AFCP\Kernel.AFCP.csproj">
-      <Private>false</Private>
-    </ProjectReference>
     
   </ItemGroup>
 </Project>

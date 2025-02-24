@@ -1,31 +1,27 @@
-using Kernel.AFCP;
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP.Systems;
 public class ConnectSystem
 {
-    ChannelManager channelManager;
-    ChannelManagerAfcpClientConector channelManagerClient;
+    public required ChannelManager channelManager { get; init; }
+    public required ChannelManagerAfcpClientConector channelManagerClient { get; set; }
+    public required KernelDescriptor LocalKernel { get; init; }
 
-    public ConnectSystem(ChannelManager _channelManager, ChannelManagerAfcpClientConector _channelManagerClient)
-    {
-        channelManager = _channelManager;
-        channelManagerClient = _channelManagerClient;
-    }
+
     public BasePacketAnswer Process(PacketConnectRequest a)
     {
-        
+
         if (a.Disconnect)
         {
-            new Thread(() =>
-            {
-                Thread.Sleep(100);//Let have some time to deliver
+           // new Thread(() =>
+           // {
+            //    Thread.Sleep(100);//Let have some time to deliver
                 channelManagerClient.OnRemoteDisconnect(a.RemoteKernel);
 
-            }).Start();
+            //}).Start();
             return new PacketConnectAnswer()
             {
-                RemoteKernel = channelManager.LocalGuid
+                RemoteKernel = LocalKernel.Guid
             };
         }
         else
@@ -33,14 +29,14 @@ public class ConnectSystem
 
             channelManager.ConnectedKernels.Add(new KernelDescriptor()
             {
-                KernelGuid = a.RemoteKernel,
+                Guid = a.RemoteKernel,
                 ConnectedVia = channelManagerClient,
-                
+
             });
 
             return new PacketConnectAnswer()
             {
-                RemoteKernel = channelManager.LocalGuid
+                RemoteKernel = LocalKernel.Guid
             };
         }
 

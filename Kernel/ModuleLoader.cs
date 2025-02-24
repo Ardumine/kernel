@@ -6,7 +6,7 @@ namespace Kernel;
 public class ModuleLoader
 {
     private List<Assembly> ModulesAssemblies = new List<Assembly>();
-    public List<ModuleDescription> LoadModules(string[] pluginPaths)
+    public List<IModuleLoadDescription> LoadModules(string[] pluginPaths)
     {
         return pluginPaths.SelectMany(pluginPath =>
         {
@@ -27,15 +27,15 @@ public class ModuleLoader
         return Assembly.LoadFile(pluginLocation);
     }
 
-    private IEnumerable<ModuleDescription> GetModulesOfAssembly(Assembly assembly)
+    private IEnumerable<IModuleLoadDescription> GetModulesOfAssembly(Assembly assembly)
     {
         var types = assembly.GetTypes();
 
         foreach (var type in types)
         {
-            if (typeof(ModuleDescription).IsAssignableFrom(type))
+            if (typeof(IModuleLoadDescription).IsAssignableFrom(type))
             {
-                ModuleDescription? result = Activator.CreateInstance(type) as ModuleDescription;
+                IModuleLoadDescription? result = Activator.CreateInstance(type) as IModuleLoadDescription;
                 if (result != null)
                 {
                     yield return result;

@@ -3,6 +3,7 @@ using Ardumine.Modules.Module1;
 using Kernel.AFCP;
 using Kernel.Modules;
 
+
 internal class Program
 {
     private static void Main(string[] args)
@@ -13,31 +14,31 @@ internal class Program
 
         var channelManager = new ChannelManager() { ConnectedKernels = ConnectedKernels };
 
-        var moduleManager = new ModuleManager(channelManager);
+        var moduleManager = new ModuleManager(channelManager, KernelDescriptor.CreateLocalKernelDescriptor());
 
         channelManager.Join("127.0.0.1", 8000);
         Console.WriteLine("Connected!");
 
 
-        //var lidarDataChannel = channelManager.GetDataChannel("/slamPos");
-        var interfPos = channelManager.GetInterfaceForChannel<Vector3>("/slamPos");
-        var interfMap = channelManager.GetInterfaceForChannel<byte[]>("/SLAMmap");
+        var interfPos = channelManager.GetDataChannelInterface<Vector3>("/slamPos");
+        var interfMap = channelManager.GetDataChannelInterface<byte[]>("/SLAMmap");
 
-       // var interfLidar = channelManager.GetInterfaceForChannel<byte[]>("/lidarData");
-        interfPos?.AddEvent((aa) =>
+        interfPos?.AddEvent((pos) =>
         {
-            Console.WriteLine("Pos data rec!!" + aa);
+            Console.WriteLine("Pos data rec!!" + pos);
         });
         interfMap?.AddEvent((aa) =>
         {
             Console.WriteLine("Map data rec!!");
         });
-       
- 
+
+
         Console.WriteLine("Get: " + interfPos?.Get());
+        Console.WriteLine("Execing cool func...");
+
+        var interfaceMod1 = moduleManager.GetModuleInterface<IModule1>("/modules/mod1");
+        interfaceMod1.CoolFunc();
         Console.WriteLine("Done!!!");
-        //        var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
-        //interfaceMod1.CoolFunc();
 
         Thread.Sleep(50000);
 

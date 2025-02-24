@@ -1,33 +1,39 @@
-using Kernel.AFCP;
+using System.Text.Json;
 using Kernel.Logging;
 namespace Kernel.Modules.Base;
 
-public abstract class BaseImplement : IModuleInterface
+public abstract class BaseImplement
 {
-    public required ModuleManager moduleManager { get; set; }
-
-    public required string Path { get; set; }
-    public Guid Guid { get; set; }
     public required Logger Logger { get; set; }
-    public required Module SelfMod { get; set; }
+    public required IMKConector MKConector { get; set; }
+    public required IModuleConfigManager ConfigManager { get; set; }
+
 
     public abstract void Prepare();
     public abstract void Start();
-
     public abstract void EndStop();
 
-    public DataChannelDescriptor? GetDataChannel(string Path)
+    public IExistingDataChannelDescriptor? GetDataChannel(string Path)
     {
-        return moduleManager.GetDataChannel(SelfMod, Path);
+        return MKConector.GetDataChannel(Path);
     }
-    public DataChannelDescriptor InitiateChannel<T>(string Path)
+    public IExistingDataChannelDescriptor? InitiateChannel<T>(string Path)
     {
-        return moduleManager.CreateLocalDataChannel<T>(SelfMod, Path);
+        return MKConector.InitiateChannel<T>(Path);
     }
-    public DataChannelInterface<T> GetChannelInterface<T>(string Path)
+    public IDataChannelInterface<T>? GetChannelInterface<T>(string Path)
     {
-        return moduleManager.GetInterfaceForChannel<T>(SelfMod, Path);
+        return MKConector.GetChannelInterface<T>(Path);
+    }
+    public T GetModuleInterface<T>(string Path) where T : class, IModuleInterface
+    {
+        return MKConector.GetModuleInterface<T>(Path);
     }
 
+    public T? GetConfigValue<T>(string name){
+        var val = ConfigManager.GetConfigValue<T>(name);//
+        
+        return val;
+    }
 
 }

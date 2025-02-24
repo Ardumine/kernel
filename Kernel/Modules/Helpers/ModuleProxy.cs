@@ -1,6 +1,7 @@
 using Kernel.AFCP;
+using Kernel.Modules.Base;
 
-namespace Kernel.Modules.Base;
+namespace Kernel.Modules;
 
 public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, IModuleInterface
 {
@@ -48,7 +49,6 @@ public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, I
     public static T CreateProxy<T>(ModuleChannel moduleChannel) where T : class, IModuleInterface
     {
         ModuleProxy<T> proxy = (Create<T, ModuleProxy<T>>() as ModuleProxy<T>)!;
-        var type = typeof(T);
         proxy.CacheMethods = proxy.CreateCache(typeof(T));
         proxy.channel = moduleChannel;
         return (proxy as T)!;

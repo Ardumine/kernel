@@ -15,7 +15,7 @@
     </ProjectReference>
 
 
-<ProjectReference Include="..\Module1\Module1.csproj">
+    <ProjectReference Include="..\Module1\Module1.csproj">
       <Private>false</Private>
     </ProjectReference>
   </ItemGroup>

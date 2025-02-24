@@ -9,34 +9,34 @@
         {
             "ModuleName": "Module1",
             "Path": "/modules/mod1",
-            
             "StartOnBoot": true,
-            "startAfter" : "kernel"
-
+            "startAfter": "kernel",
+            "hostingChannels": [
+                {
+                    "Path": "/test",
+                    "Name": "#test",
+                    "HighData": true
+                }
+            ]
         },
         {
             "ModuleName": "Module2",
             "Path": "/modules/mod2",
-
-            "StartOnBoot": false,
-            "startAfter" : "/modules/mod1"
-
+            "StartOnBoot": true,
+            "startAfter": "/modules/mod1"
         },
         {
             "ModuleName": "YDLidar",
             "Path": "/modules/YDLidar",
-            
             "StartOnBoot": true,
-            "startAfter" : "kernel",
-
+            "startAfter": "kernel",
             "hostingChannels": [
                 {
                     "Path": "/lidarData",
                     "Name": "#lidarData",
-                    "HighData" : true
+                    "HighData": true
                 }
             ],
-
             "Config": {
                 "Port": "COM14"
             }
@@ -45,35 +45,30 @@
             "ModuleName": "HectorSLAM",
             "Path": "/modules/HectorSLAM",
             "StartOnBoot": true,
-            "startAfter" : "/modules/YDLidar",
-
+            "startAfter": "/modules/YDLidar",
             "hostingChannels": [
                 {
                     "Path": "/slamPos",
                     "Name": "#slamPos",
-                    "HighData" : true
-
+                    "HighData": true
                 },
                 {
                     "Path": "/SLAMmap",
                     "Name": "#SLAMmap",
-                    "HighData" : true
+                    "HighData": true
                 }
-
             ],
             "connectedChannels": [
                 {
                     "Path": "/lidarData",
                     "Name": "#lidarData",
-                    "HighData" : true
-
+                    "HighData": true
                 }
             ],
             "Config": {
                 "Port": "COM14"
             }
         }
-     
     ],
     "RCS": {
         "symlinks": [

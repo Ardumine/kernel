@@ -26,10 +26,6 @@ with open(csprojPath, "+w") as fich:
       <Private>false</Private>
     </ProjectReference>
     
-    <ProjectReference Include="..\Kernel.AFCP\Kernel.AFCP.csproj">
-      <Private>false</Private>
-    </ProjectReference>
-
 
   </ItemGroup>
 </Project>""")
@@ -45,16 +41,16 @@ public interface I{modName} : IModuleInterface
 {'}'}
 """) 
     
-with open(os.path.join(pathMod, f"{modName}.cs"), "+w") as fich:
-    fich.write(f"""using Kernel.Modules.Base;
-
-namespace {fullModName};
-
-class {modName} : Module
-{'{'}
-    public override ModuleDescription Description => new {modName}Description();
-{'}'}
-""") 
+#with open(os.path.join(pathMod, f"{modName}.cs"), "+w") as fich:
+#    fich.write(f"""using Kernel.Modules.Base;
+#
+#namespace {fullModName};
+#
+#class {modName} : Module
+#{'{'}
+#    public override ModuleDescription Description => new {modName}Description();
+#{'}'}
+#""") 
     
     
     

@@ -1,0 +1,162 @@
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.InteropServices;
+using Kernel.AFCP;
+using Kernel.Modules.Base;
+
+namespace Kernel.Modules;
+
+public class MKConectorCreator
+{
+
+    //https://stackoverflow.com/questions/4989681/place-an-object-on-top-of-stack-in-ilgenerator
+    public static void Emit_LdInst<T>(ILGenerator il, T inst) where T : class
+    {
+        var gch = GCHandle.Alloc(inst);
+
+        var ptr = GCHandle.ToIntPtr(gch);
+
+        if (IntPtr.Size == 4)
+            il.Emit(OpCodes.Ldc_I4, ptr.ToInt32());
+        else
+            il.Emit(OpCodes.Ldc_I8, ptr.ToInt64());
+
+        il.Emit(OpCodes.Ldobj, typeof(T));
+
+        // Do the following only if you can elsewhere ensure that 'inst'
+        // outlives this DynamicMethod
+        // gch.Free();
+    }
+
+
+    public static IMKConector GetModuleConector(ModuleManager moduleManager, string Path)
+    {
+
+        AssemblyName assemblyName = new AssemblyName("DynamicAssembly");
+        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicModule");
+
+        // Define the type that implements the interface
+        TypeBuilder typeBuilder = moduleBuilder.DefineType("DerivedClass", TypeAttributes.Public);
+        typeBuilder.AddInterfaceImplementation(typeof(IMKConector)); // Implement the interface
+
+        //GetDataChannel
+        {
+            MethodBuilder methodBuilder = typeBuilder.DefineMethod(
+                "GetDataChannel",
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                CallingConventions.HasThis);
+
+            methodBuilder.SetReturnType(typeof(DataChannelDescriptor));
+            methodBuilder.SetParameters([typeof(string)]);
+
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+
+            MethodInfo getDataChannelDescriptor = typeof(ModuleManager).GetMethod("GetDataChannelDescriptorForModule")!;
+
+            Emit_LdInst(il, moduleManager);
+            Emit_LdInst(il, targetRModule);
+            il.Emit(OpCodes.Ldarg_1);
+
+            il.Emit(OpCodes.Call, getDataChannelDescriptor);
+            il.Emit(OpCodes.Ret);
+
+            typeBuilder.DefineMethodOverride(methodBuilder, typeof(IMKConector).GetMethod("GetDataChannel")!);
+        }
+
+        //CreateLocalDataChannel
+        {
+            MethodBuilder methodBuilder = typeBuilder.DefineMethod(
+                "InitiateChannel",
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                CallingConventions.HasThis);
+
+
+            GenericTypeParameterBuilder[] genericParams = methodBuilder.DefineGenericParameters("T");
+            methodBuilder.SetReturnType(typeof(DataChannelDescriptor));
+            methodBuilder.SetParameters([typeof(string)]);
+
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+
+            MethodInfo createLocalDataChannel = typeof(ModuleManager).GetMethod("CreateLocalDataChannel")!;
+            MethodInfo createLocalDataChannelGeneric = createLocalDataChannel.MakeGenericMethod(genericParams[0]);
+
+            Emit_LdInst(il, moduleManager);
+            Emit_LdInst(il, targetRModule);
+            il.Emit(OpCodes.Ldarg_1);
+
+            il.Emit(OpCodes.Call, createLocalDataChannelGeneric);
+            il.Emit(OpCodes.Ret);
+
+            typeBuilder.DefineMethodOverride(methodBuilder, typeof(IMKConector).GetMethod("InitiateChannel")!);
+        }
+
+        //GetChannelInterface
+        {
+            MethodBuilder methodBuilder = typeBuilder.DefineMethod(
+                "GetChannelInterface",
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                CallingConventions.HasThis);
+
+
+            GenericTypeParameterBuilder[] genericParams = methodBuilder.DefineGenericParameters("T");
+            methodBuilder.SetReturnType(typeof(DataChannelInterface<>).MakeGenericType(genericParams[0]));
+
+            methodBuilder.SetParameters([typeof(string)]);
+
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+
+            MethodInfo getChannelInterface = typeof(ModuleManager).GetMethod("GetChannelInterface")!;
+            MethodInfo getChannelInterfaceGeneric = getChannelInterface.MakeGenericMethod(genericParams[0]);
+
+            Emit_LdInst(il, moduleManager);
+            Emit_LdInst(il, targetRModule);
+            il.Emit(OpCodes.Ldarg_1);
+
+            il.Emit(OpCodes.Call, getChannelInterfaceGeneric);
+            il.Emit(OpCodes.Ret);
+
+            typeBuilder.DefineMethodOverride(methodBuilder, typeof(IMKConector).GetMethod("GetChannelInterface")!);
+        }
+
+        //GetModuleInterface
+        {
+            MethodBuilder methodBuilder = typeBuilder.DefineMethod(
+                "GetModuleInterface",
+                MethodAttributes.Public | MethodAttributes.Virtual,
+                CallingConventions.HasThis);
+
+            ILGenerator il = methodBuilder.GetILGenerator();
+
+
+            GenericTypeParameterBuilder[] genericParams = methodBuilder.DefineGenericParameters("T");
+            genericParams[0].SetGenericParameterAttributes(GenericParameterAttributes.ReferenceTypeConstraint);
+            genericParams[0].SetInterfaceConstraints(typeof(IModuleInterface));
+
+            methodBuilder.SetParameters([typeof(string)]);
+            methodBuilder.SetReturnType(genericParams[0]);
+
+
+
+            MethodInfo getChannelInterface = typeof(ModuleManager).GetMethod("GetModuleInterface")!;
+            MethodInfo getChannelInterfaceGeneric = getChannelInterface.MakeGenericMethod(genericParams[0]);
+
+            Emit_LdInst(il, moduleManager);
+            il.Emit(OpCodes.Ldarg_1);
+
+            il.Emit(OpCodes.Call, getChannelInterfaceGeneric);
+            il.Emit(OpCodes.Ret);
+
+            typeBuilder.DefineMethodOverride(methodBuilder, typeof(IMKConector).GetMethod("GetModuleInterface")!);
+        }
+
+
+        Type derivedType = typeBuilder.CreateType();
+
+
+        return (IMKConector)Activator.CreateInstance(derivedType)!;
+    }
+}

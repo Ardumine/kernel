@@ -13,7 +13,7 @@ public class Module2Implement : Kernel.Modules.Base.BaseImplement, IModule2
     {
         Logger.LogI("Starting...");
 
-        var interfaceMod1 = moduleManager.GetConector<IModule1>("/modules/mod1");
+        var interfaceMod1 = GetModuleInterface<IModule1>("/modules/mod1");
         interfaceMod1.CoolFunc();
         Logger.LogI("Module2 started!");
 
