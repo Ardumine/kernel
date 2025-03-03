@@ -3,14 +3,18 @@ namespace Kernel.AFCP;
 
 public class ChannelManagerAFCPServerConector
 {
-    public AfcpServer AFCPServer { get; private set; }
-    public ChannelManager ChannelManager { get; private set; }
     public required KernelDescriptor LocalKernel { get; init; }
 
+    private KernelManager _KernelManager;
+    private AfcpServer AFCPServer;
+    private ChannelManager ChannelManager;
 
-    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager)
+
+    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager)
     {
         this.AFCPServer = AFCPServer;
+        this._KernelManager = kernelManager;
+
         ChannelManager = channelManager;
 
         Init();
@@ -22,7 +26,7 @@ public class ChannelManagerAFCPServerConector
     private void AFCPServer_OnTCPClientConnected(TcpClient tcpClient)
     {
         Console.WriteLine("Client connected!");
-        var afcpClient = new AfcpClient(tcpClient, "Server", 0);
-        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel);
+        var afcpClient = new AfcpTCPClient(tcpClient, "Server", 0);
+        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel, _KernelManager);
     }
 }

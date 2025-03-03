@@ -7,36 +7,31 @@ namespace Kernel;
 internal class Program
 {
     static List<IModuleLoadDescription> AvailableModules = new();
-    static List<KernelDescriptor> ConnectedKernels = new();
     private static void Main(string[] args)
     {
+        Console.Title = "Starting...";
         Thread.CurrentThread.Name = "Main Thread";
         var logger = new Logger("kernel");
 
-        var localKernelDescriptor = new KernelDescriptor()
+        var LocalKernel = KernelDescriptor.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
+        var channelManager = new ChannelManager(LocalKernel);
+
+        var KernelManager = new KernelManager()
         {
-            Guid = Guid.NewGuid()
+            LocalKernel = LocalKernel,
+            LocalChannelManager = channelManager
         };
-
-
-        //Create the channel manager.
-        var channelManager = new ChannelManager()
-        {
-            ConnectedKernels = ConnectedKernels,
-            LocalKernel = localKernelDescriptor
-        };
-
 
         //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager)
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager)
         {
-            LocalKernel = localKernelDescriptor
+            LocalKernel = KernelManager.LocalKernel
         };
 
 
-        var moduleManager = new ModuleManager(channelManager, localKernelDescriptor);
+        var moduleManager = new ModuleManager(channelManager, KernelManager);
         var moduleLoader = new ModuleLoader();
 
 
@@ -69,6 +64,7 @@ internal class Program
         moduleManager.StartModulesViaTree();
 
         logger.LogOK("Kernel started!");
+        Console.Title = "Ok!";
         Console.ReadLine();//Wait for stop signal
 
 

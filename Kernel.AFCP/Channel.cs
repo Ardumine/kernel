@@ -218,19 +218,17 @@ public class DataChannelDescriptor : ChannelBase
 {
     public required string? DataType { get; set; }
 
-    public List<KernelDescriptor> KernelsToNotify = new List<KernelDescriptor>();
-    //public required DataChannelInterface<object> channelInterface { get; set; }
-    public void AddNotifyToKernelOnChange(KernelDescriptor kernelGuid)
+    public List<ConnectedKernel> KernelsToNotify = new List<ConnectedKernel>();
+    public void AddNotifyToKernelOnChange(ConnectedKernel kernel)
     {
-        KernelsToNotify.Add(kernelGuid);
+        KernelsToNotify.Add(kernel);
     }
 
-    public void RemoveNotifyToKernelOnChange(KernelDescriptor kernelGuid)
+    public void RemoveNotifyToKernelOnChange(ConnectedKernel kernel)
     {
-        KernelsToNotify.Add(kernelGuid);
+        KernelsToNotify.Remove(kernel);
     }
 
-    public List<KernelDescriptor> KernelsSubscribed = new List<KernelDescriptor>();
 
     public DataChannelDescriptor()
     {

@@ -1,4 +1,3 @@
-
 using System.Numerics;
 using Ardumine.Modules.YDLidar;
 using BaseSLAM;
@@ -13,8 +12,13 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
     private IDataChannelInterface<LidarPoint[]>? lidarDataChannel;
 
     HectorSLAMProcessor? hectorSlam;
-    int tam = 1000;//90 //Medido em cm. 1m = 100cm 1dm = 100mm
+    //int tam = 1000;//90 //Medido em cm. 1m = 100cm 1dm = 100mm
 
+    /// <summary>
+    /// MapSize: sizeXsize
+    /// In meters
+    /// </summary>
+    public readonly int SizeMap = 2;
 
     public override void Prepare()
     {
@@ -26,20 +30,22 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
         mapChannel = GetChannelInterface<byte[]>("#SLAMmap");
         lidarDataChannel = GetChannelInterface<LidarPoint[]>("#lidarData");
 
-        int hsMapSide = tam;//tam / hsMapSide -> 10 
+        //int hsMapSide = tam;//tam / hsMapSide -> 10 
+        //int hsMapSide = 500;
+        var startPose = new Vector3(SizeMap / 2, SizeMap / 2, 0.0f);
 
-        var startPose = new Vector3(tam / 2, tam / 2, 0.0f);
-
-
-        hectorSlam = new HectorSLAMProcessor(tam / hsMapSide, new System.Drawing.Point(hsMapSide, hsMapSide), startPose, 3, 4)
+        int hsMapSide = SizeMap * 10;
+        hectorSlam = new HectorSLAMProcessor(SizeMap / hsMapSide, new System.Drawing.Point(hsMapSide, hsMapSide), startPose, 4, 4)
         {
-            MinDistanceDiffForMapUpdate = 5f,//0.04//2
-            MinAngleDiffForMapUpdate = MathEx.DegToRad(4),//15,       7
+            MinDistanceDiffForMapUpdate = 0.1f,
+            MinAngleDiffForMapUpdate = MathEx.DegToRad(8),//15,       7
         };
 
-        hectorSlam.MapRep.Maps[0].EstimateIterations = 17;//7
-        hectorSlam.MapRep.Maps[1].EstimateIterations = 6;
-        hectorSlam.MapRep.Maps[2].EstimateIterations = 3;
+        hectorSlam.MapRep.Maps[0].EstimateIterations = 24;
+        hectorSlam.MapRep.Maps[1].EstimateIterations = 4;
+        hectorSlam.MapRep.Maps[2].EstimateIterations = 4;
+        hectorSlam.MapRep.Maps[3].EstimateIterations = 4;
+
 
 
 
@@ -56,7 +62,7 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
         {
             while (ThreadsRunning)
             {
-                Logger.LogI("Data!");
+                Logger.LogI("Created fake data!");
                 posChannel?.Set(new Vector3(2, 5, 90));
                 Thread.Sleep(1000);
             }
@@ -70,7 +76,6 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
 
     private void OnLidarData(LidarPoint[] points)
     {
-        //var points = (LidarPoint[])e!;
         ScanCloud scanCloud = new ScanCloud()
         {
             //  Pose = hectorSlam.MatchPose
@@ -90,17 +95,18 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
         posChannel?.Set(hectorSlam!.MatchPose);
 
         //Logger.LogI("Hector pose" + hectorSlam?.MatchPose);
-
         if ((DateTime.Now - TimeSinceLastUpdate).Seconds > 5)
         {
             new Thread(() =>
             {
-                byte[] FinalData = new byte[tam * tam];
+                var map = hectorSlam?.MapRep.Maps[0];
+                if(map == null) return;
 
-                var dados_mapa = hectorSlam?.MapRep.Maps[0].mapArray!;
-                for (int i = 0; i < dados_mapa.Length; i++)
+                byte[] FinalData = new byte[map.mapArray.Length];
+
+                for (int i = 0; i < FinalData.Length; i++)
                 {
-                    FinalData[i] = (byte)(127 - MathF.Sign(dados_mapa[i].Value) * 127);
+                    FinalData[i] = (byte)(127 - MathF.Sign(map.mapArray[i].Value) * 127);
                 }
                 mapChannel?.Set(FinalData);
             })

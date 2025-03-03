@@ -3,23 +3,22 @@ using Kernel.AFCP.Packets;
 namespace Kernel.AFCP;
 public class ChannelManager
 {
-    public required List<KernelDescriptor> ConnectedKernels;
     private List<ChannelBase> Channels = new List<ChannelBase>();
 
-    public KernelDescriptor LocalKernel { get; init; } = KernelDescriptor.CreateLocalKernelDescriptor();
+    private  KernelDescriptor LocalKernel;
 
 
 
     /// <summary>
     /// Maps a Kernel GUID to a client.
     /// </summary>
-    private Dictionary<Guid, ChannelManagerAfcpClientConector> Externals = new Dictionary<Guid, ChannelManagerAfcpClientConector>();
+    internal Dictionary<Guid, ChannelManagerAfcpClientConector> Externals = new Dictionary<Guid, ChannelManagerAfcpClientConector>();
 
 
 
-    public ChannelManager()
+    public ChannelManager(KernelDescriptor localKernel)
     {
-
+        LocalKernel = localKernel;
     }
     public void Stop()
     {
@@ -29,26 +28,18 @@ public class ChannelManager
         }
     }
 
-    public void RemoveKernel(KernelDescriptor kernel)
+    public void RemoveKernel(ConnectedKernel? kernel)
     {
-        Channels.RemoveAll(ch => ch.OwningKernel == kernel.Guid);
+        Channels.RemoveAll(ch => ch.OwningKernel == kernel?.Guid);
         Channels.ForEach(ch =>
         {
             if (ch is DataChannelDescriptor)
             {
-                ((DataChannelDescriptor)ch).KernelsSubscribed.Remove(kernel);
+                ((DataChannelDescriptor)ch).KernelsToNotify.Remove(kernel!);
             }
         });
-
-        //Remove every event
-        ConnectedKernels.RemoveAll(k => k.Guid == kernel.Guid);//Just for safe measures
-
     }
 
-    public KernelDescriptor? GetKernel(Guid guid)
-    {
-        return ConnectedKernels.Where(kernel => kernel.Guid == guid).FirstOrDefault();
-    }
 
     public DataChannelDescriptor? CreateLocalDataChannel<T>(string Path)
     {
@@ -104,23 +95,23 @@ public class ChannelManager
     }
     public void NoitifyChannelDataChanged(DataChannelDescriptor channel, object? newVal)
     {
-        Parallel.For(0, channel.KernelsToNotify.Count, (i) =>
+        foreach (var kernel in channel.KernelsToNotify)
         {
-            NoitifyChannelDataChanged(channel.KernelsToNotify[i], channel.Path, newVal);
-        });
+            NoitifyChannelDataChanged(kernel, channel.Path, newVal);
+        }
+
+
     }
 
-    public void NoitifyChannelDataChanged(KernelDescriptor kernel, string channelPath, object? newVal)
+    public void NoitifyChannelDataChanged(ConnectedKernel kernel, string channelPath, object? newVal)
     {
-        if (kernel is not null)
+        kernel.ConnectedVia.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
         {
-            kernel.ConnectedVia?.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
-            {
-                ChannelPath = channelPath,
-                MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
-                NewVal = newVal,
-            });
-        }
+            ChannelPath = channelPath,
+            MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
+            NewVal = newVal,
+            RequestingKernel = LocalKernel.Guid
+        });
     }
 
     public DataChannelDescriptor? GetDataChannel(string? Path)
@@ -141,21 +132,6 @@ public class ChannelManager
     }
 
 
-    public void Join(string IPAddress, int port)
-    {
-        var client = new ChannelManagerAfcpClientConector(IPAddress, port, this, LocalKernel);
-
-        var packet = new PacketSyncRequest()
-        {
-            RemoteGuid = LocalKernel.Guid,
-            RemoteChannels = GetLocalChannelDescriptors()
-        };
-
-        var answer = client.SendRequest<PacketSyncAnswer>(MessagesTypes.ChannelSyncRequest, packet);
-
-        AddChannelsSync(answer.RemoteChannels, answer.RemoteGuid);
-        Externals[answer.RemoteGuid] = client;
-    }
 
 
     public ChannelDescriptor[] GetLocalChannelDescriptors()
@@ -190,7 +166,7 @@ public class ChannelManager
     }
 
 
-    public void AddChannelsSync(ChannelDescriptor[] remoteChannels, Guid RemoteGuid)
+    public void AddChannelsSync(List<ChannelDescriptor> remoteChannels, ConnectedKernel RemoteKernel)
     {
         foreach (var channel in remoteChannels)
         {
@@ -201,7 +177,7 @@ public class ChannelManager
                 {
                     IsLocal = false,
                     Path = dataChannel.Path,
-                    OwningKernel = RemoteGuid,
+                    OwningKernel = RemoteKernel.Guid,
                     IsDataChannel = true,
                     DataType = dataChannel.DataType
                 });
@@ -212,7 +188,7 @@ public class ChannelManager
                 {
                     IsLocal = false,
                     Path = channel.Path,
-                    OwningKernel = RemoteGuid,
+                    OwningKernel = RemoteKernel.Guid,
                     IsDataChannel = false
                 });
             }
@@ -241,6 +217,7 @@ public class ChannelManager
             ChannelPath = channelPath,
             RequestingKernel = LocalKernel.Guid
         };
+
 
         Externals[OwningChannelManager].SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
     }
@@ -310,7 +287,7 @@ public class ChannelManager
                 Path = Path,
                 OwningKernel = dataChannel.OwningKernel,
                 DataChannel = dataChannel
-            }; ;
+            };
         }
         return (DataChannelInterface<T>)channelInterface!;
     }

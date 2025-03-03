@@ -102,6 +102,10 @@ public static class Tools
     {
         return (uint)(b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24));
     }
+    public static uint GetUInt(ReadOnlySpan<byte> b)
+    {
+        return (uint)(b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24));
+    }
 
     public static uint GetUShort(byte[] b)
     {

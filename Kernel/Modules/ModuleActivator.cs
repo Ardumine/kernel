@@ -1,4 +1,3 @@
-
 using Kernel.AFCP;
 using Kernel.AFCP.FastMethod;
 using Kernel.Modules.Base;
@@ -21,7 +20,6 @@ public class ModuleActivator
     {
         var mod = new LocalRModule()
         {
-            ModuleGuid = Guid.NewGuid(),
             Path = path,
             HostingKernel = localKernel.Guid,
             IsLocal = true,

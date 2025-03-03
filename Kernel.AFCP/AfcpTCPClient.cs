@@ -1,10 +1,9 @@
-using System.ComponentModel;
 using System.Net.Sockets;
 using Kernel.AFCP.DataTreatment;
 
 namespace Kernel.AFCP;
 
-public class AfcpClient : IDisposable
+public class AfcpTCPClient : IDisposable
 {
     public bool Running { get; private set; }
 
@@ -25,11 +24,11 @@ public class AfcpClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    public AfcpClient(){
+    public AfcpTCPClient(){
         
     }
 
-    public AfcpClient(TcpClient client, string IP, int Port)
+    public AfcpTCPClient(TcpClient client, string IP, int Port)
     {
         TcpClient = client;
         TCPClientstream = TcpClient.GetStream();
@@ -105,6 +104,9 @@ public class AfcpClient : IDisposable
                     OnDataRec.Invoke(reader);
                 }
             }
+            catch(EndOfStreamException){
+                Running = false;
+            }
             catch
             {
                 if (!TcpClient!.Connected && Running)
@@ -112,6 +114,8 @@ public class AfcpClient : IDisposable
                     OnDisconnect(DisconnectReason.ConnectionLost);
                     Running = false;
                 }
+       
+
 
                 if (Running && TcpClient.Connected)
                 {
@@ -131,7 +135,7 @@ public class AfcpClient : IDisposable
         {
             OnClientDisconnect.Invoke(reason);
         }
-
+        Dispose();
     }
 
     public void Dispose()

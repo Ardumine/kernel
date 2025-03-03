@@ -10,13 +10,42 @@ internal class Program
     {
         Console.WriteLine("Start!");
 
-        var ConnectedKernels = new List<KernelDescriptor>();
+        /*      
+        class ClassTest
+        {
+            public Guid guid { get; set; }
+        }
+        var guid = Guid.NewGuid();
+                Console.WriteLine(guid);
+                var test = new ClassTest()
+                {
+                    guid = guid
+                };
+                var ser = new Serializer();
+                var ms = new MemoryStream();
 
-        var channelManager = new ChannelManager() { ConnectedKernels = ConnectedKernels };
+                ser.Serialize(ms, test);
+                ms.Position = 0;
+                var deser = ser.Deserialize<ClassTest>(ms);
+                Console.WriteLine(deser.guid);*/
 
-        var moduleManager = new ModuleManager(channelManager, KernelDescriptor.CreateLocalKernelDescriptor());
 
-        channelManager.Join("127.0.0.1", 8000);
+        var LocalKernel = KernelDescriptor.CreateLocalKernelDescriptor("6c9a24e1-cf5b-40cd-bd05-f451ab539c63");
+
+        var channelManager = new ChannelManager(LocalKernel);
+
+        var KernelManager = new KernelManager()
+        {
+            LocalKernel = LocalKernel,
+            LocalChannelManager = channelManager
+        };
+
+
+        var moduleManager = new ModuleManager(channelManager, KernelManager);
+
+        Console.WriteLine("Connecting...");
+        KernelManager.Join("127.0.0.1", 8000);
+
         Console.WriteLine("Connected!");
 
 
@@ -40,9 +69,13 @@ internal class Program
         interfaceMod1.CoolFunc();
         Console.WriteLine("Done!!!");
 
-        Thread.Sleep(50000);
+        Thread.Sleep(3000);
+        Console.WriteLine("Exit...");
 
         channelManager.Stop();
+        
+        
 
+        Console.WriteLine("Exit ok!");
     }
 }

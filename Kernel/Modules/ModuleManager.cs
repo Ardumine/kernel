@@ -8,18 +8,18 @@ public class ModuleManager
     internal List<LocalRModule> LocalRModules = new List<LocalRModule>();
     private ChannelManager channelManager;
     private ModuleActivator moduleActivator { get; set; }
-    private KernelDescriptor LocalKernel { get; set; }
+    private KernelManager KernelManager { get; set; }
 
-    public ModuleManager(ChannelManager _channelManager, KernelDescriptor _LocalKernel)
+    public ModuleManager(ChannelManager _channelManager, KernelManager _KernelManager)
     {
         channelManager = _channelManager;
-        LocalKernel = _LocalKernel;
+        KernelManager = _KernelManager;
 
         moduleActivator = new()
         {
             channelManager = channelManager,
             moduleManager = this,
-            localKernel = LocalKernel
+            localKernel = _KernelManager.LocalKernel,
         };
     }
     internal LocalRModule CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)

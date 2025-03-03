@@ -144,8 +144,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         for (int i = 0; i < rawScanPoints.Count; i++)
         {
             float angle = rawScanPoints[i].angle;
-
-            float hit = rawScanPoints[i].range * 100; //* 100;//1000 metros   100 dm   10 cm//em yd é em metros //em cm
+            float hit = rawScanPoints[i].range; //* 100; //* 100;//1000 metros   100 dm   10 cm//em yd é em metros //em cm
                                                       //ang_max = Math.Max(ang_max, angle);
 
 

@@ -9,6 +9,12 @@
       "type": "dotnet",
       "request": "launch",
       "projectPath": "${workspaceFolder}/Kernel/Kernel.csproj"
+    },
+    {
+      "name": "C#: thirdApp Debug",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/thirdApp/thirdApp.csproj"
     }
   ]
 }
