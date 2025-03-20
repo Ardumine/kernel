@@ -14,5 +14,6 @@
     "**/obj/": true,
     ".gitignore": true
 
-  }
+  },
+  "dotnet.preferCSharpExtension": true
 }

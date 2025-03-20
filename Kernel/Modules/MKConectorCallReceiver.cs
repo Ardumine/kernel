@@ -9,7 +9,7 @@ using Kernel.Modules.Base;
 /// </summary>
 internal class MKConectorCallReceiver : IMKConector
 {
-    public required LocalRModule WorkingModule { get; init; }
+    public required LocalRModuleDescriptor WorkingModule { get; init; }
 
     public required ChannelManager channelManager { get; init; }
     public required ModuleManager moduleManager { get; init; }
@@ -35,7 +35,7 @@ internal class MKConectorCallReceiver : IMKConector
         if (channelRealPath == null)
             throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
 
-        var afcpChannel = channelManager.GetDataChannel(channelRealPath);
+        var afcpChannel = channelManager.GetDataChannelDescriptor(channelRealPath);
 
         return ExistingDataChannelDescriptor.FromAFCP(afcpChannel);
     }

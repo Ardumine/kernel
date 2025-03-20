@@ -24,8 +24,9 @@ public class AfcpTCPClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    public AfcpTCPClient(){
-        
+    public AfcpTCPClient()
+    {
+
     }
 
     public AfcpTCPClient(TcpClient client, string IP, int Port)
@@ -81,8 +82,10 @@ public class AfcpTCPClient : IDisposable
         {
             while (DataCache.Count > 0)
             {
+                if (TCPClientstream == null)
+                    break;
                 var writter = DataCache.Dequeue();
-                writter.Copy(TCPClientstream!);
+                writter.Copy(TCPClientstream);
 
                 writter.Dispose();
             }
@@ -98,26 +101,27 @@ public class AfcpTCPClient : IDisposable
         {
             try
             {
-                var reader = new DataReader(TCPClientstream!);
+                if (TCPClientstream == null)
+                {
+                    break;
+                }
+                var reader = new DataReader(TCPClientstream);
                 if (OnDataRec != null)
                 {
                     OnDataRec.Invoke(reader);
                 }
             }
-            catch(EndOfStreamException){
-                Running = false;
+            catch (EndOfStreamException)
+            {
+                Stop();
             }
             catch
             {
-                if (!TcpClient!.Connected && Running)
+                if (TcpClient != null && TcpClient!.Connected && Running)
                 {
                     OnDisconnect(DisconnectReason.ConnectionLost);
-                    Running = false;
                 }
-       
-
-
-                if (Running && TcpClient.Connected)
+                if (Running && TcpClient != null && TcpClient.Connected)
                 {
                     throw;
                 }
@@ -135,11 +139,21 @@ public class AfcpTCPClient : IDisposable
         {
             OnClientDisconnect.Invoke(reason);
         }
-        Dispose();
+        Stop();
     }
 
+    private void Stop()
+    {
+        Running = false;
+        TcpClient?.Close();
+        TCPClientstream?.Close();
+        OnNewData.Set();
+        DataCache.Clear();
+
+    }
     public void Dispose()
     {
+        Stop();
         TcpClient?.Dispose();
         TCPClientstream?.Dispose();
         OnNewData.Dispose();

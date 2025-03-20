@@ -24,7 +24,7 @@ public class ChannelManagementSystem
             {
                 throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {a.RequestingKernel} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannel(a.ChannelPath);
+            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(a.ChannelPath);
 
             channel?.AddNotifyToKernelOnChange(remoteKernel);
         }
@@ -35,7 +35,7 @@ public class ChannelManagementSystem
             {
                 throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {a.RequestingKernel} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannel(a.ChannelPath);
+            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(a.ChannelPath);
 
             channel?.RemoveNotifyToKernelOnChange(remoteKernel);
         }

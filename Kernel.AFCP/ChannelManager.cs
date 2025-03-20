@@ -1,98 +1,100 @@
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP;
-public class ChannelManager
+public class ChannelManager : IDisposable
 {
     private List<ChannelBase> Channels = new List<ChannelBase>();
 
-    private  KernelDescriptor LocalKernel;
+    private RunningKernel LocalKernel;
 
 
-
-    /// <summary>
-    /// Maps a Kernel GUID to a client.
-    /// </summary>
-    internal Dictionary<Guid, ChannelManagerAfcpClientConector> Externals = new Dictionary<Guid, ChannelManagerAfcpClientConector>();
-
-
-
-    public ChannelManager(KernelDescriptor localKernel)
+    public ChannelManager(RunningKernel localKernel)
     {
         LocalKernel = localKernel;
     }
-    public void Stop()
-    {
-        foreach (ChannelManagerAfcpClientConector client in Externals.Values)
-        {
-            client.RequestDisconect();
-        }
-    }
 
-    public void RemoveKernel(ConnectedKernel? kernel)
+
+    /// <summary>
+    /// Check if a channel exists by a path
+    /// </summary>
+    /// <param name="Path">The path of the channel</param>
+    /// <returns>If the channel exists or not</returns>
+    public bool IsChannelPathTaken(string Path)
     {
-        Channels.RemoveAll(ch => ch.OwningKernel == kernel?.Guid);
-        Channels.ForEach(ch =>
-        {
-            if (ch is DataChannelDescriptor)
-            {
-                ((DataChannelDescriptor)ch).KernelsToNotify.Remove(kernel!);
-            }
-        });
+        return Channels.Any(item => item.Path == Path);
     }
 
 
+    /// <summary>
+    /// Creates a local data channel
+    /// </summary>
+    /// <typeparam name="T">The data channel value type</typeparam>
+    /// <param name="Path">The path of the channel</param>
+    /// <returns>The descriptor for the created channel.</returns>
+    /// <exception cref="ChannelPathAlreadyTaken">Thrown if the Path is already taken.</exception>
     public DataChannelDescriptor? CreateLocalDataChannel<T>(string Path)
     {
+        //Checks
+        if (IsChannelPathTaken(Path))
+        {
+            throw new ChannelPathAlreadyTaken($"The path {Path} is already taken by another channel.");
+        }
+
         var channel = new DataChannelDescriptor()
         {
-            DataType = typeof(T).AssemblyQualifiedName,
             IsLocal = true,
             OwningKernel = LocalKernel.Guid,
             IsDataChannel = true,
             Path = Path,
+            OwningKernelDesc = LocalKernel
         };
+
         var interf = new LocalDataChannelInterface<T>(this)
         {
             IsLocal = true,
             OwningKernel = LocalKernel.Guid,
             Path = Path,
-            DataChannel = channel
+            DataChannel = channel,
+            OwningKernelDesc = LocalKernel,
         };
 
         dataChannelInterfaces.Add(interf);
         Channels.Add(channel);
 
-        NoitifyNewChannelCreateLocally(channel);
+        //NoitifyNewChannelCreateLocally(channel);
         return channel;
     }
 
-
-
-
+    /// <summary>
+    /// Creates a local module channel
+    /// </summary>
+    /// <param name="Path">The path fot the module channel</param>
+    /// <param name="func">Function to map the calls by index to params(func index, func params, func return val)</param>
+    /// <exception cref="ChannelPathAlreadyTaken">Thrown if the Path is already taken.</exception>
     public void CreateLocalModuleChannel(string Path, Func<uint, object?[]?, object?> func)
     {
+        //Checks
+        if (IsChannelPathTaken(Path))
+        {
+            throw new ChannelPathAlreadyTaken($"The path {Path} is already taken by another channel.");
+        }
+
         var channel = new ModuleChannel(this)
         {
             IsLocal = true,
             Path = Path,
             OwningKernel = LocalKernel.Guid,
             IsDataChannel = false,
-            LocalTargetFunction = func
+            LocalTargetFunction = func,
+            OwningKernelDesc = LocalKernel
         };
         channel.StartLocalEvents();
-
 
         Channels.Add(channel);
         //NoitifyNewChannelCreateLocally(channel);
     }
 
-    public void NoitifyNewChannelCreateLocally(ChannelDescriptor descriptor)
-    {
-        foreach (var item in Externals.Values)
-        {
-            //item.SendRequest(12, );
-        }
-    }
+
     public void NoitifyChannelDataChanged(DataChannelDescriptor channel, object? newVal)
     {
         foreach (var kernel in channel.KernelsToNotify)
@@ -100,12 +102,11 @@ public class ChannelManager
             NoitifyChannelDataChanged(kernel, channel.Path, newVal);
         }
 
-
     }
 
-    public void NoitifyChannelDataChanged(ConnectedKernel kernel, string channelPath, object? newVal)
+    public void NoitifyChannelDataChanged(RunningKernel kernel, string channelPath, object? newVal)
     {
-        kernel.ConnectedVia.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
+        kernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
         {
             ChannelPath = channelPath,
             MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
@@ -114,26 +115,47 @@ public class ChannelManager
         });
     }
 
-    public DataChannelDescriptor? GetDataChannel(string? Path)
+
+    /// <summary>
+    /// Gets a data channel descriptor by Path
+    /// </summary>
+    /// <param name="Path">The Path for the channel</param>
+    /// <returns>The channel descriptor. Returns null when the channel is not found.</returns>
+    public DataChannelDescriptor? GetDataChannelDescriptor(string? Path)
     {
         var channel = Channels.Where(ch => ch.Path == Path && ch.IsDataChannel && ch is DataChannelDescriptor).FirstOrDefault();
         return (DataChannelDescriptor?)channel;
     }
 
-    public DataChannelDescriptor? TryGetLocalChannel(string Path)
+
+    /// <summary>
+    /// Gets a local data channel descriptor by Path
+    /// </summary>
+    /// <param name="Path">The Path for the channel</param>
+    /// <returns>The channel descriptor. Returns null when the channel is not found.</returns>
+    public DataChannelDescriptor? TryGetLocalChannelDescriptor(string Path)
     {
         return (DataChannelDescriptor?)Channels.Where(ch => ch.Path == Path && ch.IsLocal).FirstOrDefault();
     }
 
 
-    public ModuleChannel GetModuleChannel(string Path)
+    /// <summary>
+    /// Gets a module channel by Path
+    /// </summary>
+    /// <param name="Path">The Path for the channel</param>
+    /// <returns>The module channel. Returns null when the channel is not found.</returns>
+    public ModuleChannel? GetModuleChannel(string Path)
     {
-        return (ModuleChannel)Channels.Where(ch => ch.Path == Path).First();
+        return (ModuleChannel?)Channels.Where(ch => ch.Path == Path).FirstOrDefault();
     }
 
 
+    #region Sync
 
-
+    /// <summary>
+    /// Gets the descriptors for the local channels. Used for syncing between Kernels.
+    /// </summary>
+    /// <returns>The channel descriptors.</returns>
     public ChannelDescriptor[] GetLocalChannelDescriptors()
     {
         var descriptors = new List<ChannelDescriptor>();
@@ -142,18 +164,17 @@ public class ChannelManager
             if (channel.IsDataChannel)
             {
                 var dataChannel = (DataChannelDescriptor)channel;
-                descriptors.Add(new DataChannelDescriptor()
+                descriptors.Add(new ChannelDescriptor()
                 {
                     IsLocal = false,
                     Path = dataChannel.Path,
                     OwningKernel = LocalKernel.Guid,
-                    IsDataChannel = true,
-                    DataType = dataChannel.DataType
+                    IsDataChannel = true
                 });
             }
             else
             {
-                descriptors.Add(new ModuleChannelDescriptor()
+                descriptors.Add(new ChannelDescriptor()
                 {
                     IsLocal = false,
                     Path = channel.Path,
@@ -166,20 +187,30 @@ public class ChannelManager
     }
 
 
-    public void AddChannelsSync(List<ChannelDescriptor> remoteChannels, ConnectedKernel RemoteKernel)
+    /// <summary>
+    /// Adds a list channels that was sent by a remote kernel. Used for syncing between Kernels.
+    /// </summary>
+    /// <param name="remoteChannels">The remote kernel channels</param>
+    /// <param name="RemoteKernel">The remote kernel</param>
+    /// <exception cref="ChannelPathAlreadyTaken">Thrown if the Path is already taken.</exception>
+    public void AddChannelsSync(List<ChannelDescriptor> remoteChannels, RunningKernel RemoteKernel)
     {
         foreach (var channel in remoteChannels)
         {
+            if (IsChannelPathTaken(channel.Path))
+            {
+                throw new ChannelPathAlreadyTaken($"Error in adding list of channels. The path is already taken. Path: {channel.Path}");
+            }
+
             if (channel.IsDataChannel)
             {
-                var dataChannel = (DataChannelDescriptor)channel;
                 Channels.Add(new DataChannelDescriptor()
                 {
                     IsLocal = false,
-                    Path = dataChannel.Path,
+                    Path = channel.Path,
                     OwningKernel = RemoteKernel.Guid,
                     IsDataChannel = true,
-                    DataType = dataChannel.DataType
+                    OwningKernelDesc = RemoteKernel
                 });
             }
             else
@@ -189,15 +220,24 @@ public class ChannelManager
                     IsLocal = false,
                     Path = channel.Path,
                     OwningKernel = RemoteKernel.Guid,
-                    IsDataChannel = false
+                    IsDataChannel = false,
+                    OwningKernelDesc = RemoteKernel
                 });
             }
         }
     }
 
+    #endregion
+
 
     //When channel is remote, we use this functions to talk to the remote kernel.
-    public void SetValueRemote(Guid OwningChannelManager, string channelPath, object? newVal)
+    /// <summary>
+    /// When this kernel changes the value of another's kernel channel, we must notify the channel owner of this change.
+    /// </summary>
+    /// <param name="OwningKernel">The remote kernel</param>
+    /// <param name="channelPath">The data channel</param>
+    /// <param name="newVal">The new value for the channel</param>
+    public void SetValueRemote(RunningKernel OwningKernel, string channelPath, object? newVal)
     {
         PacketChannelRequest packet = new PacketChannelRequest()
         {
@@ -206,10 +246,9 @@ public class ChannelManager
             Val = newVal
         };
 
-
-        Externals[OwningChannelManager].SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
+        OwningKernel.SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
     }
-    public void AddEventRemote(Guid OwningChannelManager, string channelPath)
+    public void AddEventRemote(RunningKernel OwningKernel, string channelPath)
     {
         PacketChannelManagementRequest packet = new PacketChannelManagementRequest()
         {
@@ -219,9 +258,9 @@ public class ChannelManager
         };
 
 
-        Externals[OwningChannelManager].SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
+        OwningKernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
     }
-    public void RemoveEventRemote(Guid OwningChannelManager, string channelPath)
+    public void RemoveEventRemote(RunningKernel OwningKernel, string channelPath)
     {
         PacketChannelManagementRequest packet = new PacketChannelManagementRequest()
         {
@@ -230,11 +269,11 @@ public class ChannelManager
             RequestingKernel = LocalKernel.Guid
         };
 
-        Externals[OwningChannelManager].SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
+        OwningKernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
     }
 
 
-    public T? GetValueRemote<T>(Guid OwningChannelManager, string channelPath)
+    public T? GetValueRemote<T>(RunningKernel OwningKernel, string channelPath)
     {
         PacketChannelRequest packet = new PacketChannelRequest()
         {
@@ -242,14 +281,12 @@ public class ChannelManager
             channelPath = channelPath,
         };
 
+        var res = OwningKernel.SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
 
-        var res = Externals[OwningChannelManager].SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
-
-
-        return (T?)res.Result;//Simulate
+        return (T?)res?.Result;//Simulate
     }
 
-    public object? RunFuncRemote(Guid OwningChannelManager, string channelPath, uint FuncID, object?[]? Params)
+    public object? RunFuncRemote(RunningKernel OwningKernel, string channelPath, uint FuncID, object?[]? Params)
     {
         PacketFunctionRequest packet = new PacketFunctionRequest()
         {
@@ -259,7 +296,7 @@ public class ChannelManager
         };
 
 
-        return Externals[OwningChannelManager].SendRequest<PacketFunctionAnswer>(MessagesTypes.ChannelFunctionRequest, packet).Out;//Simulate
+        return OwningKernel.SendRequest<PacketFunctionAnswer>(MessagesTypes.ChannelFunctionRequest, packet)?.Out;//Simulate
     }
 
     //When a remote channel asks to change a local value
@@ -277,16 +314,23 @@ public class ChannelManager
     public List<DataChannelInterface> dataChannelInterfaces = new();
     public DataChannelInterface<T> GetDataChannelInterface<T>(string Path)
     {
-        var dataChannel = GetDataChannel(Path);
+        var dataChannel = GetDataChannelDescriptor(Path);
+        if (dataChannel == null)
+        {
+            throw new NullReferenceException($"The data Channel with the Path {Path} was not found.");
+        }
         var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
-        if (channelInterface == null && !dataChannel!.IsLocal)
+
+
+        if (channelInterface == null && !dataChannel.IsLocal)
         {
             return new RemoteDataChannelInterface<T>(this, Path)
             {
                 IsLocal = dataChannel.IsLocal,
                 Path = Path,
                 OwningKernel = dataChannel.OwningKernel,
-                DataChannel = dataChannel
+                DataChannel = dataChannel,
+                OwningKernelDesc = dataChannel.OwningKernelDesc
             };
         }
         return (DataChannelInterface<T>)channelInterface!;
@@ -294,7 +338,12 @@ public class ChannelManager
 
     public DataChannelInterface GetDataChannelInterface(string Path)
     {
-        var dataChannel = GetDataChannel(Path)!;
+        var dataChannel = GetDataChannelDescriptor(Path);
+          if (dataChannel == null)
+        {
+            throw new NullReferenceException($"The data Channel with the Path {Path} was not found.");
+        }
+
         var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
         if (channelInterface == null && !dataChannel.IsLocal)
         {
@@ -303,7 +352,8 @@ public class ChannelManager
                 IsLocal = dataChannel.IsLocal,
                 Path = dataChannel.Path,
                 OwningKernel = dataChannel.OwningKernel,
-                DataChannel = dataChannel
+                DataChannel = dataChannel,
+                OwningKernelDesc = dataChannel.OwningKernelDesc
             };
         }
         return channelInterface!;
@@ -381,11 +431,22 @@ public class ChannelManager
     #endregion
 
 
-    private ModuleChannel GetLocalFuncChannel(string Path)
+
+    public void RemoveKernel(RunningKernel kernel)
     {
-        return (ModuleChannel)Channels.Where(ch => ch.Path == Path && ch.IsLocal).First();
+        Channels.RemoveAll(ch => ch.OwningKernel == kernel.Guid);
+        Channels.ForEach(ch =>
+        {
+            if (ch is DataChannelDescriptor)
+            {
+                ((DataChannelDescriptor)ch).KernelsToNotify.Remove(kernel);
+            }
+        });
     }
 
 
-
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -5,9 +5,9 @@ using Kernel.Modules.Base;
 /// This is only meant to be used by the kernel.
 /// The modules CANNOT have DIRECT ACCESS with this class.
 /// </summary>
-internal class LocalRModule : IRModule
+internal class LocalRModuleDescriptor : IRModule
 {
-    internal LocalRModule()
+    internal LocalRModuleDescriptor()
     {
 
     }

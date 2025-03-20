@@ -9,7 +9,7 @@ namespace Kernel.AFCP;
 public class ChannelManagerAfcpClientConector
 {
     public ChannelManager LocalChannelManager { get; init; }
-    public ConnectedKernel? RemoteKernel { get; set; }
+    public RunningKernel? RemoteKernel { get; set; }
 
 
 
@@ -21,6 +21,7 @@ public class ChannelManagerAfcpClientConector
     private KernelManager KernelManager;
     private KernelDescriptor LocalKernel;
 
+    private bool Running {get;set;} = false;
 
     //Are we a server?
     public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, KernelDescriptor _LocalKernel, KernelManager _KernelManager)
@@ -44,6 +45,7 @@ public class ChannelManagerAfcpClientConector
             LocalKernel = LocalKernel,
             KernelManager = KernelManager
         };
+        Running = true;
     }
 
     //Are we a client?
@@ -69,6 +71,8 @@ public class ChannelManagerAfcpClientConector
             LocalKernel = LocalKernel,
             KernelManager = KernelManager
         };
+        Running = true;
+
     }
 
 
@@ -89,6 +93,7 @@ public class ChannelManagerAfcpClientConector
 
         _afcpClient.OnDisconnect(DisconnectReason.RequestedBySelf);
 
+        Running = false;
 
     }
 
@@ -103,6 +108,8 @@ public class ChannelManagerAfcpClientConector
 
         _pendingRequests.Clear();
         _afcpClient.OnDisconnect(DisconnectReason.RequestedByRemote);
+        Running = false;
+
     }
 
 
@@ -114,6 +121,8 @@ public class ChannelManagerAfcpClientConector
         }
 
         _pendingRequests.Clear();
+        Running = false;
+
     }
 
     private void OnDataRec(DataReader reader)
@@ -129,7 +138,7 @@ public class ChannelManagerAfcpClientConector
             var answerWritterFull = GenerateAnwserHeader(RequestID);
             answerWritterFull.Write(msgType);
 
-            BasePacketAnswer answer = null!;
+            BasePacketAnswer answer;
 
             //answerWritterFull.WriteByte(msgType);
             //Console.WriteLine("Received msgType Req: " + msgType);
@@ -172,31 +181,29 @@ public class ChannelManagerAfcpClientConector
                 BasePacketAnswer Obj;
                 if (msgType == MessagesTypes.ChannelConnectRequest)//1 = channel request sync
                 {
-                    Obj = _Serializer.Deserialize<PacketConnectAnswer>(reader.stream)!;
+                    Obj = _Serializer.Deserialize<PacketConnectAnswer>(reader.stream);
                 }
                 else if (msgType == MessagesTypes.ChannelSyncRequest)//11 = channel request sync
                 {
-                    Obj = _Serializer.Deserialize<PacketSyncAnswer>(reader.stream)!;
+                    Obj = _Serializer.Deserialize<PacketSyncAnswer>(reader.stream);
                 }
                 else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
                 {
-                    Obj = _Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream)!;
+                    Obj = _Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream);
                 }
                 else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
                 {
-                    Obj = _Serializer.Deserialize<PacketChannelAnswer>(reader.stream)!;
+                    Obj = _Serializer.Deserialize<PacketChannelAnswer>(reader.stream);
                 }
                 else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
                 {
-                    Obj = _Serializer.Deserialize<PacketFunctionAnswer>(reader.stream)!;
+                    Obj = _Serializer.Deserialize<PacketFunctionAnswer>(reader.stream);
                 }
                 else
                 {
                     throw new Exception($"Unknow message type! Msg type received: {msgType}");
                 }
 
-                //var obj = reader.ReadObject<BasePacketAnswer>()!;
-                //obj = Serializer.Deserialize<BasePacketAnswer>(reader.stream, false)!;
                 tcs.SetResult(Obj);
             }
         }
@@ -205,7 +212,7 @@ public class ChannelManagerAfcpClientConector
 
 
     private uint LatestRequestID = 0;
-    public T SendRequest<T>(byte RequestType, PacketBaseRequest Payload) where T : BasePacketAnswer
+    public T? SendRequest<T>(byte RequestType, PacketBaseRequest Payload) where T : BasePacketAnswer
     {
         uint RequestID = LatestRequestID++;
         var tcs = new TaskCompletionSource<BasePacketAnswer>();
@@ -219,6 +226,12 @@ public class ChannelManagerAfcpClientConector
         _Serializer.Serialize(writter.memoryStream, Payload);
 
         _afcpClient.WriteData(writter);
+        while(!tcs.Task.IsCompleted && Running)
+            tcs.Task.Wait(500);
+        if(!Running){
+            return default;
+        }
+        _pendingRequests.Remove(RequestID, out var _);
 
         return (T)tcs.Task.Result;
 
@@ -227,7 +240,7 @@ public class ChannelManagerAfcpClientConector
 
     T ParsePacketRequest<T>(DataReader reader) where T : PacketBaseRequest
     {
-        return _Serializer.Deserialize<T>(reader.stream)!;
+        return _Serializer.Deserialize<T>(reader.stream);
     }
 
 

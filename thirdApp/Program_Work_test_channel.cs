@@ -10,26 +10,6 @@ internal class Program
     {
         Console.WriteLine("Start!");
 
-        /*      
-        class ClassTest
-        {
-            public Guid guid { get; set; }
-        }
-        var guid = Guid.NewGuid();
-                Console.WriteLine(guid);
-                var test = new ClassTest()
-                {
-                    guid = guid
-                };
-                var ser = new Serializer();
-                var ms = new MemoryStream();
-
-                ser.Serialize(ms, test);
-                ms.Position = 0;
-                var deser = ser.Deserialize<ClassTest>(ms);
-                Console.WriteLine(deser.guid);*/
-
-
         var LocalKernel = KernelDescriptor.CreateLocalKernelDescriptor("6c9a24e1-cf5b-40cd-bd05-f451ab539c63");
 
         var channelManager = new ChannelManager(LocalKernel);
@@ -41,7 +21,7 @@ internal class Program
         };
 
 
-        var moduleManager = new ModuleManager(channelManager, KernelManager);
+        var moduleManager = new ModuleManager(channelManager, LocalKernel);
 
         Console.WriteLine("Connecting...");
         KernelManager.Join("127.0.0.1", 8000);
@@ -72,9 +52,7 @@ internal class Program
         Thread.Sleep(3000);
         Console.WriteLine("Exit...");
 
-        channelManager.Stop();
-        
-        
+        KernelManager.Stop();
 
         Console.WriteLine("Exit ok!");
     }

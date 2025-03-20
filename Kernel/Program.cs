@@ -1,4 +1,5 @@
-﻿using Kernel.AFCP;
+﻿using System.Diagnostics;
+using Kernel.AFCP;
 using Kernel.Logging;
 using Kernel.Modules;
 using Kernel.Modules.Base;
@@ -6,11 +7,10 @@ using Kernel.Modules.Base;
 namespace Kernel;
 internal class Program
 {
-    static List<IModuleLoadDescription> AvailableModules = new();
     private static void Main(string[] args)
     {
         Console.Title = "Starting...";
-        Thread.CurrentThread.Name = "Main Thread";
+        Thread.CurrentThread.Name = "Kernel Main Thread";
         var logger = new Logger("kernel");
 
         var LocalKernel = KernelDescriptor.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
@@ -27,19 +27,17 @@ internal class Program
 
         var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager)
         {
-            LocalKernel = KernelManager.LocalKernel
+            LocalKernel = LocalKernel
         };
 
-
-        var moduleManager = new ModuleManager(channelManager, KernelManager);
+        var moduleManager = new ModuleManager(channelManager, LocalKernel);
         var moduleLoader = new ModuleLoader();
-
 
         var config = ConfigParser.Load("config.json");
 
 
         //Load the DLLs and get the available modules.
-        AvailableModules = moduleLoader.LoadModules(config.ModulesDlls);
+        var AvailableModules = moduleLoader.LoadModules(config.ModulesDlls);
 
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
@@ -52,7 +50,11 @@ internal class Program
         foreach (var moduleConfig in config.StartupModules)
         {
             var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
-            var mod = moduleManager.CreateLocalModuleInstance(modDesc!, moduleConfig.Path, moduleConfig);
+            
+            if(modDesc == null){
+                throw new NullReferenceException($"The module load with the name {moduleConfig.ModuleName} does not exist. Make sure you have the correct name and the DLL is loaded in config.json/ModulesDlls.");
+            }
+            moduleManager.CreateLocalModuleInstance(modDesc, moduleConfig.Path, moduleConfig);
         }
 
         foreach (var mod in logger.CreateIterator(moduleManager.LocalRModules, "Preparing modules..."))
@@ -73,7 +75,9 @@ internal class Program
 
         moduleManager.StopModulesViaTree();
         AFCPServer.Stop();
+        KernelManager.Stop();
         logger.LogI("Done");
+
     }
 
 }

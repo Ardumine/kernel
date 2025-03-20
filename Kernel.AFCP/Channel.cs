@@ -91,7 +91,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
             if (!IsLocal)
             {
                 //Console.WriteLine("Add notify!");
-                channelManager.AddEventRemote(OwningKernel, Path);
+                channelManager.AddEventRemote(OwningKernelDesc, Path);
             }
         }
         Events.Add(evente);
@@ -103,7 +103,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
         {
             if (!IsLocal)
             {
-                channelManager.RemoveEventRemote(OwningKernel, Path);
+                channelManager.RemoveEventRemote(OwningKernelDesc, Path);
             }
         }
 
@@ -113,7 +113,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            channelManager.SetValueRemote(OwningKernel, Path, Data);
+            channelManager.SetValueRemote(OwningKernelDesc, Path, Data);
         }
 
         Parallel.For(0, Events.Count, (i) =>
@@ -126,7 +126,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            return channelManager.GetValueRemote<T>(OwningKernel, Path);
+            return channelManager.GetValueRemote<T>(OwningKernelDesc, Path);
         }
         //DONT REMOVE THIS. IF YOU GET HIS THEN YOU ARE DOING SOMETHING WRONG
         throw new NotImplementedException();
@@ -216,15 +216,14 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
 
 public class DataChannelDescriptor : ChannelBase
 {
-    public required string? DataType { get; set; }
 
-    public List<ConnectedKernel> KernelsToNotify = new List<ConnectedKernel>();
-    public void AddNotifyToKernelOnChange(ConnectedKernel kernel)
+    public List<RunningKernel> KernelsToNotify = new List<RunningKernel>();
+    public void AddNotifyToKernelOnChange(RunningKernel kernel)
     {
         KernelsToNotify.Add(kernel);
     }
 
-    public void RemoveNotifyToKernelOnChange(ConnectedKernel kernel)
+    public void RemoveNotifyToKernelOnChange(RunningKernel kernel)
     {
         KernelsToNotify.Remove(kernel);
     }
@@ -279,7 +278,7 @@ public class ModuleChannel : ModuleChannelDescriptor
         }
         else
         {
-            return channelManager.RunFuncRemote(OwningKernel, Path, FuncID, param);
+            return channelManager.RunFuncRemote(OwningKernelDesc, Path, FuncID, param);
         }
     }
 
@@ -289,6 +288,7 @@ public class ChannelBase : ChannelDescriptor
 {
     //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
     public  ChannelBase() : base() { }
+    public required RunningKernel OwningKernelDesc {get;set;}
 }
 
 public class ChannelDescriptor()

@@ -13,12 +13,11 @@ public class ConnectSystem
     {
         if (a.Disconnect)
         {
-            // new Thread(() =>
-            // {
-            //    Thread.Sleep(100);//Let have some time to deliver
-            KernelManager.OnRemoteKernelRequestDiconnect(KernelManager.GetKernel(a.SourceKernel));
+            var kernel = KernelManager.GetKernel(a.SourceKernel);
 
-            //}).Start();
+            if (kernel != null)
+                KernelManager.OnRemoteKernelRequestDiconnect(kernel);
+
             return new PacketConnectAnswer()
             {
                 RemoteKernelGuid = LocalKernel.Guid

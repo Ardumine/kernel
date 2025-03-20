@@ -76,7 +76,8 @@ public class DataWritter: IDisposable
         int read;
         while ((read = memoryStream.Read(buffer, 0, buffer.Length)) > 0)
         {
-            stream.Write(buffer, 0, read);
+            if(stream.CanWrite)
+                stream.Write(buffer, 0, read);
         }
 
 

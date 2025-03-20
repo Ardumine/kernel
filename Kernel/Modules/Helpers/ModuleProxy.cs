@@ -9,7 +9,10 @@ public class ModuleProxy<T> : System.Reflection.DispatchProxy where T : class, I
     public required ModuleChannel channel { get; set; }
     protected override object? Invoke(System.Reflection.MethodInfo? targetMethod, object?[]? args)
     {
-        return channel.Run(CacheMethods[targetMethod!.Name], args);
+        if(targetMethod == null){
+            throw new ArgumentNullException($"On ModuleProxy for module{channel.Path} the targetMethod was null");
+        }
+        return channel.Run(CacheMethods[targetMethod.Name], args);
     }
 
     private IEnumerable<System.Reflection.MethodInfo> GetMethods(Type type)

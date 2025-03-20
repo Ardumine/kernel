@@ -1,7 +1,6 @@
 using Kernel.Modules.Base;
-using YDLidarSDK;
 
-namespace Ardumine.Modules.YDLidar;
+namespace Ardumine.Modules.YDLidarSDK;
 public class YDLidarImplement : BaseImplement, IYDLidar
 {
     public CYdLidar lidarClass = new CYdLidar();
@@ -17,11 +16,9 @@ public class YDLidarImplement : BaseImplement, IYDLidar
 
     public override void Start()
     {
-        //var config = SelfMod.Config!;
         Logger.LogI("Starting lidar...");
 
-        //ConnectLidar(((System.Text.Json.JsonElement)config["Port"]).ToString());
-        ConnectLidar(GetConfigValue<string>("Port")!);
+        ConnectLidar(GetConfigValue<string>("Port") ?? "Port was not found in config");
         
         Run = true;
         
@@ -34,7 +31,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
 
     public void ConnectLidar(string porta)
     {
-        YDLidarSDK.YDLidarSDK.os_init();
+        YDLidar.os_init();
         //string port = "/dev/ttyUSB0";//COM14
         int baudrate = 230400;
 
@@ -144,7 +141,8 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         for (int i = 0; i < rawScanPoints.Count; i++)
         {
             float angle = rawScanPoints[i].angle;
-            float hit = rawScanPoints[i].range; //* 100; //* 100;//1000 metros   100 dm   10 cm//em yd é em metros //em cm
+
+            float hit = rawScanPoints[i].range * 100; //* 100;//1000 metros   100 dm   10 cm//em yd é em metros //em cm
                                                       //ang_max = Math.Max(ang_max, angle);
 
 
@@ -160,6 +158,5 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         LidarDataChannel?.Set(points.ToArray());
     }
-
 
 }

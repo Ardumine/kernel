@@ -16,9 +16,9 @@ public class ModuleActivator
     /// </summary>
     /// <param name="desc"></param>
     /// <param name="path"></param>
-    internal LocalRModule CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
+    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
     {
-        var mod = new LocalRModule()
+        var mod = new LocalRModuleDescriptor()
         {
             Path = path,
             HostingKernel = localKernel.Guid,
@@ -83,7 +83,7 @@ public class ModuleActivator
     }
 
 
-    private void CreateModuleChannel(LocalRModule mod, IModuleLoadDescription desc)
+    private void CreateModuleChannel(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
     {
         CreateMethodCache(mod, desc);
 
@@ -114,7 +114,7 @@ public class ModuleActivator
             }
         }
     }
-    void CreateMethodCache(LocalRModule mod, IModuleLoadDescription desc)
+    void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
     {
         uint I = 0;
         var mets = GetMethods(desc.InterfaceType).ToArray();
@@ -151,7 +151,7 @@ public class ModuleActivator
             throw new Exception($"Cannot run FuncID: {FuncID}");
         }
 
-        return CacheMethods[Path][FuncID](impl, Params!);
+        return CacheMethods[Path][FuncID](impl, Params);
     }
 
 

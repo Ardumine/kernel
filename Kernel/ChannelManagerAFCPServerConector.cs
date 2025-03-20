@@ -3,7 +3,7 @@ namespace Kernel.AFCP;
 
 public class ChannelManagerAFCPServerConector
 {
-    public required KernelDescriptor LocalKernel { get; init; }
+    public required LocalRunningKernel LocalKernel { get; init; }
 
     private KernelManager _KernelManager;
     private AfcpServer AFCPServer;

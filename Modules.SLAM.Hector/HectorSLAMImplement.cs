@@ -1,5 +1,5 @@
 using System.Numerics;
-using Ardumine.Modules.YDLidar;
+using Ardumine.Modules.YDLidarSDK;
 using BaseSLAM;
 using HectorSLAM.Main;
 using Kernel.Modules.Base;
@@ -56,7 +56,7 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
     public override void Start()
     {
         ThreadsRunning = true;
-        lidarDataChannel?.AddChangeEvent(OnLidarData!);
+        lidarDataChannel?.AddChangeEvent(OnLidarData);
 
         var thFake = new Thread(() =>
         {
@@ -70,12 +70,18 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
         {
             Name = "Thread HectorSLAM fake pos"
         };
-        thFake.Start();
-
+        if (GetConfigValue<bool>("FakePosReport"))
+        {
+            thFake.Start();
+        }
     }
 
-    private void OnLidarData(LidarPoint[] points)
+    private void OnLidarData(LidarPoint[]? points)
     {
+        if(points == null){
+            Logger.LogW("OnLidarData.points was null");
+            return;
+        }
         ScanCloud scanCloud = new ScanCloud()
         {
             //  Pose = hectorSlam.MatchPose
@@ -121,7 +127,7 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
     {
         ThreadsRunning = false;
 
-        lidarDataChannel?.RemoveChangeEvent(OnLidarData!);
+        lidarDataChannel?.RemoveChangeEvent(OnLidarData);
         hectorSlam?.Dispose();
     }
 
