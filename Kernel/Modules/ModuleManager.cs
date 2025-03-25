@@ -1,5 +1,6 @@
 using Kernel.Modules.Base;
 using Kernel.AFCP;
+using Kernel.AFCP.KernelManagement;
 
 namespace Kernel.Modules;
 

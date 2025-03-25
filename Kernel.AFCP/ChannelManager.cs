@@ -1,10 +1,10 @@
+using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP;
 public class ChannelManager : IDisposable
 {
     private List<ChannelBase> Channels = new List<ChannelBase>();
-
     private RunningKernel LocalKernel;
 
 
@@ -40,29 +40,21 @@ public class ChannelManager : IDisposable
             throw new ChannelPathAlreadyTaken($"The path {Path} is already taken by another channel.");
         }
 
-        var channel = new DataChannelDescriptor()
-        {
-            IsLocal = true,
-            OwningKernel = LocalKernel.Guid,
-            IsDataChannel = true,
-            Path = Path,
-            OwningKernelDesc = LocalKernel
-        };
-
         var interf = new LocalDataChannelInterface<T>(this)
         {
             IsLocal = true,
             OwningKernel = LocalKernel.Guid,
             Path = Path,
-            DataChannel = channel,
             OwningKernelDesc = LocalKernel,
+            Exists = true,
+            IsDataChannel = true,
+            DataType = typeof(T).AssemblyQualifiedName!
         };
 
-        dataChannelInterfaces.Add(interf);
-        Channels.Add(channel);
+        Channels.Add(interf);
 
         //NoitifyNewChannelCreateLocally(channel);
-        return channel;
+        return interf;
     }
 
     /// <summary>
@@ -86,7 +78,9 @@ public class ChannelManager : IDisposable
             OwningKernel = LocalKernel.Guid,
             IsDataChannel = false,
             LocalTargetFunction = func,
-            OwningKernelDesc = LocalKernel
+            OwningKernelDesc = LocalKernel,
+            Exists = true,
+            DataType = "module channel no type"
         };
         channel.StartLocalEvents();
 
@@ -106,6 +100,7 @@ public class ChannelManager : IDisposable
 
     public void NoitifyChannelDataChanged(RunningKernel kernel, string channelPath, object? newVal)
     {
+        //Console.WriteLine($"NoitifyChannelDataChanged: {kernel.Guid}");
         kernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
         {
             ChannelPath = channelPath,
@@ -169,7 +164,8 @@ public class ChannelManager : IDisposable
                     IsLocal = false,
                     Path = dataChannel.Path,
                     OwningKernel = LocalKernel.Guid,
-                    IsDataChannel = true
+                    IsDataChannel = true,
+                    DataType = dataChannel.DataType
                 });
             }
             else
@@ -179,7 +175,8 @@ public class ChannelManager : IDisposable
                     IsLocal = false,
                     Path = channel.Path,
                     OwningKernel = LocalKernel.Guid,
-                    IsDataChannel = false
+                    IsDataChannel = false,
+                    DataType = "module channel no type 2"
                 });
             }
         }
@@ -204,14 +201,20 @@ public class ChannelManager : IDisposable
 
             if (channel.IsDataChannel)
             {
-                Channels.Add(new DataChannelDescriptor()
-                {
-                    IsLocal = false,
-                    Path = channel.Path,
-                    OwningKernel = RemoteKernel.Guid,
-                    IsDataChannel = true,
-                    OwningKernelDesc = RemoteKernel
-                });
+                var d1 = typeof(RemoteDataChannelInterface<>);
+                Type[] typeArgs = { Type.GetType(channel.DataType)! };
+                var makeme = d1.MakeGenericType(typeArgs);
+                DataChannelInterface ch = (DataChannelInterface)Activator.CreateInstance(makeme, [this, channel.Path])!;
+
+
+                ch.IsLocal = false;
+                ch.OwningKernel = RemoteKernel.Guid;
+                ch.IsDataChannel = true;
+                ch.OwningKernelDesc = RemoteKernel;
+                ch.Exists = true;
+                ch.DataType = channel.DataType;
+
+                Channels.Add(ch);
             }
             else
             {
@@ -221,7 +224,9 @@ public class ChannelManager : IDisposable
                     Path = channel.Path,
                     OwningKernel = RemoteKernel.Guid,
                     IsDataChannel = false,
-                    OwningKernelDesc = RemoteKernel
+                    OwningKernelDesc = RemoteKernel,
+                    Exists = true,
+                    DataType = "module channel no type 3"
                 });
             }
         }
@@ -230,7 +235,6 @@ public class ChannelManager : IDisposable
     #endregion
 
 
-    //When channel is remote, we use this functions to talk to the remote kernel.
     /// <summary>
     /// When this kernel changes the value of another's kernel channel, we must notify the channel owner of this change.
     /// </summary>
@@ -288,7 +292,7 @@ public class ChannelManager : IDisposable
 
     public object? RunFuncRemote(RunningKernel OwningKernel, string channelPath, uint FuncID, object?[]? Params)
     {
-        PacketFunctionRequest packet = new PacketFunctionRequest()
+        PacketModFuncRequest packet = new PacketModFuncRequest()
         {
             ChannelPath = channelPath,
             FuncID = FuncID,
@@ -296,67 +300,51 @@ public class ChannelManager : IDisposable
         };
 
 
-        return OwningKernel.SendRequest<PacketFunctionAnswer>(MessagesTypes.ChannelFunctionRequest, packet)?.Out;//Simulate
+        return OwningKernel.SendRequest<PacketModFuncAnswer>(MessagesTypes.ChannelFunctionRequest, packet)?.Out;//Simulate
     }
+
 
     //When a remote channel asks to change a local value
     public void SetLocalValue<T>(string channelPath, T newVal)
     {
-        GetDataChannelInterface<T>(channelPath).Set(newVal);
+        var channel = GetDataChannelInterface<T>(channelPath);
+        if (channel != null)
+        {
+            channel.Set(newVal);
+        }
+        else
+        {
+            Console.WriteLine($"Error setting local data channel value. Data Channel path: {channelPath}");
+        }
     }
     public T? GetLocalValue<T>(string channelPath)
     {
-        DataChannelInterface? dataChannel = dataChannelInterfaces.Where(inter => inter.Path == channelPath).FirstOrDefault();
+        DataChannelInterface? dataChannel = (DataChannelInterface?)Channels.Where(inter => inter.Path == channelPath && inter is DataChannelInterface).FirstOrDefault();
 
         return (T?)dataChannel?.ValueAsObj;
     }
 
-    public List<DataChannelInterface> dataChannelInterfaces = new();
-    public DataChannelInterface<T> GetDataChannelInterface<T>(string Path)
+    public DataChannelInterface<T>? GetDataChannelInterface<T>(string Path)
     {
         var dataChannel = GetDataChannelDescriptor(Path);
         if (dataChannel == null)
         {
             throw new NullReferenceException($"The data Channel with the Path {Path} was not found.");
         }
-        var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
-
-
-        if (channelInterface == null && !dataChannel.IsLocal)
-        {
-            return new RemoteDataChannelInterface<T>(this, Path)
-            {
-                IsLocal = dataChannel.IsLocal,
-                Path = Path,
-                OwningKernel = dataChannel.OwningKernel,
-                DataChannel = dataChannel,
-                OwningKernelDesc = dataChannel.OwningKernelDesc
-            };
-        }
-        return (DataChannelInterface<T>)channelInterface!;
+        var channelInterface = (DataChannelInterface<T>?)Channels.Where(inter => inter.Path == Path && inter is DataChannelInterface<T>).FirstOrDefault();
+        return channelInterface;
     }
 
-    public DataChannelInterface GetDataChannelInterface(string Path)
+    public DataChannelInterface? GetDataChannelInterface(string Path)
     {
         var dataChannel = GetDataChannelDescriptor(Path);
-          if (dataChannel == null)
+        if (dataChannel == null)
         {
             throw new NullReferenceException($"The data Channel with the Path {Path} was not found.");
         }
 
-        var channelInterface = dataChannelInterfaces.Where(inter => inter.Path == Path).FirstOrDefault();
-        if (channelInterface == null && !dataChannel.IsLocal)
-        {
-            channelInterface = new DataChannelInterface()
-            {
-                IsLocal = dataChannel.IsLocal,
-                Path = dataChannel.Path,
-                OwningKernel = dataChannel.OwningKernel,
-                DataChannel = dataChannel,
-                OwningKernelDesc = dataChannel.OwningKernelDesc
-            };
-        }
-        return channelInterface!;
+        var channelInterface = (DataChannelInterface?)Channels.Where(inter => inter.Path == Path && inter is DataChannelInterface).FirstOrDefault();
+        return channelInterface;
     }
 
 
@@ -447,6 +435,7 @@ public class ChannelManager : IDisposable
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        Channels.Clear();
+        Console.WriteLine("Channel manager dispose");
     }
 }

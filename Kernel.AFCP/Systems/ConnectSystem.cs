@@ -1,11 +1,11 @@
+using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP.Systems;
 public class ConnectSystem
 {
-    public required ChannelManager channelManager { get; init; }
     public required ChannelManagerAfcpClientConector channelManagerClient { get; set; }
-    public required KernelDescriptor LocalKernel { get; init; }
+    public required LocalRunningKernel LocalKernel { get; init; }
     public required KernelManager KernelManager { get; init; }
 
 
@@ -16,7 +16,10 @@ public class ConnectSystem
             var kernel = KernelManager.GetKernel(a.SourceKernel);
 
             if (kernel != null)
-                KernelManager.OnRemoteKernelRequestDiconnect(kernel);
+            {
+                if(kernel is RemoteRunningKernel remoteKernel)
+                    KernelManager.OnRemoteKernelRequestDiconnect(remoteKernel);
+            }
 
             return new PacketConnectAnswer()
             {

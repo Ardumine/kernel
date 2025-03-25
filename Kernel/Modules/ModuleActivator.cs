@@ -1,5 +1,6 @@
 using Kernel.AFCP;
 using Kernel.AFCP.FastMethod;
+using Kernel.AFCP.KernelManagement;
 using Kernel.Modules.Base;
 
 namespace Kernel.Modules;
@@ -8,7 +9,7 @@ public class ModuleActivator
 {
     public required ModuleManager moduleManager { get; set; }
     public required ChannelManager channelManager { get; set; }
-    public required KernelDescriptor localKernel { get; set; }
+    public required LocalRunningKernel localKernel { get; set; }
 
 
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Kernel.AFCP;
+using Kernel.AFCP.KernelManagement;
 using Kernel.Logging;
 using Kernel.Modules;
 using Kernel.Modules.Base;
@@ -13,12 +14,11 @@ internal class Program
         Thread.CurrentThread.Name = "Kernel Main Thread";
         var logger = new Logger("kernel");
 
-        var LocalKernel = KernelDescriptor.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
-        var channelManager = new ChannelManager(LocalKernel);
+        var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
+        using var channelManager = new ChannelManager(localKernel);
 
-        var KernelManager = new KernelManager()
+        var KernelManager = new KernelManager(localKernel)
         {
-            LocalKernel = LocalKernel,
             LocalChannelManager = channelManager
         };
 
@@ -27,10 +27,10 @@ internal class Program
 
         var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager)
         {
-            LocalKernel = LocalKernel
+            LocalKernel = localKernel
         };
 
-        var moduleManager = new ModuleManager(channelManager, LocalKernel);
+        var moduleManager = new ModuleManager(channelManager, localKernel);
         var moduleLoader = new ModuleLoader();
 
         var config = ConfigParser.Load("config.json");

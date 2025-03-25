@@ -1,16 +1,18 @@
 using System.Threading.Channels;
 using Kernel.AFCP.KASerializer.Atributes;
+using Kernel.AFCP.KernelManagement;
 
 
 namespace Kernel.AFCP;
-public class DataChannelInterface : ChannelBase
+public class DataChannelInterface : DataChannelDescriptor
 {
-    public required virtual DataChannelDescriptor DataChannel { get; set; }
     internal virtual void OnRemoteChange(object? NewVal)
     {
 
     }
     public virtual object? ValueAsObj { get; set; }
+
+
 
 }
 
@@ -149,10 +151,10 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        Events.Clear();
     }
 }
-public class LocalDataChannelInterface<T> : DataChannelInterface<T>
+public class LocalDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 {
 
     private ChannelManager channelManager;
@@ -179,7 +181,8 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
         if (IsLocal)
         {
             LocalValue = Data;
-            channelManager.NoitifyChannelDataChanged(DataChannel, LocalValue);
+            channelManager.NoitifyChannelDataChanged(this, LocalValue);
+            //Console.WriteLine("Notify....");
         }
         Parallel.For(0, Events.Count, (i) =>
         {
@@ -211,13 +214,21 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
             Events[i]((T?)NewVal);
         });
     }
+
+    public void Dispose()
+    {
+        Events.Clear();
+    }
 }
 
 
 public class DataChannelDescriptor : ChannelBase
 {
-
     public List<RunningKernel> KernelsToNotify = new List<RunningKernel>();
+    public DataChannelDescriptor()
+    {
+    }
+
     public void AddNotifyToKernelOnChange(RunningKernel kernel)
     {
         KernelsToNotify.Add(kernel);
@@ -227,19 +238,14 @@ public class DataChannelDescriptor : ChannelBase
     {
         KernelsToNotify.Remove(kernel);
     }
-
-
-    public DataChannelDescriptor()
-    {
-    }
-
-
-
 }
+
+
 
 public class ModuleChannelDescriptor : ChannelBase
 {
-    public ModuleChannelDescriptor() : base(){
+    public ModuleChannelDescriptor() : base()
+    {
 
     }
 }
@@ -286,12 +292,12 @@ public class ModuleChannel : ModuleChannelDescriptor
 
 public class ChannelBase : ChannelDescriptor
 {
-    //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
-    public  ChannelBase() : base() { }
-    public required RunningKernel OwningKernelDesc {get;set;}
+    public ChannelBase() : base() { OwningKernelDesc = null!;}
+    public RunningKernel OwningKernelDesc { get; internal set; }
+    public bool Exists { get; internal set; }
 }
 
-public class ChannelDescriptor()
+public class ChannelDescriptor
 {
     public required bool IsLocal { get; set; }
 
@@ -299,6 +305,7 @@ public class ChannelDescriptor()
 
     public required Guid OwningKernel { get; set; }
 
-    public bool IsDataChannel { get; set; }
+    public required bool IsDataChannel { get; set; }
+    public required string DataType { get; set; }
 
 }

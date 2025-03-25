@@ -5,18 +5,15 @@ namespace Kernel.AFCP;
 public class AfcpServer
 {
     public bool Running { get; private set; }
-
     private TcpListener tcpListener;
 
     public delegate void OnTCPClientConnectedEvent(TcpClient client);
     public event OnTCPClientConnectedEvent? OnTCPClientConnected;
 
 
-    //private ChannelManager channelManager;
     public AfcpServer(int port)
     {
         tcpListener = new(IPAddress.Any, port);
-        //channelManager = _channelManager;
     }
     public void Start()
     {

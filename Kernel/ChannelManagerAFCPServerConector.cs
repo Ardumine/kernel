@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using Kernel.AFCP.KernelManagement;
 namespace Kernel.AFCP;
 
 public class ChannelManagerAFCPServerConector

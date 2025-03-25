@@ -14,37 +14,38 @@ public class ChannelManagementSystem
         _kernelManager = kernelManager;
 
     }
-    public BasePacketAnswer Process(PacketChannelManagementRequest a)
+    public BasePacketAnswer Process(PacketChannelManagementRequest req)
     {
         //When another kernel requests to notify when a channel changes it's data.
-        if (a.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
+        if (req.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
-            var remoteKernel = _kernelManager.GetKernel(a.RequestingKernel);
+            //Console.WriteLine($"Remote kernel {req.RequestingKernel} requested add event to {req.ChannelPath}");
+            var remoteKernel = _kernelManager.GetKernel(req.RequestingKernel);
             if (remoteKernel == null)
             {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {a.RequestingKernel} is not registred");
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.RequestingKernel} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(a.ChannelPath);
+            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
 
             channel?.AddNotifyToKernelOnChange(remoteKernel);
         }
-        else if (a.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
+        else if (req.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
-            var remoteKernel = _kernelManager.GetKernel(a.RequestingKernel);
+            var remoteKernel = _kernelManager.GetKernel(req.RequestingKernel);
             if (remoteKernel == null)
             {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {a.RequestingKernel} is not registred");
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.RequestingKernel} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(a.ChannelPath);
+            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
 
             channel?.RemoveNotifyToKernelOnChange(remoteKernel);
         }
-        else if (a.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
+        else if (req.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
         {
-            //Console.WriteLine($"Event rec!!! {a.NewVal == null}");
+            //Console.WriteLine($"Event rec!!! {req.NewVal == null}");
 
             //When a remote kernel notifys when a remote channel changes it's data.
-            _channelManager.OnRemoteDataChange(a.ChannelPath, a.NewVal);
+            _channelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
         }
 
         return new PacketChannelManagementAnswer();

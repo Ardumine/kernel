@@ -1,3 +1,4 @@
+using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP;
@@ -8,13 +9,21 @@ namespace Kernel.AFCP;
 public class KernelManager
 {
     public required ChannelManager LocalChannelManager { get; set; }
-    public required LocalRunningKernel LocalKernel { get; init; }
+    public LocalRunningKernel LocalKernel { get; private set; }
 
-    private List<RunningKernel> _ConnectedKernels;
-    public KernelManager()
+    /// <summary>
+    /// Kernels that we acknowlage existing
+    /// </summary>
+    private List<RunningKernel> _ExistingKernels;
+
+    public KernelManager(LocalRunningKernel localKernel)
     {
-        _ConnectedKernels = new List<RunningKernel>();
+        LocalKernel = localKernel;
+        _ExistingKernels = new List<RunningKernel>();
+
+        _ExistingKernels.Add(LocalKernel);
     }
+
 
     /// <summary>
     /// When we want to connect to another kernel
@@ -37,23 +46,31 @@ public class KernelManager
         }
         var remoteKernelGuid = connectResponse.RemoteKernelGuid;
 
-        RunningKernel remoteKernel = new RemoteRunningKernel()
+        var remoteKernel = new RemoteRunningKernel()
         {
             Guid = remoteKernelGuid,
-            ConnectedVia = afcpClient
+            ConnectedVia = afcpClient,
+            IsLocal = false
         };
         afcpClient.RemoteKernel = remoteKernel;
 
-        _ConnectedKernels.Add(remoteKernel);
+        _ExistingKernels.Add(remoteKernel);
 
         ExchangeDataChannels(remoteKernel);
 
     }
 
-    public void Stop(){
-        foreach (var connectedKernel in _ConnectedKernels){
-            connectedKernel.RequestDisconect();
+    /// <summary>
+    /// Disconnect the kernels.
+    /// </summary>
+    public void Stop()
+    {
+        foreach (var connectedKernel in _ExistingKernels){
+            if(connectedKernel is RemoteRunningKernel remoteKernel){
+                remoteKernel.RequestDisconect();
+            }
         }
+        _ExistingKernels.Clear();
     }
 
     /// <summary>
@@ -62,18 +79,20 @@ public class KernelManager
     /// <param name="RemoteKernelGuid"></param>
     internal void OnRemoteKernelConnect(Guid RemoteKernelGuid, ChannelManagerAfcpClientConector ConnectedVia)
     {
-        RunningKernel remoteKernel = new RemoteRunningKernel()
+        var remoteKernel = new RemoteRunningKernel()
         {
             Guid = RemoteKernelGuid,
-            ConnectedVia = ConnectedVia
+            ConnectedVia = ConnectedVia,
+            IsLocal = false
+
         };
         ConnectedVia.RemoteKernel = remoteKernel;
 
-        _ConnectedKernels.Add(remoteKernel);
+        _ExistingKernels.Add(remoteKernel);
     }
 
 
-    private void ExchangeDataChannels(RunningKernel remoteKernel)
+    private void ExchangeDataChannels(RemoteRunningKernel remoteKernel)
     {
         var packetSendChannels = new PacketSyncRequest()
         {
@@ -95,34 +114,25 @@ public class KernelManager
     }
 
 
+    /// <summary>
+    /// Gets a kernel from a Guid.
+    /// </summary>
+    /// <param name="guid">The kernel guid</param>
+    /// <returns>The kernel</returns>
     public RunningKernel? GetKernel(Guid guid)
     {
-        return _ConnectedKernels.Where(kernel => kernel.Guid == guid).FirstOrDefault();
+        return _ExistingKernels.Where(kernel => kernel.Guid == guid).FirstOrDefault();
     }
-
-
-
-    /// <summary>
-    /// To disconnect another kernel from this one
-    /// </summary>
-    /// <param name="kernel"></param>
-    internal void DiconnectKernel(RunningKernel kernel)
-    {
-
-    }
-
 
     /// <summary>
     /// When a remote kernel requests to disconnect
     /// </summary>
     /// <param name="kernel"></param>
-    internal void OnRemoteKernelRequestDiconnect(RunningKernel kernel)
+    internal void OnRemoteKernelRequestDiconnect(RemoteRunningKernel kernel)
     {
         Console.WriteLine("Remote requested diconnect.");
         LocalChannelManager?.RemoveKernel(kernel);
         kernel.OnRemoteDisconnect();
 
     }
-
-
 }
