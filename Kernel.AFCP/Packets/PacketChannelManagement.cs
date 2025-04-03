@@ -4,8 +4,6 @@ public class PacketChannelManagementRequest : PacketBaseRequest
 {
     public required ChannelMessageSyncMessageTypes MsgType { get; set; }
 
-    public required Guid RequestingKernel { get; set; }
-
     public required string ChannelPath { get; set; }
 
     public object? NewVal { get; set; }

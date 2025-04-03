@@ -1,5 +1,7 @@
+using System.Net;
 using System.Net.Sockets;
 using Kernel.AFCP.KernelManagement;
+using Kernel.Logging;
 namespace Kernel.AFCP;
 
 public class ChannelManagerAFCPServerConector
@@ -9,10 +11,12 @@ public class ChannelManagerAFCPServerConector
     private KernelManager _KernelManager;
     private AfcpServer AFCPServer;
     private ChannelManager ChannelManager;
+    private Logger _logger;
 
 
-    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager)
+    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager, Logger logger)
     {
+        _logger = logger;
         this.AFCPServer = AFCPServer;
         this._KernelManager = kernelManager;
 
@@ -26,8 +30,11 @@ public class ChannelManagerAFCPServerConector
     }
     private void AFCPServer_OnTCPClientConnected(TcpClient tcpClient)
     {
-        Console.WriteLine("Client connected!");
-        var afcpClient = new AfcpTCPClient(tcpClient, "Server", 0);
-        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel, _KernelManager);
+        _logger.LogI("Client connected!");
+        var ip = ((IPEndPoint)tcpClient.Client.RemoteEndPoint!).Address.ToString();
+
+
+        var afcpClient = new AfcpTCPClient(tcpClient, "Server", 0, _logger.CreateSubLogger($"AfcpTCPClient{ip}"));
+        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel, _KernelManager, _logger.CreateSubLogger($"ChannelManagerAfcpClientConector"));
     }
 }

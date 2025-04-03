@@ -20,10 +20,10 @@ public class ChannelManagementSystem
         if (req.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
             //Console.WriteLine($"Remote kernel {req.RequestingKernel} requested add event to {req.ChannelPath}");
-            var remoteKernel = _kernelManager.GetKernel(req.RequestingKernel);
+            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
             if (remoteKernel == null)
             {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.RequestingKernel} is not registred");
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
             }
             DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
 
@@ -31,10 +31,10 @@ public class ChannelManagementSystem
         }
         else if (req.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
-            var remoteKernel = _kernelManager.GetKernel(req.RequestingKernel);
+            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
             if (remoteKernel == null)
             {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.RequestingKernel} is not registred");
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
             }
             DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
 
@@ -48,6 +48,8 @@ public class ChannelManagementSystem
             _channelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
         }
 
-        return new PacketChannelManagementAnswer();
+        return new PacketChannelManagementAnswer(){
+            RemoteKernelGuid = _kernelManager.LocalKernel.Guid
+        };
     }
 }

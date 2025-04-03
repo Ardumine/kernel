@@ -1,16 +1,19 @@
 using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
+using Kernel.Logging;
 
 namespace Kernel.AFCP;
 public class ChannelManager : IDisposable
 {
     private List<ChannelBase> Channels = new List<ChannelBase>();
     private RunningKernel LocalKernel;
+    private Logger _logger;
 
 
-    public ChannelManager(RunningKernel localKernel)
+    public ChannelManager(RunningKernel localKernel, Logger logger)
     {
         LocalKernel = localKernel;
+        _logger = logger;
     }
 
 
@@ -85,7 +88,6 @@ public class ChannelManager : IDisposable
         channel.StartLocalEvents();
 
         Channels.Add(channel);
-        //NoitifyNewChannelCreateLocally(channel);
     }
 
 
@@ -100,13 +102,12 @@ public class ChannelManager : IDisposable
 
     public void NoitifyChannelDataChanged(RunningKernel kernel, string channelPath, object? newVal)
     {
-        //Console.WriteLine($"NoitifyChannelDataChanged: {kernel.Guid}");
         kernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, new PacketChannelManagementRequest()
         {
             ChannelPath = channelPath,
             MsgType = ChannelMessageSyncMessageTypes.ChannelDataChange,
             NewVal = newVal,
-            RequestingKernel = LocalKernel.Guid
+            SourceKernelGuid = LocalKernel.Guid
         });
     }
 
@@ -247,7 +248,8 @@ public class ChannelManager : IDisposable
         {
             WriteData = true,
             channelPath = channelPath,
-            Val = newVal
+            Val = newVal,
+            SourceKernelGuid = LocalKernel.Guid
         };
 
         OwningKernel.SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
@@ -258,7 +260,7 @@ public class ChannelManager : IDisposable
         {
             MsgType = ChannelMessageSyncMessageTypes.AddEventChannel,
             ChannelPath = channelPath,
-            RequestingKernel = LocalKernel.Guid
+            SourceKernelGuid = LocalKernel.Guid
         };
 
 
@@ -270,7 +272,7 @@ public class ChannelManager : IDisposable
         {
             MsgType = ChannelMessageSyncMessageTypes.RemoveEventChannel,
             ChannelPath = channelPath,
-            RequestingKernel = LocalKernel.Guid
+            SourceKernelGuid = LocalKernel.Guid
         };
 
         OwningKernel.SendRequest<PacketChannelManagementAnswer>(MessagesTypes.ChannelManagementRequest, packet);
@@ -283,6 +285,7 @@ public class ChannelManager : IDisposable
         {
             WriteData = false,
             channelPath = channelPath,
+            SourceKernelGuid = LocalKernel.Guid
         };
 
         var res = OwningKernel.SendRequest<PacketChannelAnswer>(MessagesTypes.ChannelDataRequest, packet);
@@ -297,6 +300,7 @@ public class ChannelManager : IDisposable
             ChannelPath = channelPath,
             FuncID = FuncID,
             Params = Params,
+            SourceKernelGuid = LocalKernel.Guid
         };
 
 
@@ -314,7 +318,7 @@ public class ChannelManager : IDisposable
         }
         else
         {
-            Console.WriteLine($"Error setting local data channel value. Data Channel path: {channelPath}");
+            _logger.LogE($"Error setting local data channel value. Data Channel path: {channelPath}");
         }
     }
     public T? GetLocalValue<T>(string channelPath)
@@ -436,6 +440,5 @@ public class ChannelManager : IDisposable
     public void Dispose()
     {
         Channels.Clear();
-        Console.WriteLine("Channel manager dispose");
     }
 }

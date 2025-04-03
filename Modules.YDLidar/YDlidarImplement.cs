@@ -107,7 +107,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         else
         {
-            Logger.LogW("error:" + lidarClass.DescribeError());
+            Logger.LogE("error:" + lidarClass.DescribeError());
         }
 
     }

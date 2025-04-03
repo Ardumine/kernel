@@ -78,6 +78,10 @@ public class DataWritter: IDisposable
         {
             if(stream.CanWrite)
                 stream.Write(buffer, 0, read);
+            else{
+                Console.WriteLine("DataWritter.Copy stream.CanWrite = false");
+                break;
+            }
         }
 
 

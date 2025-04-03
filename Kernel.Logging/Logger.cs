@@ -13,7 +13,7 @@ public class Logger
     {
         return DateTime.UtcNow.ToShortTimeString();
     }
-    public void LogI(string dado)
+    public void LogI(string msg)
     {
         var ant = Console.BackgroundColor;
         var antx = Console.ForegroundColor;
@@ -21,14 +21,17 @@ public class Logger
         Console.ForegroundColor = ConsoleColor.Cyan;
         //Console.ForegroundColor = ConsoleColor.Black;
 
-        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
+        Console.Write("I");
+        PrintHeader();
+        Console.WriteLine(msg);
+
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
 
     }
 
-    public void LogOK(string dado)
+    public void LogOK(string msg)
     {
         var ant = Console.BackgroundColor;
         var antx = Console.ForegroundColor;
@@ -36,14 +39,17 @@ public class Logger
         Console.ForegroundColor = ConsoleColor.Green;
         //Console.ForegroundColor = ConsoleColor.Black;
 
-        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
+        Console.Write("O");
+        PrintHeader();
+        Console.WriteLine(msg);
+
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
 
     }
 
-    public void LogW(string dado)
+    public void LogW(string msg)
     {
         var ant = Console.BackgroundColor;
         var antx = Console.ForegroundColor;
@@ -51,7 +57,23 @@ public class Logger
         Console.ForegroundColor = ConsoleColor.Yellow;
         //Console.ForegroundColor = ConsoleColor.Black;
 
-        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
+        Console.Write("W");
+        PrintHeader();
+        Console.WriteLine(msg); Console.BackgroundColor = ant;
+        Console.ForegroundColor = antx;
+    }
+
+    public void LogE(string msg)
+    {
+        var ant = Console.BackgroundColor;
+        var antx = Console.ForegroundColor;
+
+        Console.ForegroundColor = ConsoleColor.Red;
+        //Console.ForegroundColor = ConsoleColor.Black;
+
+        Console.Write("E");
+        PrintHeader();
+        Console.WriteLine(msg);
         Console.BackgroundColor = ant;
         Console.ForegroundColor = antx;
 
@@ -92,8 +114,21 @@ public class Logger
         //Console.CursorLeft = 0;
     }
 
+    public Logger CreateSubLogger(string subName)
+    {
+        return new Logger($"{Name}.{subName}");
+    }
+    private void PrintHeader()
+    {
+        var ant = Console.BackgroundColor;
+        var antx = Console.ForegroundColor;
 
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write($"[{GetTime()} {Name}] ");//DateTime.UtcNow
+        Console.BackgroundColor = ant;
+        Console.ForegroundColor = antx;
 
+    }
 
 }
 public class LogIterator<T> : IEnumerable<T>
@@ -109,7 +144,7 @@ public class LogIterator<T> : IEnumerable<T>
     }
     public IEnumerator<T> GetEnumerator()
     {
-        
+
         int i = 0;
         foreach (var item in list)
         {
@@ -119,7 +154,7 @@ public class LogIterator<T> : IEnumerable<T>
             yield return item;
             i++;
         }
-        
+
         Console.WriteLine("");
 
 

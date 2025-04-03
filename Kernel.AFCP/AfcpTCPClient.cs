@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using Kernel.AFCP.DataTreatment;
+using Kernel.Logging;
 
 namespace Kernel.AFCP;
 
@@ -24,13 +25,16 @@ public class AfcpTCPClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    public AfcpTCPClient()
+    private Logger _logger;
+    public AfcpTCPClient(Logger logger)
     {
-
+        _logger = logger;
     }
 
-    public AfcpTCPClient(TcpClient client, string IP, int Port)
+    public AfcpTCPClient(TcpClient client, string IP, int Port, Logger logger)
     {
+        _logger = logger;
+
         TcpClient = client;
         TCPClientstream = TcpClient.GetStream();
         Running = true;
@@ -92,7 +96,7 @@ public class AfcpTCPClient : IDisposable
             OnNewData.Reset();
             OnNewData.WaitOne(new TimeSpan(0, 0, 5));//In case stuck, just reloop in 5 secs
         }
-        Console.WriteLine("Exit Write");
+        _logger.LogI("Exit handleTCPClientWrite");
     }
 
     private void handleTCPClientRead()
@@ -130,7 +134,7 @@ public class AfcpTCPClient : IDisposable
             }
 
         }
-        Console.WriteLine("exit read");
+        _logger.LogI("exit handleTCPClientRead");
 
     }
     public void OnDisconnect(DisconnectReason reason)

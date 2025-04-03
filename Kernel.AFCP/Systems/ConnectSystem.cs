@@ -9,11 +9,11 @@ public class ConnectSystem
     public required KernelManager KernelManager { get; init; }
 
 
-    public BasePacketAnswer Process(PacketConnectRequest a)
+    public BasePacketAnswer Process(PacketConnectRequest connectPacket)
     {
-        if (a.Disconnect)
+        if (connectPacket.Disconnect)
         {
-            var kernel = KernelManager.GetKernel(a.SourceKernel);
+            var kernel = KernelManager.GetKernel(connectPacket.SourceKernelGuid);
 
             if (kernel != null)
             {
@@ -28,7 +28,7 @@ public class ConnectSystem
         }
         else
         {
-            KernelManager.OnRemoteKernelConnect(a.SourceKernel, channelManagerClient);
+            KernelManager.OnRemoteKernelConnect(connectPacket.SourceKernelGuid, channelManagerClient);
 
 
             //When a remote kernel connects to us 

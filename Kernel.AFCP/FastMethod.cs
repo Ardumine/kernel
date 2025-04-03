@@ -6,7 +6,8 @@ namespace Kernel.AFCP.FastMethod;
 public delegate object ReturnValueDelegate(object instance, object?[]? arguments);
 public delegate void VoidDelegate(object instance, object?[]? arguments);
 
-
+//https://stackoverflow.com/questions/10313979/methodinfo-invoke-performance-issue
+//Finally found the source of this code
 public class FastMethodInfo
 {
     public FastMethodInfo(MethodInfo methodInfo)

@@ -12,12 +12,12 @@ internal class Program
     {
         Console.Title = "Starting...";
         Thread.CurrentThread.Name = "Kernel Main Thread";
-        var logger = new Logger("kernel");
+        var logger = new Logger("Kernel");
 
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
-        using var channelManager = new ChannelManager(localKernel);
+        using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
 
-        var KernelManager = new KernelManager(localKernel)
+        var KernelManager = new KernelManager(localKernel, logger.CreateSubLogger("KernelManager")) 
         {
             LocalChannelManager = channelManager
         };
@@ -25,12 +25,12 @@ internal class Program
         //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager)
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
         {
             LocalKernel = localKernel
         };
 
-        var moduleManager = new ModuleManager(channelManager, localKernel);
+        var moduleManager = new ModuleManager(channelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
         var moduleLoader = new ModuleLoader();
 
         var config = ConfigParser.Load("config.json");

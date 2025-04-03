@@ -4,6 +4,7 @@ using Kernel.AFCP.DataTreatment;
 using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
 using Kernel.AFCP.Systems;
+using Kernel.Logging;
 
 namespace Kernel.AFCP;
 
@@ -24,19 +25,24 @@ public class ChannelManagerAfcpClientConector
 
     private bool Running { get; set; } = false;
 
+    private Logger _logger;
+
     //Are we a server?
-    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager)
+    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, Logger logger)
     {
+        _logger = logger;
         _afcpClient = client;
         LocalChannelManager = _localChannelManager;
+
+        LocalKernel = _LocalKernel;
+        KernelManager = _KernelManager;
+
+
         _Serializer = new();
 
 
         _afcpClient.OnDataRec += OnDataRec;
         _afcpClient.OnClientDisconnect += OnDisconnect;
-
-        LocalKernel = _LocalKernel;
-        KernelManager = _KernelManager;
 
         _channelManagementSystem = new ChannelManagementSystem(LocalChannelManager, KernelManager);
         _connectSystem = new()
@@ -49,19 +55,22 @@ public class ChannelManagerAfcpClientConector
     }
 
     //Are we a client?
-    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager)
+    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, Logger logger)
     {
+        _logger = logger;
         LocalChannelManager = _localChannelManager;
+        LocalKernel = _LocalKernel;
+        KernelManager = _KernelManager;
+
         _Serializer = new();
-        _afcpClient = new AfcpTCPClient();
+        _afcpClient = new AfcpTCPClient(_logger.CreateSubLogger("AfcpTCPClient"));
         _afcpClient.Connect(IP, Port);
 
 
         _afcpClient.OnDataRec += OnDataRec;
         _afcpClient.OnClientDisconnect += OnDisconnect;
 
-        LocalKernel = _LocalKernel;
-        KernelManager = _KernelManager;
+
 
         _channelManagementSystem = new ChannelManagementSystem(LocalChannelManager, KernelManager);
         _connectSystem = new()
@@ -83,7 +92,7 @@ public class ChannelManagerAfcpClientConector
     {
         var connectResponse = SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
-            SourceKernel = LocalKernel.Guid,
+            SourceKernelGuid = LocalKernel.Guid,
             Disconnect = true
         });
 
@@ -252,7 +261,7 @@ public class ChannelManagerAfcpClientConector
         var packet = new PacketSyncAnswer()
         {
             RemoteHostingChannels = LocalChannelManager.GetLocalChannelDescriptors(),
-            RemoteGuid = LocalKernel.Guid
+            RemoteKernelGuid = LocalKernel.Guid
         };
 
 
@@ -264,7 +273,8 @@ public class ChannelManagerAfcpClientConector
     {
         var answer = new PacketChannelAnswer()
         {
-            Result = 0
+            Result = 0,
+            RemoteKernelGuid = LocalKernel.Guid
         };
         string channelPath = data.channelPath;
 
@@ -285,7 +295,10 @@ public class ChannelManagerAfcpClientConector
 
     private BasePacketAnswer ProcessFunctionRequestPacket(PacketModFuncRequest data)
     {
-        var answer = new PacketModFuncAnswer();
+        var answer = new PacketModFuncAnswer()
+        {
+            RemoteKernelGuid = LocalKernel.Guid
+        };
         string channelPath = data.ChannelPath;
         var funcOut = LocalChannelManager.RunLocalFunc(channelPath, data.FuncID, data.Params);
         answer.Out = funcOut;

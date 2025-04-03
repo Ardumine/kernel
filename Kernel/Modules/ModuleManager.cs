@@ -1,6 +1,7 @@
 using Kernel.Modules.Base;
 using Kernel.AFCP;
 using Kernel.AFCP.KernelManagement;
+using Kernel.Logging;
 
 namespace Kernel.Modules;
 
@@ -9,9 +10,11 @@ public class ModuleManager
     internal List<LocalRModuleDescriptor> LocalRModules = new List<LocalRModuleDescriptor>();
     private ChannelManager channelManager;
     private ModuleActivator moduleActivator { get; set; }
+    private Logger _logger;
 
-    public ModuleManager(ChannelManager _channelManager, LocalRunningKernel localKernel)
+    public ModuleManager(ChannelManager _channelManager, LocalRunningKernel localKernel, Logger logger)
     {
+        _logger = logger;
         channelManager = _channelManager;
 
         moduleActivator = new()
@@ -172,7 +175,7 @@ public class ModuleManager
             var mod = (LocalRModuleDescriptor)_mod;
             if (mod.Running == true)
             {
-                Console.WriteLine($"Stop: {mod.Path}");
+                _logger.LogI($"Stoping '{mod.Path}'");
                 var impl = GetLocalImplement(mod);
                 impl?.EndStop();
                 mod.Running = false;

@@ -1,5 +1,6 @@
 using Kernel.AFCP.KernelManagement;
 using Kernel.AFCP.Packets;
+using Kernel.Logging;
 
 namespace Kernel.AFCP;
 
@@ -15,10 +16,11 @@ public class KernelManager
     /// Kernels that we acknowlage existing
     /// </summary>
     private List<RunningKernel> _ExistingKernels;
-
-    public KernelManager(LocalRunningKernel localKernel)
+    private Logger _logger;
+    public KernelManager(LocalRunningKernel localKernel, Logger logger)
     {
         LocalKernel = localKernel;
+        _logger = logger;
         _ExistingKernels = new List<RunningKernel>();
 
         _ExistingKernels.Add(LocalKernel);
@@ -32,11 +34,11 @@ public class KernelManager
     /// <param name="port">The port of the remote kernel</param>
     public void Join(string IPAddress, int port)
     {
-        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, LocalChannelManager, LocalKernel, this);
+        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, LocalChannelManager, LocalKernel, this, _logger.CreateSubLogger("ChannelManagerAfcpClientConector"));
 
         var connectResponse = afcpClient.SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
-            SourceKernel = LocalKernel.Guid,
+            SourceKernelGuid = LocalKernel.Guid,
             Disconnect = false
         });
 
@@ -56,7 +58,7 @@ public class KernelManager
 
         _ExistingKernels.Add(remoteKernel);
 
-        ExchangeDataChannels(remoteKernel);
+        ExchangeChannels(remoteKernel);
 
     }
 
@@ -91,8 +93,12 @@ public class KernelManager
         _ExistingKernels.Add(remoteKernel);
     }
 
-
-    private void ExchangeDataChannels(RemoteRunningKernel remoteKernel)
+    /// <summary>
+    /// Send our channels that we are hosting to the remote kernel. THe remote kernel will return with the list of then remote kernel's hosting channels 
+    /// </summary>
+    /// <param name="remoteKernel"></param>
+    /// <exception cref="NullReferenceException"></exception>
+    private void ExchangeChannels(RemoteRunningKernel remoteKernel)
     {
         var packetSendChannels = new PacketSyncRequest()
         {
@@ -130,7 +136,7 @@ public class KernelManager
     /// <param name="kernel"></param>
     internal void OnRemoteKernelRequestDiconnect(RemoteRunningKernel kernel)
     {
-        Console.WriteLine("Remote requested diconnect.");
+        _logger.LogI($"Kernel {kernel} requested to diconnect");
         LocalChannelManager?.RemoveKernel(kernel);
         kernel.OnRemoteDisconnect();
 

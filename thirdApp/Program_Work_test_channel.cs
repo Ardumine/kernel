@@ -2,6 +2,7 @@ using System.Numerics;
 using Ardumine.Modules.Module1;
 using Kernel.AFCP;
 using Kernel.AFCP.KernelManagement;
+using Kernel.Logging;
 using Kernel.Modules;
 
 internal class Program
@@ -9,18 +10,19 @@ internal class Program
     private static void Main(string[] args)
     {
         Console.WriteLine("Start!");
-
+        var logger = new Logger("Main");
+        
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("6c9a24e1-cf5b-40cd-bd05-f451ab539c63");
 
-        var channelManager = new ChannelManager(localKernel);
+        var channelManager = new ChannelManager(localKernel, logger);
 
-        var KernelManager = new KernelManager(localKernel)
+        var KernelManager = new KernelManager(localKernel, logger)
         {
             LocalChannelManager = channelManager
         };
 
 
-        var moduleManager = new ModuleManager(channelManager, localKernel);
+        var moduleManager = new ModuleManager(channelManager, localKernel, logger);
 
         Console.WriteLine("Connecting...");
         KernelManager.Join("127.0.0.1", 8000);
