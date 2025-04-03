@@ -11,10 +11,10 @@ public class ChannelManagerAFCPServerConector
     private KernelManager _KernelManager;
     private AfcpServer AFCPServer;
     private ChannelManager ChannelManager;
-    private Logger _logger;
+    private ILogger _logger;
 
 
-    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager, Logger logger)
+    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager, ILogger logger)
     {
         _logger = logger;
         this.AFCPServer = AFCPServer;

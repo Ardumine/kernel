@@ -12,7 +12,7 @@ internal class Program
     {
         Console.Title = "Starting...";
         Thread.CurrentThread.Name = "Kernel Main Thread";
-        var logger = new Logger("Kernel");
+        ILogger logger = new ConsoleLogger("Kernel");
 
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
         using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
@@ -70,8 +70,8 @@ internal class Program
         Console.ReadLine();//Wait for stop signal
 
 
-        logger.Space();
-        logger.LogI("Stop");
+        logger.NewLine();
+        logger.LogI("Stoping...");
 
         moduleManager.StopModulesViaTree();
         AFCPServer.Stop();

@@ -7,10 +7,10 @@ public class ChannelManager : IDisposable
 {
     private List<ChannelBase> Channels = new List<ChannelBase>();
     private RunningKernel LocalKernel;
-    private Logger _logger;
+    private ILogger _logger;
 
 
-    public ChannelManager(RunningKernel localKernel, Logger logger)
+    public ChannelManager(RunningKernel localKernel, ILogger logger)
     {
         LocalKernel = localKernel;
         _logger = logger;

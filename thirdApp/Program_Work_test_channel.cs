@@ -10,7 +10,7 @@ internal class Program
     private static void Main(string[] args)
     {
         Console.WriteLine("Start!");
-        var logger = new Logger("Main");
+        var logger = new ConsoleLogger("Main");
         
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("6c9a24e1-cf5b-40cd-bd05-f451ab539c63");
 

@@ -136,7 +136,7 @@ public class ModuleActivator
             throw new Exception($"Error to create implement type for the module '{desc.Name}', path '{ModulePath}'. Implement object was null.");
         }
 
-        impl.Logger = new Logging.Logger($"{ModulePath}");
+        impl.logger = new Logging.ConsoleLogger($"{ModulePath}");
 
         return impl;
     }

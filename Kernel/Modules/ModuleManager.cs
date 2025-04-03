@@ -10,9 +10,9 @@ public class ModuleManager
     internal List<LocalRModuleDescriptor> LocalRModules = new List<LocalRModuleDescriptor>();
     private ChannelManager channelManager;
     private ModuleActivator moduleActivator { get; set; }
-    private Logger _logger;
+    private ILogger _logger;
 
-    public ModuleManager(ChannelManager _channelManager, LocalRunningKernel localKernel, Logger logger)
+    public ModuleManager(ChannelManager _channelManager, LocalRunningKernel localKernel, ILogger logger)
     {
         _logger = logger;
         channelManager = _channelManager;
@@ -175,7 +175,7 @@ public class ModuleManager
             var mod = (LocalRModuleDescriptor)_mod;
             if (mod.Running == true)
             {
-                _logger.LogI($"Stoping '{mod.Path}'");
+                _logger.LogI($"Stoping '{mod.Path}'...");
                 var impl = GetLocalImplement(mod);
                 impl?.EndStop();
                 mod.Running = false;

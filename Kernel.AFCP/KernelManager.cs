@@ -16,8 +16,8 @@ public class KernelManager
     /// Kernels that we acknowlage existing
     /// </summary>
     private List<RunningKernel> _ExistingKernels;
-    private Logger _logger;
-    public KernelManager(LocalRunningKernel localKernel, Logger logger)
+    private ILogger _logger;
+    public KernelManager(LocalRunningKernel localKernel, ILogger logger)
     {
         LocalKernel = localKernel;
         _logger = logger;

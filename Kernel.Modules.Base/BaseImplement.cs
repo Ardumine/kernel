@@ -1,10 +1,9 @@
-using System.Text.Json;
 using Kernel.Logging;
 namespace Kernel.Modules.Base;
 
 public abstract class BaseImplement
 {
-    public required Logger Logger { get; set; }
+    public required ILogger logger { get; set; }
     public required IMKConector MKConector { get; set; }
     public required IModuleConfigManager ConfigManager { get; set; }
 
@@ -13,7 +12,7 @@ public abstract class BaseImplement
     public abstract void Start();
     public abstract void EndStop();
 
-    public IExistingDataChannelDescriptor? GetDataChannel(string Path)
+    public IExistingDataChannelDescriptor? GetDataChannelDescriptor(string Path)
     {
         return MKConector.GetDataChannel(Path);
     }
@@ -31,7 +30,7 @@ public abstract class BaseImplement
     }
 
     public T? GetConfigValue<T>(string name){
-        var val = ConfigManager.GetConfigValue<T>(name);//
+        var val = ConfigManager.GetConfigValue<T>(name);
         
         return val;
     }

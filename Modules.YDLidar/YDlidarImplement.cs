@@ -16,7 +16,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
 
     public override void Start()
     {
-        Logger.LogI("Starting lidar...");
+        logger.LogI("Starting lidar...");
 
         ConnectLidar(GetConfigValue<string>("Port") ?? "Port was not found in config");
         
@@ -107,7 +107,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         else
         {
-            Logger.LogE("error:" + lidarClass.DescribeError());
+            logger.LogE("error:" + lidarClass.DescribeError());
         }
 
     }
@@ -130,7 +130,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         if (Run)
         {
-            Logger.LogW("The YDLidar loop stopped and there was no instruction to stop.");
+            logger.LogW("The YDLidar loop stopped and there was no instruction to stop.");
         }
     }
     void ProcessScan(LaserScan scan)

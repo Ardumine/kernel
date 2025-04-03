@@ -25,13 +25,13 @@ public class AfcpTCPClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    private Logger _logger;
-    public AfcpTCPClient(Logger logger)
+    private ILogger _logger;
+    public AfcpTCPClient(ILogger logger)
     {
         _logger = logger;
     }
 
-    public AfcpTCPClient(TcpClient client, string IP, int Port, Logger logger)
+    public AfcpTCPClient(TcpClient client, string IP, int Port, ILogger logger)
     {
         _logger = logger;
 

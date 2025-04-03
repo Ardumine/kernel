@@ -25,10 +25,10 @@ public class ChannelManagerAfcpClientConector
 
     private bool Running { get; set; } = false;
 
-    private Logger _logger;
+    private ILogger _logger;
 
     //Are we a server?
-    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, Logger logger)
+    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
     {
         _logger = logger;
         _afcpClient = client;
@@ -55,7 +55,7 @@ public class ChannelManagerAfcpClientConector
     }
 
     //Are we a client?
-    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, Logger logger)
+    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
     {
         _logger = logger;
         LocalChannelManager = _localChannelManager;

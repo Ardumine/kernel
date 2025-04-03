@@ -62,7 +62,7 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
         {
             while (ThreadsRunning)
             {
-                Logger.LogI("Created fake data!");
+                logger.LogI("Created fake data!");
                 posChannel?.Set(new Vector3(2, 5, 90));
                 Thread.Sleep(1000);
             }
@@ -79,7 +79,7 @@ public class HectorSLAMImplement : BaseImplement, IHectorSLAM
     private void OnLidarData(LidarPoint[]? points)
     {
         if(points == null){
-            Logger.LogW("OnLidarData.points was null");
+            logger.LogW("OnLidarData.points was null");
             return;
         }
         ScanCloud scanCloud = new ScanCloud()
