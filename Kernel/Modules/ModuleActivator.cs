@@ -5,11 +5,8 @@ using Kernel.Modules.Base;
 
 namespace Kernel.Modules;
 
-public class ModuleActivator
+public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
 {
-    public required ModuleManager moduleManager { get; set; }
-    public required ChannelManager channelManager { get; set; }
-    public required LocalRunningKernel localKernel { get; set; }
 
 
     /// <summary>
@@ -22,7 +19,7 @@ public class ModuleActivator
         var mod = new LocalRModuleDescriptor()
         {
             Path = path,
-            HostingKernel = localKernel.Guid,
+            HostingKernel = _localKernel.Guid,
             IsLocal = true,
             ModuleLoadDescription = desc,
             Implementation = CreateLocalModImplement(desc, path)
@@ -32,8 +29,9 @@ public class ModuleActivator
         mod.CallReceiver = new MKConectorCallReceiver()
         {
             WorkingModule = mod,
-            channelManager = channelManager,
-            moduleManager = moduleManager
+            channelManager = _channelManager,
+            moduleManager = _moduleManager,
+            dataChannelManager = _dataChannelManager
         };
         mod.Implementation.ConfigManager = new ModuleConfigManager(){
             moduleConfig = moduleStartupConfig.Config
@@ -74,7 +72,7 @@ public class ModuleActivator
 
         //Create the module channel
         CreateModuleChannel(mod, desc);
-        mod.ModuleChannel = channelManager.GetModuleChannel(mod.Path);
+        mod.ModuleChannel = _channelManager.GetModuleChannel(mod.Path);
 
         //Config
         mod.StartAfter = moduleStartupConfig.startAfter;
@@ -88,7 +86,7 @@ public class ModuleActivator
     {
         CreateMethodCache(mod, desc);
 
-        channelManager.CreateLocalModuleChannel(mod.Path, (fID, Params) =>
+        _channelManager.CreateLocalModuleChannel(mod.Path, (fID, Params) =>
         {
             return RunFuncLocal(mod.Path, fID, Params);
         });
@@ -146,7 +144,7 @@ public class ModuleActivator
 
     private object? RunFuncLocal(string Path, uint FuncID, object?[]? Params)
     {
-        var impl = moduleManager.GetLocalImplement(Path);
+        var impl = _moduleManager.GetLocalImplement(Path);
 
         if(impl == null){
             throw new Exception($"Cannot run FuncID: {FuncID}");

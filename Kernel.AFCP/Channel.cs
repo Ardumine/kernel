@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using Kernel.AFCP.KASerializer.Atributes;
 using Kernel.AFCP.KernelManagement;
 
@@ -60,17 +59,17 @@ public abstract class DataChannelInterface<T> : DataChannelInterface
 
 public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 {
-    private ChannelManager channelManager;
-    public RemoteDataChannelInterface(ChannelManager channelManager_, string path_)
+    private DataChannelManager _dataChannelManager;
+    public RemoteDataChannelInterface(DataChannelManager dataChannelManager, string path_)
     {
         Path = path_;
-        channelManager = channelManager_;
+        _dataChannelManager = dataChannelManager;
         Init();
     }
     public void Init()
     {
         //Add event on channel run
-        channelManager.AddEventRemoteDataChange(Path, (s, e) =>
+        _dataChannelManager.AddEventRemoteDataChange(Path, (s, e) =>
         {
             Parallel.For(0, Events.Count, (i) =>
             {
@@ -93,7 +92,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
             if (!IsLocal)
             {
                 //Console.WriteLine("Add notify!");
-                channelManager.AddEventRemote(OwningKernelDesc, Path);
+                _dataChannelManager.AddEventRemote(OwningKernelDesc, Path);
             }
         }
         Events.Add(evente);
@@ -105,7 +104,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
         {
             if (!IsLocal)
             {
-                channelManager.RemoveEventRemote(OwningKernelDesc, Path);
+                _dataChannelManager.RemoveEventRemote(OwningKernelDesc, Path);
             }
         }
 
@@ -115,7 +114,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            channelManager.SetValueRemote(OwningKernelDesc, Path, Data);
+            _dataChannelManager.SetValueRemote(OwningKernelDesc, Path, Data);
         }
 
         Parallel.For(0, Events.Count, (i) =>
@@ -128,7 +127,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            return channelManager.GetValueRemote<T>(OwningKernelDesc, Path);
+            return _dataChannelManager.GetValueRemote<T>(OwningKernelDesc, Path);
         }
         //DONT REMOVE THIS. IF YOU GET HIS THEN YOU ARE DOING SOMETHING WRONG
         throw new NotImplementedException();
@@ -156,11 +155,10 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
 }
 public class LocalDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 {
-
-    private ChannelManager channelManager;
-    public LocalDataChannelInterface(ChannelManager channelManager_)
+    private DataChannelManager _dataChannelManager;
+    public LocalDataChannelInterface(DataChannelManager dataChannelManager)
     {
-        channelManager = channelManager_;
+        _dataChannelManager = dataChannelManager;
     }
 
     private T? LocalValue;
@@ -181,7 +179,7 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
         if (IsLocal)
         {
             LocalValue = Data;
-            channelManager.NoitifyChannelDataChanged(this, LocalValue);
+            _dataChannelManager.NoitifyChannelDataChanged(this, LocalValue);
             //Console.WriteLine("Notify....");
         }
         Parallel.For(0, Events.Count, (i) =>
@@ -222,7 +220,7 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 }
 
 
-public class DataChannelDescriptor : ChannelBase
+public class DataChannelDescriptor : ExistingChannel
 {
     public List<RunningKernel> KernelsToNotify = new List<RunningKernel>();
     public DataChannelDescriptor()
@@ -242,7 +240,7 @@ public class DataChannelDescriptor : ChannelBase
 
 
 
-public class ModuleChannelDescriptor : ChannelBase
+public class ModuleChannelDescriptor : ExistingChannel
 {
     public ModuleChannelDescriptor() : base()
     {
@@ -290,9 +288,9 @@ public class ModuleChannel : ModuleChannelDescriptor
 
 }
 
-public class ChannelBase : ChannelDescriptor
+public class ExistingChannel : ChannelDescriptor
 {
-    public ChannelBase() : base() { OwningKernelDesc = null!;}
+    public ExistingChannel() : base() { OwningKernelDesc = null!;}
     public RunningKernel OwningKernelDesc { get; internal set; }
     public bool Exists { get; internal set; }
 }

@@ -8,27 +8,25 @@ namespace Kernel.Modules;
 public class ModuleManager
 {
     internal List<LocalRModuleDescriptor> LocalRModules = new List<LocalRModuleDescriptor>();
-    private ChannelManager channelManager;
-    private ModuleActivator moduleActivator { get; set; }
+    private ChannelManager _channelManager;
+    private ModuleActivator _moduleActivator;
+    private DataChannelManager _dataChannelManager;
+
     private ILogger _logger;
 
-    public ModuleManager(ChannelManager _channelManager, LocalRunningKernel localKernel, ILogger logger)
+    public ModuleManager(ChannelManager channelManager, DataChannelManager dataChannelManager, LocalRunningKernel localKernel, ILogger logger)
     {
+        _channelManager = channelManager;
         _logger = logger;
-        channelManager = _channelManager;
+        _dataChannelManager = dataChannelManager;
 
-        moduleActivator = new()
-        {
-            channelManager = channelManager,
-            moduleManager = this,
-            localKernel = localKernel,
-        };
+        _moduleActivator = new(this, _channelManager,_dataChannelManager, localKernel);
     }
 
 
     internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)
     {
-        var rMod = moduleActivator.CreateLocalModuleInstance(desc, path, ModuleConfig);
+        var rMod = _moduleActivator.CreateLocalModuleInstance(desc, path, ModuleConfig);
         LocalRModules.Add(rMod);
         return rMod;
     }
@@ -137,7 +135,7 @@ public class ModuleManager
     /// <exception cref="NullReferenceException">If the Path of the Module is not found, then thrown.</exception>
     public T GetModuleInterface<T>(string Path) where T : class, IModuleInterface
     {
-        var channel = channelManager.GetModuleChannel(Path);
+        var channel = _channelManager.GetModuleChannel(Path);
         if (channel == null)
         {
             throw new NullReferenceException($"The module with the Path {Path} was not found.");

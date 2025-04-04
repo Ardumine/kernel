@@ -9,24 +9,27 @@ public class ChannelManagerAFCPServerConector
     public required LocalRunningKernel LocalKernel { get; init; }
 
     private KernelManager _KernelManager;
-    private AfcpServer AFCPServer;
-    private ChannelManager ChannelManager;
+    private AfcpServer _AfcpServer;
+    private ChannelManager _channelManager;
+    private DataChannelManager _dataChannelManager;
+
     private ILogger _logger;
 
 
-    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager, ILogger logger)
+    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, DataChannelManager dataChannelManager, KernelManager kernelManager, ILogger logger)
     {
         _logger = logger;
-        this.AFCPServer = AFCPServer;
-        this._KernelManager = kernelManager;
+        _dataChannelManager = dataChannelManager;
+        _AfcpServer = AFCPServer;
+        _KernelManager = kernelManager;
 
-        ChannelManager = channelManager;
+        _channelManager = channelManager;
 
         Init();
     }
     private void Init()
     {
-        AFCPServer.OnTCPClientConnected += AFCPServer_OnTCPClientConnected;
+        _AfcpServer.OnTCPClientConnected += AFCPServer_OnTCPClientConnected;
     }
     private void AFCPServer_OnTCPClientConnected(TcpClient tcpClient)
     {
@@ -35,6 +38,6 @@ public class ChannelManagerAFCPServerConector
 
 
         var afcpClient = new AfcpTCPClient(tcpClient, "Server", 0, _logger.CreateSubLogger($"AfcpTCPClient{ip}"));
-        var client = new ChannelManagerAfcpClientConector(afcpClient, ChannelManager, LocalKernel, _KernelManager, _logger.CreateSubLogger($"ChannelManagerAfcpClientConector"));
+        var client = new ChannelManagerAfcpClientConector(afcpClient, _channelManager, _dataChannelManager, LocalKernel, _KernelManager, _logger.CreateSubLogger($"ChannelManagerAfcpClientConector"));
     }
 }

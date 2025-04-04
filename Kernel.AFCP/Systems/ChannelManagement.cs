@@ -4,16 +4,16 @@ namespace Kernel.AFCP.Systems;
 
 public class ChannelManagementSystem
 {
-    private ChannelManager _channelManager;
+    private DataChannelManager _dataChannelManager;
     private KernelManager _kernelManager;
 
 
-    public ChannelManagementSystem(ChannelManager channelManager, KernelManager kernelManager)
+    public ChannelManagementSystem(DataChannelManager dataChannelManager, KernelManager kernelManager)
     {
-        _channelManager = channelManager;
+        _dataChannelManager = dataChannelManager;
         _kernelManager = kernelManager;
-
     }
+
     public BasePacketAnswer Process(PacketChannelManagementRequest req)
     {
         //When another kernel requests to notify when a channel changes it's data.
@@ -25,7 +25,7 @@ public class ChannelManagementSystem
             {
                 throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
+            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
 
             channel?.AddNotifyToKernelOnChange(remoteKernel);
         }
@@ -36,7 +36,7 @@ public class ChannelManagementSystem
             {
                 throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
             }
-            DataChannelDescriptor? channel = _channelManager.TryGetLocalChannelDescriptor(req.ChannelPath);
+            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
 
             channel?.RemoveNotifyToKernelOnChange(remoteKernel);
         }
@@ -45,7 +45,7 @@ public class ChannelManagementSystem
             //Console.WriteLine($"Event rec!!! {req.NewVal == null}");
 
             //When a remote kernel notifys when a remote channel changes it's data.
-            _channelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
+            _dataChannelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
         }
 
         return new PacketChannelManagementAnswer(){

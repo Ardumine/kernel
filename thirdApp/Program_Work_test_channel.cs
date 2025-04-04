@@ -11,18 +11,16 @@ internal class Program
     {
         Console.WriteLine("Start!");
         var logger = new ConsoleLogger("Main");
-        
+
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("6c9a24e1-cf5b-40cd-bd05-f451ab539c63");
 
-        var channelManager = new ChannelManager(localKernel, logger);
+        using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
+        var dataChannelManager = new DataChannelManager(channelManager, localKernel, logger.CreateSubLogger("DataChannelManager"));
 
-        var KernelManager = new KernelManager(localKernel, logger)
-        {
-            LocalChannelManager = channelManager
-        };
+        var KernelManager = new KernelManager(localKernel, channelManager, dataChannelManager, logger.CreateSubLogger("KernelManager"));
 
 
-        var moduleManager = new ModuleManager(channelManager, localKernel, logger);
+        var moduleManager = new ModuleManager(channelManager, dataChannelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
 
         Console.WriteLine("Connecting...");
         KernelManager.Join("127.0.0.1", 8000);
@@ -30,9 +28,9 @@ internal class Program
         Console.WriteLine("Connected!");
 
 
-        var interfPos = channelManager.GetDataChannelInterface<Vector3>("/slamPos");
-        var interfMap = channelManager.GetDataChannelInterface<byte[]>("/SLAMmap");
-        
+        var interfPos = dataChannelManager.GetDataChannelInterface<Vector3>("/slamPos");
+        var interfMap = dataChannelManager.GetDataChannelInterface<byte[]>("/SLAMmap");
+
         interfPos?.AddEvent((pos) =>
         {
             Console.WriteLine("Pos data rec!!" + pos);

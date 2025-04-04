@@ -23,6 +23,7 @@ internal class MKConectorCallReceiver : IMKConector
     public required LocalRModuleDescriptor WorkingModule { private get; init; }
 
     public required ChannelManager channelManager { private get; init; }
+    public required DataChannelManager dataChannelManager { private get; init; }
     public required ModuleManager moduleManager { private get; init; }
 
     public IDataChannelInterface<T>? GetChannelInterface<T>(string MPath)
@@ -33,7 +34,7 @@ internal class MKConectorCallReceiver : IMKConector
         if (channelRealPath == null)
             throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
 
-        var dataChannel = channelManager.GetDataChannelInterface<T>(channelRealPath);
+        var dataChannel = dataChannelManager.GetDataChannelInterface<T>(channelRealPath);
 
         return DataChannelInterface<T>.FromAFCP(dataChannel);
     }
@@ -46,7 +47,7 @@ internal class MKConectorCallReceiver : IMKConector
         if (channelRealPath == null)
             throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
 
-        var afcpChannel = channelManager.GetDataChannelDescriptor(channelRealPath);
+        var afcpChannel = dataChannelManager.GetDataChannelDescriptor(channelRealPath);
 
         return ExistingDataChannelDescriptor.FromAFCP(afcpChannel);
     }
@@ -59,7 +60,7 @@ internal class MKConectorCallReceiver : IMKConector
         if (channelRealPath == null)
             throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
 
-        var afcpChannel = channelManager.CreateLocalDataChannel<T>(channelRealPath);
+        var afcpChannel = dataChannelManager.CreateLocalDataChannel<T>(channelRealPath);
 
         return ExistingDataChannelDescriptor.FromAFCP(afcpChannel);
 

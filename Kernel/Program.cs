@@ -1,9 +1,7 @@
-﻿using System.Diagnostics;
-using Kernel.AFCP;
+﻿using Kernel.AFCP;
 using Kernel.AFCP.KernelManagement;
 using Kernel.Logging;
 using Kernel.Modules;
-using Kernel.Modules.Base;
 
 namespace Kernel;
 internal class Program
@@ -16,21 +14,19 @@ internal class Program
 
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
         using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
+        var dataChannelManager = new DataChannelManager(channelManager, localKernel, logger.CreateSubLogger("DataChannelManager"));
 
-        var KernelManager = new KernelManager(localKernel, logger.CreateSubLogger("KernelManager")) 
-        {
-            LocalChannelManager = channelManager
-        };
+        var kernelManager = new KernelManager(localKernel, channelManager, dataChannelManager, logger.CreateSubLogger("KernelManager"));
 
         //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, KernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, dataChannelManager, kernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
         {
             LocalKernel = localKernel
         };
 
-        var moduleManager = new ModuleManager(channelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
+        var moduleManager = new ModuleManager(channelManager, dataChannelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
         var moduleLoader = new ModuleLoader();
 
         var config = ConfigParser.Load("config.json");
@@ -50,8 +46,9 @@ internal class Program
         foreach (var moduleConfig in config.StartupModules)
         {
             var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
-            
-            if(modDesc == null){
+
+            if (modDesc == null)
+            {
                 throw new NullReferenceException($"The module load with the name {moduleConfig.ModuleName} does not exist. Make sure you have the correct name and the DLL is loaded in config.json/ModulesDlls.");
             }
             moduleManager.CreateLocalModuleInstance(modDesc, moduleConfig.Path, moduleConfig);
@@ -75,7 +72,7 @@ internal class Program
 
         moduleManager.StopModulesViaTree();
         AFCPServer.Stop();
-        KernelManager.Stop();
+        kernelManager.Stop();
         logger.LogI("Done");
 
     }

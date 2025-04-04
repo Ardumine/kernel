@@ -9,20 +9,24 @@ namespace Kernel.AFCP;
 /// </summary>
 public class KernelManager
 {
-    public required ChannelManager LocalChannelManager { get; set; }
     public LocalRunningKernel LocalKernel { get; private set; }
 
     /// <summary>
     /// Kernels that we acknowlage existing
     /// </summary>
     private List<RunningKernel> _ExistingKernels;
+    private  ChannelManager _channelManager;
+    private  DataChannelManager _dataChannelManager;
+
     private ILogger _logger;
-    public KernelManager(LocalRunningKernel localKernel, ILogger logger)
+    public KernelManager(LocalRunningKernel localKernel, ChannelManager channelManager, DataChannelManager dataChannelManager, ILogger logger)
     {
         LocalKernel = localKernel;
         _logger = logger;
-        _ExistingKernels = new List<RunningKernel>();
+        _channelManager = channelManager;
+        _dataChannelManager = dataChannelManager;
 
+        _ExistingKernels = new List<RunningKernel>();
         _ExistingKernels.Add(LocalKernel);
     }
 
@@ -34,7 +38,7 @@ public class KernelManager
     /// <param name="port">The port of the remote kernel</param>
     public void Join(string IPAddress, int port)
     {
-        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, LocalChannelManager, LocalKernel, this, _logger.CreateSubLogger("ChannelManagerAfcpClientConector"));
+        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, _channelManager, _dataChannelManager, LocalKernel, this, _logger.CreateSubLogger("ChannelManagerAfcpClientConector"));
 
         var connectResponse = afcpClient.SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {
@@ -102,7 +106,7 @@ public class KernelManager
     {
         var packetSendChannels = new PacketSyncRequest()
         {
-            SourceHostingDataChannels = LocalChannelManager.GetLocalChannelDescriptors(),
+            SourceHostingDataChannels = _channelManager.GetLocalChannelDescriptors(),
             SourceKernelGuid = LocalKernel.Guid
         };
 
@@ -111,12 +115,12 @@ public class KernelManager
         {
             throw new NullReferenceException("The answer for ExchangeDataChannels was null");
         }
-        LocalChannelManager.AddChannelsSync(answer.RemoteHostingChannels.ToList(), remoteKernel);
+        _channelManager.AddChannelsSync(answer.RemoteHostingChannels.ToList(), remoteKernel);
     }
 
     public void OnSyncChannelsPacketReceived(List<ChannelDescriptor> RemoteChannels, RunningKernel remoteKernel)
     {
-        LocalChannelManager.AddChannelsSync(RemoteChannels, remoteKernel);
+        _channelManager.AddChannelsSync(RemoteChannels, remoteKernel);
     }
 
 
@@ -137,7 +141,7 @@ public class KernelManager
     internal void OnRemoteKernelRequestDiconnect(RemoteRunningKernel kernel)
     {
         _logger.LogI($"Kernel {kernel} requested to diconnect");
-        LocalChannelManager?.RemoveKernel(kernel);
+        _channelManager?.RemoveKernel(kernel);
         kernel.OnRemoteDisconnect();
 
     }
