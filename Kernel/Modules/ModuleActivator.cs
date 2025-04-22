@@ -2,6 +2,7 @@ using Kernel.AFCP;
 using Kernel.AFCP.FastMethod;
 using Kernel.AFCP.KernelManagement;
 using Kernel.Modules.Base;
+using Kernel.Modules.Base.MKCalls;
 
 namespace Kernel.Modules;
 
@@ -26,20 +27,24 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
         };
 
         //Set up kernel calls
-        mod.CallReceiver = new MKConectorCallReceiver()
+        var callReceiver = new MKCallReceiver()
         {
             WorkingModule = mod,
             channelManager = _channelManager,
             moduleManager = _moduleManager,
             dataChannelManager = _dataChannelManager
         };
-        mod.Implementation.ConfigManager = new ModuleConfigManager(){
+        mod.CallReceiver = callReceiver;
+
+        //Set up the MK client
+        var callClient = new MKCallClient(callReceiver.CallHandler);
+        
+        mod.Implementation.MKConector = callClient;
+
+        mod.Implementation.ConfigManager = new ModuleConfigManager()
+        {
             moduleConfig = moduleStartupConfig.Config
         };
-        mod.Implementation.MKConector = mod.CallReceiver;//For now
-        //MKConectorCreator.GetModuleConector(moduleManager, ModulePath);
-
-
 
         //Set up permissions
         var perms = new IModulePermissions();
@@ -146,7 +151,8 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
     {
         var impl = _moduleManager.GetLocalImplement(Path);
 
-        if(impl == null){
+        if (impl == null)
+        {
             throw new Exception($"Cannot run FuncID: {FuncID}");
         }
 

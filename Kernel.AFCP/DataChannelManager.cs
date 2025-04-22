@@ -7,8 +7,6 @@ namespace Kernel.AFCP;
 public class DataChannelManager
 {
     private ChannelManager _channelManager;
-
-
     private LocalRunningKernel _localKernel;
     private ILogger _logger;
 

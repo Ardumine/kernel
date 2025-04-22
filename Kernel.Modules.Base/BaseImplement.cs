@@ -1,10 +1,11 @@
 using Kernel.Logging;
+using Kernel.Modules.Base.MKCalls;
 namespace Kernel.Modules.Base;
 
 public abstract class BaseImplement
 {
     public required ILogger logger { get; set; }
-    public required IMKConector MKConector { get; set; }
+    public required MKCallClient MKConector { get; set; }
     public required IModuleConfigManager ConfigManager { get; set; }
 
 
@@ -12,19 +13,16 @@ public abstract class BaseImplement
     public abstract void Start();
     public abstract void EndStop();
 
-    public IExistingDataChannelDescriptor? GetDataChannelDescriptor(string Path)
-    {
-        return MKConector.GetDataChannel(Path);
-    }
+ 
     public IExistingDataChannelDescriptor? InitiateChannel<T>(string Path)
     {
-        return MKConector.InitiateChannel<T>(Path);
+        return MKConector.InitiateDataChannel<T>(Path);
     }
     public IDataChannelInterface<T>? GetChannelInterface<T>(string Path)
     {
-        return MKConector.GetChannelInterface<T>(Path);
+        return MKConector.GetDataChannelInterface<T>(Path);
     }
-    public T GetModuleInterface<T>(string Path) where T : class, IModuleInterface
+    public T? GetModuleInterface<T>(string Path) where T : class, IModuleInterface
     {
         return MKConector.GetModuleInterface<T>(Path);
     }

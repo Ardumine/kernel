@@ -1,4 +1,5 @@
 using Kernel.AFCP;
+using Kernel.Modules;
 using Kernel.Modules.Base;
 
 /// <summary>
@@ -13,7 +14,7 @@ internal class LocalRModuleDescriptor : IRModule
     }
 
     public required BaseImplement Implementation { get; internal set; }
-    public MKConectorCallReceiver? CallReceiver { get; internal set; }
+    public MKCallReceiver? CallReceiver { get; internal set; }
     public IModulePermissions? ModulePermissions { get; internal set; }
     public ModuleChannel? ModuleChannel { get; internal set; }
 

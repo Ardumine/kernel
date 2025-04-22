@@ -1,7 +1,11 @@
 using System.Security;
 using Kernel.AFCP;
-using Kernel.Modules;
 using Kernel.Modules.Base;
+using Kernel.Modules.Base.MKCalls;
+using Kernel.Modules.Base.MKCalls.RequestTypes;
+using Kernel.Modules.Base.MKCalls.ResultTypes;
+
+namespace Kernel.Modules;
 
 /// <summary>
 /// This is what receives the kernel calls from the modules.
@@ -17,8 +21,12 @@ using Kernel.Modules.Base;
 /// With the object pointer of a object, let's say ChannelManager, we can 'hard code' (using ILGenerator) that pointer to the functions that require this object.
 /// Look here: https://stackoverflow.com/questions/4989681/place-an-object-on-top-of-stack-in-ilgenerator
 /// MKConectorCreator was the first implementation of this, but I later disabled it beacause it makes debugging really hard.
+/// 
+/// 22/05/2025 UPDATE:
+/// Modules now have an client, MKCallClient, to interact with this class, MKCallReceiver. MKCallClient calls this class via kernelCallFunc. I think that calling via IL is the best method for object security.
 /// </summary>
-internal class MKConectorCallReceiver : IMKConector
+
+internal class MKCallReceiver
 {
     public required LocalRModuleDescriptor WorkingModule { private get; init; }
 
@@ -26,7 +34,8 @@ internal class MKConectorCallReceiver : IMKConector
     public required DataChannelManager dataChannelManager { private get; init; }
     public required ModuleManager moduleManager { private get; init; }
 
-    public IDataChannelInterface<T>? GetChannelInterface<T>(string MPath)
+
+    public IDataChannelInterface<T>? GetDataChannelInterface<T>(string MPath)
     {
         var channelRealPath = WorkingModule.ModulePermissions?.SolveMPath(MPath);
 
@@ -39,20 +48,7 @@ internal class MKConectorCallReceiver : IMKConector
         return DataChannelInterface<T>.FromAFCP(dataChannel);
     }
 
-    public IExistingDataChannelDescriptor? GetDataChannel(string MPath)
-    {
-        var channelRealPath = WorkingModule.ModulePermissions?.SolveMPath(MPath);
-
-        //Check if the module has permission to that channel
-        if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
-
-        var afcpChannel = dataChannelManager.GetDataChannelDescriptor(channelRealPath);
-
-        return ExistingDataChannelDescriptor.FromAFCP(afcpChannel);
-    }
-
-    public IExistingDataChannelDescriptor? InitiateChannel<T>(string MPath)
+    public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string MPath)
     {
         var channelRealPath = WorkingModule.ModulePermissions?.SolveMPath(MPath);
 
@@ -66,9 +62,57 @@ internal class MKConectorCallReceiver : IMKConector
 
     }
 
-    T IMKConector.GetModuleInterface<T>(string Path)
+    public T GetModuleInterface<T>(string MPath) where T : class, IModuleInterface
     {
         //We need to check if it has the permissions to do so.
-        return moduleManager.GetModuleInterface<T>(Path);
+        return moduleManager.GetModuleInterface<T>(MPath);
     }
+
+
+
+    public MKCallResult CallHandler(MKCallRequest request)
+    {
+        var type = request.GetType().GetGenericTypeDefinition();
+        if (type == typeof(InitiateDataChannelRequest<>))
+        {
+            return InitiateDataChannelRequestHandler((dynamic)request);
+        }
+        else if (type == typeof(GetModuleInterfaceRequest<>))
+        {
+            return GetModuleInterfaceRequestHandler((dynamic)request);
+        }
+        else if (type == typeof(GetDataChannelInterfaceRequest<>))
+        {
+            return GetDataChannelInterfaceHandler((dynamic)request);
+        }
+        else
+        {
+            throw new SecurityException($"{request.GetType()} is not supported.");
+        }
+    }
+
+    public MKCallResult InitiateDataChannelRequestHandler<T>(InitiateDataChannelRequest<T> req)
+    {
+        return new InitiateDataChannelResult<T>()
+        {
+            Result = InitiateDataChannel<T>(req.ChannelPath)
+        };
+    }
+
+    public MKCallResult GetModuleInterfaceRequestHandler<T>(GetModuleInterfaceRequest<T> req) where T : class, IModuleInterface
+    {
+        return new GetModuleInterfaceResult<T>()
+        {
+            ModuleInterface = GetModuleInterface<T>(req.ModulePath)
+        };
+    }
+
+    public MKCallResult GetDataChannelInterfaceHandler<T>(GetDataChannelInterfaceRequest<T> req)
+    {
+        return new GetDataChannelInterfaceResult<T>()
+        {
+            Result = GetDataChannelInterface<T>(req.ChannelPath)
+        };
+    }
+
 }
