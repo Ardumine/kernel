@@ -26,9 +26,9 @@ namespace Kernel.Modules;
 /// Modules now have an client, MKCallClient, to interact with this class, MKCallReceiver. MKCallClient calls this class via kernelCallFunc. I think that calling via IL is the best method for object security.
 /// </summary>
 
-internal class MKCallReceiver
+public sealed class MKCallReceiver
 {
-    public required LocalRModuleDescriptor WorkingModule { private get; init; }
+    internal LocalRModuleDescriptor? WorkingModule { private get; init; }
 
     public required ChannelManager channelManager { private get; init; }
     public required DataChannelManager dataChannelManager { private get; init; }
@@ -37,11 +37,11 @@ internal class MKCallReceiver
 
     public IDataChannelInterface<T>? GetDataChannelInterface<T>(string MPath)
     {
-        var channelRealPath = WorkingModule.ModulePermissions?.SolveMPath(MPath);
+        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(MPath);
 
         //Check if the module has permission to that channel
         if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
+            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{MPath}'");
 
         var dataChannel = dataChannelManager.GetDataChannelInterface<T>(channelRealPath);
 
@@ -50,11 +50,11 @@ internal class MKCallReceiver
 
     public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string MPath)
     {
-        var channelRealPath = WorkingModule.ModulePermissions?.SolveMPath(MPath);
+        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(MPath);
 
         //Check if the module has permission to that channel
         if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule.Path}' does not have access to the channel MPath '{MPath}'");
+            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{MPath}'");
 
         var afcpChannel = dataChannelManager.CreateLocalDataChannel<T>(channelRealPath);
 
@@ -69,7 +69,12 @@ internal class MKCallReceiver
     }
 
 
-
+    /// <summary>
+    /// DO NOT REMOVE.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    /// <exception cref="SecurityException"></exception>
     public MKCallResult CallHandler(MKCallRequest request)
     {
         var type = request.GetType().GetGenericTypeDefinition();
@@ -90,6 +95,7 @@ internal class MKCallReceiver
             throw new SecurityException($"{request.GetType()} is not supported.");
         }
     }
+
 
     public MKCallResult InitiateDataChannelRequestHandler<T>(InitiateDataChannelRequest<T> req)
     {

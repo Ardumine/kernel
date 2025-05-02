@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Reflection.Emit;
 using Kernel.Modules.Base.MKCalls.RequestTypes;
 using Kernel.Modules.Base.MKCalls.ResultTypes;
 
@@ -6,15 +8,18 @@ namespace Kernel.Modules.Base.MKCalls;
 /// <summary>
 /// From the modules to the kernel. Each modules has an call client and an handler.
 /// </summary>
-public sealed class MKCallClient
+public sealed unsafe class MKCallClient
 {
     private Func<MKCallRequest, MKCallResult>? kernelCallFunc;
-
-    public MKCallClient(Func<MKCallRequest, MKCallResult> func)
+    public MKCallClient(delegate* <MKCallRequest, MKCallResult> func)
     {
-        //To hide the function func.Target
-        kernelCallFunc = (s) => func(s);
+        kernelCallFunc = (req) =>
+        {
+            return func(req);
+        };
     }
+
+
 
     public T MakeCall<T>(MKCallRequest request) where T : MKCallResult
     {

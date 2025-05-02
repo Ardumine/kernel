@@ -1,9 +1,10 @@
 using Kernel.AFCP;
-using Kernel.Modules;
 using Kernel.Modules.Base;
+using Kernel.Modules.Permissions;
 
+namespace Kernel.Modules;
 /// <summary>
-/// This is only meant to be used by the kernel.
+/// This is only meant to be used by the kernel. It represents a Running Module.
 /// The modules CANNOT have DIRECT ACCESS with this class.
 /// </summary>
 internal class LocalRModuleDescriptor : IRModule

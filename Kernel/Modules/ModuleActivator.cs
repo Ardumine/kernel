@@ -1,14 +1,17 @@
+using System.Reflection;
+using System.Reflection.Emit;
 using Kernel.AFCP;
 using Kernel.AFCP.FastMethod;
 using Kernel.AFCP.KernelManagement;
 using Kernel.Modules.Base;
 using Kernel.Modules.Base.MKCalls;
+using Kernel.Modules.Permissions;
 
 namespace Kernel.Modules;
 
-public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
+internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
 {
-
+    internal delegate MKCallResult MKCallDelegate(MKCallRequest req);
 
     /// <summary>
     /// Create a local module instance.
@@ -27,24 +30,32 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
         };
 
         //Set up kernel calls
-        var callReceiver = new MKCallReceiver()
+        unsafe
         {
-            WorkingModule = mod,
-            channelManager = _channelManager,
-            moduleManager = _moduleManager,
-            dataChannelManager = _dataChannelManager
-        };
-        mod.CallReceiver = callReceiver;
+            //Set up the MK call handler/receiver
 
-        //Set up the MK client
-        var callClient = new MKCallClient(callReceiver.CallHandler);
-        
-        mod.Implementation.MKConector = callClient;
+            var callReceiver = new MKCallReceiver()
+            {
+                WorkingModule = mod,
+                channelManager = _channelManager,
+                moduleManager = _moduleManager,
+                dataChannelManager = _dataChannelManager
+            };
+            mod.CallReceiver = callReceiver;
 
-        mod.Implementation.ConfigManager = new ModuleConfigManager()
-        {
-            moduleConfig = moduleStartupConfig.Config
-        };
+            //Set up the MK client
+            //We use a pointer to a the function of the callReceiver.CallHandler.
+            //Because it is not static, here(somehow) we create a static function that already has  
+            var callClient = new MKCallClient((delegate*<MKCallRequest, MKCallResult>)CreateMKCallHandler(callReceiver));
+            mod.Implementation.MKConector = callClient;
+
+
+
+            mod.Implementation.ConfigManager = new ModuleConfigManager()
+            {
+                moduleConfig = moduleStartupConfig.Config
+            };
+        }
 
         //Set up permissions
         var perms = new IModulePermissions();
@@ -86,6 +97,45 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
         return mod;
     }
 
+    private IntPtr CreateMKCallHandler(MKCallReceiver callReceiver)
+    {
+        AssemblyBuilder ab = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("MyAssembly"), AssemblyBuilderAccess.Run);
+        ModuleBuilder mob = ab.DefineDynamicModule("MyModule");
+        TypeBuilder tb = mob.DefineType("MyType", TypeAttributes.Public | TypeAttributes.Class);
+
+
+        //Create a field holding the MKCallReceiver
+        FieldBuilder mcrField = tb.DefineField("mcr", typeof(MKCallReceiver), FieldAttributes.Public | FieldAttributes.Static);
+        {
+            MethodBuilder mcrMethod = tb.DefineMethod("setmcr", MethodAttributes.Public | MethodAttributes.Static, typeof(void), [typeof(MKCallReceiver)]);
+            ILGenerator il = mcrMethod.GetILGenerator();
+
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Stsfld, mcrField);
+            il.Emit(OpCodes.Ret);
+        }
+
+        //Create the call method
+        {
+            MethodBuilder MKCallHndPMethod = tb.DefineMethod("MKCallHndP", MethodAttributes.Public | MethodAttributes.Static, typeof(MKCallResult), [typeof(MKCallRequest)]);
+
+            ILGenerator il = MKCallHndPMethod.GetILGenerator();
+
+            il.Emit(OpCodes.Ldsfld, mcrField);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, typeof(MKCallReceiver).GetMethod("CallHandler")!);
+            il.Emit(OpCodes.Ret);
+        }
+
+        Type builtType = tb.CreateType();
+
+        //Set the value of the call handler
+        builtType.GetMethod("setmcr")!.Invoke(null, [callReceiver]);
+
+        var invokeSquareIt = (MKCallDelegate)builtType.GetMethod("MKCallHndP")!.CreateDelegate(typeof(MKCallDelegate));
+        return invokeSquareIt.Method.MethodHandle.GetFunctionPointer();
+
+    }
 
     private void CreateModuleChannel(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
     {
@@ -118,7 +168,7 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
             }
         }
     }
-    void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
+    private void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
     {
         uint I = 0;
         var mets = GetMethods(desc.InterfaceType).ToArray();
@@ -158,7 +208,4 @@ public class ModuleActivator(ModuleManager _moduleManager, ChannelManager _chann
 
         return CacheMethods[Path][FuncID](impl, Params);
     }
-
-
-
 }
