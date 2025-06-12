@@ -1,6 +1,6 @@
 import os
-modName = "HortMotor"
-fullModName = "Ardumine.Hort.HortMotor"
+modName = input("Module Name (ex: Calc):")
+fullModName = input("Module full name (ex: Modules.Calculator)")
 
 
 os.mkdir(fullModName)
@@ -54,12 +54,12 @@ public interface I{modName} : IModuleInterface
     
     
     
-with open(os.path.join(pathMod, f"{modName}Description.cs"), "+w") as fich:
+with open(os.path.join(pathMod, f"{modName}Descriptor.cs"), "+w") as fich:
     fich.write(f"""using Kernel.Modules.Base;
 
 namespace {fullModName};
 
-public class {modName}Description : ModuleDescription
+public class {modName}Descriptor : IModuleLoadDescriptor
 {'{'}
 
     public string Name => "{modName}";
@@ -69,13 +69,13 @@ public class {modName}Description : ModuleDescription
     public string Version => "0.1.0";
 
     public Type ImplementType => typeof({modName}Implement);
-    public Type BaseType => typeof({modName});
 
     public Type InterfaceType => typeof(I{modName});
 {'}'}
 
 
 """) 
+#    public Type BaseType => typeof({modName});
     
 with open(os.path.join(pathMod, f"{modName}Implement.cs"), "+w") as fich:
     fich.write(f"""using Kernel.Modules.Base;

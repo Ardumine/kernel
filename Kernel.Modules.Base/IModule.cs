@@ -8,6 +8,6 @@ namespace Kernel.Modules;
 public abstract class IModule
 {
     public required virtual string Path { get; init; }
-    public required virtual IModuleLoadDescription ModuleLoadDescription{ get; init; }
+    public required virtual IModuleLoadDescriptor ModuleLoadDescription{ get; init; }
 
 }

@@ -6,9 +6,9 @@ namespace Kernel;
 public class ModuleLoader
 {
     private List<Assembly> ModulesAssemblies = new List<Assembly>();
-    public List<IModuleLoadDescription> LoadModules(string[] pluginPaths)
+    public List<IModuleLoadDescriptor> LoadModules(string[] modulesDLLsPaths)
     {
-        return pluginPaths.SelectMany(pluginPath =>
+        return modulesDLLsPaths.SelectMany(pluginPath =>
         {
             Assembly pluginAssembly = LoadModuleDLL(pluginPath);
             ModulesAssemblies.Add(pluginAssembly);
@@ -22,20 +22,20 @@ public class ModuleLoader
         return ModulesAssemblies.Where(asemb => asemb.FullName == Name).FirstOrDefault();
     }
 
-    private Assembly LoadModuleDLL(string pluginLocation)
+    private Assembly LoadModuleDLL(string modulePath)
     {
-        return Assembly.LoadFile(pluginLocation);
+        return Assembly.LoadFile(modulePath);
     }
 
-    private IEnumerable<IModuleLoadDescription> GetModulesOfAssembly(Assembly assembly)
+    private IEnumerable<IModuleLoadDescriptor> GetModulesOfAssembly(Assembly assembly)
     {
         var types = assembly.GetTypes();
 
         foreach (var type in types)
         {
-            if (typeof(IModuleLoadDescription).IsAssignableFrom(type))
+            if (typeof(IModuleLoadDescriptor).IsAssignableFrom(type))
             {
-                IModuleLoadDescription? result = Activator.CreateInstance(type) as IModuleLoadDescription;
+                IModuleLoadDescriptor? result = Activator.CreateInstance(type) as IModuleLoadDescriptor;
                 if (result != null)
                 {
                     yield return result;

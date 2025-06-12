@@ -3,7 +3,7 @@ using Kernel.Modules.Base;
 namespace Kernel.Modules;
 internal class DataChannelInterface<T> : IDataChannelInterface<T>
 {
-    private Kernel.AFCP.DataChannelInterface<T>? afcpChannel { get; set; }
+    private AFCP.DataChannelInterface<T>? afcpChannel { get; set; }
 
 
     public T? Get()

@@ -35,7 +35,7 @@ public class DataWritter: IDisposable
 
 
     string TreatString(string? data){
-        return (data != null) ? data : "";
+        return data ?? string.Empty;
     }
 
     public unsafe void Writeeeee(string? data)

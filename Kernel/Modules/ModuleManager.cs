@@ -9,7 +9,7 @@ public class ModuleManager
 {
     internal List<LocalRModuleDescriptor> LocalRModules = new List<LocalRModuleDescriptor>();
     private ChannelManager _channelManager;
-    private ModuleActivator _moduleActivator;
+    internal ModuleCreator? ModuleCreator { get; set; }
     private DataChannelManager _dataChannelManager;
 
     private ILogger _logger;
@@ -20,15 +20,32 @@ public class ModuleManager
         _logger = logger;
         _dataChannelManager = dataChannelManager;
 
-        _moduleActivator = new(this, _channelManager,_dataChannelManager, localKernel);
     }
 
 
-    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)
+    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescriptor desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)
     {
-        var rMod = _moduleActivator.CreateLocalModuleInstance(desc, path, ModuleConfig);
+        if (ModuleCreator == null)
+            throw new NotSupportedException("Cannot create modules because ModuleCreator was not set");
+
+        var rMod = ModuleCreator.CreateLocalModuleInstance(desc, path, ModuleConfig);
         LocalRModules.Add(rMod);
         return rMod;
+    }
+
+    internal SubModuleDescriptor CreateSubModuleInstance(LocalRModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path)
+    {
+        if (ModuleCreator == null)
+            throw new NotSupportedException("Cannot create modules because ModuleCreator was not set");
+
+        var subMod = ModuleCreator.CreateSubModuleInstance(parentModule, desc, path);
+        LocalRModules.Add(subMod);
+        return subMod;
+    }
+
+    internal void TryGet()
+    {
+
     }
 
     /*
@@ -143,6 +160,22 @@ public class ModuleManager
         return ModuleProxy<T>.CreateProxy<T>(channel);
     }
 
+    /// <summary>
+    /// Gets the interface for an Module
+    /// </summary>
+    /// <typeparam name="T">The interface type of the Module(derived of IModuleInterface)</typeparam>
+    /// <param name="Path">The Path of the Module</param>
+    /// <returns>The interface for the Module</returns>
+    /// <exception cref="NullReferenceException">If the Path of the Module is not found, then thrown.</exception>
+    public T GetSubModuleInterface<T>(string Path) where T : class, ISubModuleInterface, IModuleInterface
+    {
+        var channel = _channelManager.GetModuleChannel(Path);
+        if (channel == null)
+        {
+            throw new NullReferenceException($"The module with the Path {Path} was not found.");
+        }
+        return ModuleProxy<T>.CreateProxy<T>(channel);
+    }
 
     #region Boot tree
     public void StartModulesViaTree(string startingModule = "kernel")
@@ -156,6 +189,9 @@ public class ModuleManager
             if (mod.StartOnBoot == true)
             {
                 var impl = GetLocalImplement(mod);
+                mod.IsPrepared = true;
+                impl?.Prepare();
+
                 impl?.Start();
                 mod.Running = true;
             }
@@ -236,7 +272,7 @@ public class ModuleManager
         }
         return tree;
     }
-   
+
     #endregion
 }
 

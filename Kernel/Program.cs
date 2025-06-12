@@ -4,6 +4,7 @@ using Kernel.Logging;
 using Kernel.Modules;
 
 namespace Kernel;
+
 internal class Program
 {
     private static void Main(string[] args)
@@ -32,32 +33,30 @@ internal class Program
         var config = ConfigParser.Load("config.json");
 
 
-        //Load the DLLs and get the available modules.
-        var AvailableModules = moduleLoader.LoadModules(config.ModulesDlls);
 
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
             return moduleLoader.GetModuleAssembly(args.Name);//In case a module requires another module
         };
 
+
+        //Load the DLLs and get the available modules
+        var availableModuleLoadDescriptiors = moduleLoader.LoadModules(config.ModulesDlls);
+
+        var moduleCreator = new ModuleCreator(moduleManager, availableModuleLoadDescriptiors, channelManager, dataChannelManager, localKernel);
+
+        moduleManager.ModuleCreator = moduleCreator;
+
         logger.LogI("Starting AFCP...");
         AFCPServer.Start();
 
         foreach (var moduleConfig in config.StartupModules)
         {
-            var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
+            var modLoadDesc = moduleCreator.TryGetModuleLoadDescriptor(moduleConfig.ModuleName);
 
-            if (modDesc == null)
-            {
+            if (modLoadDesc == null)
                 throw new NullReferenceException($"The module load with the name {moduleConfig.ModuleName} does not exist. Make sure you have the correct name and the DLL is loaded in config.json/ModulesDlls.");
-            }
-            moduleManager.CreateLocalModuleInstance(modDesc, moduleConfig.Path, moduleConfig);
-        }
-
-        foreach (var mod in logger.CreateIterator(moduleManager.LocalRModules, "Preparing modules..."))
-        {
-            var impl = moduleManager.GetLocalImplement(mod);
-            impl?.Prepare();
+            moduleManager.CreateLocalModuleInstance(modLoadDesc, moduleConfig.Path, moduleConfig);
         }
 
         moduleManager.StartModulesViaTree();

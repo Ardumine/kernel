@@ -28,7 +28,7 @@
         {
             "ModuleName": "YDLidar",
             "Path": "/modules/YDLidar",
-            "StartOnBoot": true,
+            "StartOnBoot": false,
             "startAfter": "kernel",
             "hostingChannels": [
                 {
@@ -44,7 +44,7 @@
         {
             "ModuleName": "HectorSLAM",
             "Path": "/modules/HectorSLAM",
-            "StartOnBoot": true,
+            "StartOnBoot": false,
             "startAfter": "/modules/YDLidar",
             "hostingChannels": [
                 {

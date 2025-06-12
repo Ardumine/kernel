@@ -9,16 +9,17 @@ using Kernel.Modules.Permissions;
 
 namespace Kernel.Modules;
 
-internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
+internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescriptor> _moduleLoadDescriptors, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
 {
     internal delegate MKCallResult MKCallDelegate(MKCallRequest req);
+
 
     /// <summary>
     /// Create a local module instance.
     /// </summary>
     /// <param name="desc"></param>
     /// <param name="path"></param>
-    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
+    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescriptor desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
     {
         var mod = new LocalRModuleDescriptor()
         {
@@ -91,8 +92,48 @@ internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _cha
         mod.ModuleChannel = _channelManager.GetModuleChannel(mod.Path);
 
         //Config
-        mod.StartAfter = moduleStartupConfig.startAfter;
+        mod.StartAfter = moduleStartupConfig.startAfter ?? string.Empty;
         mod.StartOnBoot = moduleStartupConfig.StartOnBoot;
+
+        return mod;
+    }
+
+
+    internal SubModuleDescriptor CreateSubModuleInstance(LocalRModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path)
+    {
+        var mod = new SubModuleDescriptor()
+        {
+            Path = path,
+            HostingKernel = _localKernel.Guid,
+            IsLocal = true,
+            ModuleLoadDescription = desc,
+            Implementation = CreateLocalModImplement(desc, path),
+            ParentModule = parentModule
+        };
+
+        //Set up kernel calls
+        unsafe
+        {
+            //Set up the MK call handler/receiver
+
+            var callReceiver = new MKCallReceiver()
+            {
+                WorkingModule = mod,
+                channelManager = _channelManager,
+                moduleManager = _moduleManager,
+                dataChannelManager = _dataChannelManager
+            };
+            mod.CallReceiver = callReceiver;
+
+            //Set up the MK client
+            //We use a pointer to a the function of the callReceiver.CallHandler.
+            //Because it is not static, here(somehow) we create a static function that already has  
+            var callClient = new MKCallClient((delegate*<MKCallRequest, MKCallResult>)CreateMKCallHandler(callReceiver));
+            mod.Implementation.MKConector = callClient;
+        }
+
+        CreateModuleChannel(mod, desc);
+        mod.ModuleChannel = _channelManager.GetModuleChannel(mod.Path);
 
         return mod;
     }
@@ -137,7 +178,7 @@ internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _cha
 
     }
 
-    private void CreateModuleChannel(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
+    private void CreateModuleChannel(LocalRModuleDescriptor mod, IModuleLoadDescriptor desc)
     {
         CreateMethodCache(mod, desc);
 
@@ -147,10 +188,17 @@ internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _cha
         });
     }
 
+
+    public IModuleLoadDescriptor? TryGetModuleLoadDescriptor(string moduleName)
+    {
+        return _moduleLoadDescriptors.Where(m => m.Name == moduleName).FirstOrDefault();
+    }
+
+
     //Path, methods[idx]
     Dictionary<string, ReturnValueDelegate[]> CacheMethods = new();
 
-    private IEnumerable<System.Reflection.MethodInfo> GetMethods(Type type)
+    private IEnumerable<MethodInfo> GetMethods(Type type)
     {
         foreach (var method in type.GetMethods(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static |
                                                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.DeclaredOnly))
@@ -168,7 +216,7 @@ internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _cha
             }
         }
     }
-    private void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescription desc)
+    private void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescriptor desc)
     {
         uint I = 0;
         var mets = GetMethods(desc.InterfaceType).ToArray();
@@ -181,7 +229,7 @@ internal class ModuleActivator(ModuleManager _moduleManager, ChannelManager _cha
 
 
 
-    private BaseImplement CreateLocalModImplement(IModuleLoadDescription desc, string ModulePath)
+    private BaseImplement CreateLocalModImplement(IModuleLoadDescriptor desc, string ModulePath)
     {
         var impl = Activator.CreateInstance(desc.ImplementType) as BaseImplement;
         if (impl == null)

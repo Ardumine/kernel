@@ -29,7 +29,6 @@ namespace Kernel.Modules;
 public sealed class MKCallReceiver
 {
     internal LocalRModuleDescriptor? WorkingModule { private get; init; }
-
     public required ChannelManager channelManager { private get; init; }
     public required DataChannelManager dataChannelManager { private get; init; }
     public required ModuleManager moduleManager { private get; init; }
@@ -68,9 +67,21 @@ public sealed class MKCallReceiver
         return moduleManager.GetModuleInterface<T>(MPath);
     }
 
+    public T GetSubModuleInterface<T>(string MPath) where T : class, ISubModuleInterface, IModuleInterface
+    {
+        //We need to check if it has the permissions to do so.
+        return moduleManager.GetSubModuleInterface<T>(MPath);
+    }
+
+    public void CreateSubModuleInterface(string MPath, string moduleName)
+    {
+        //We need to check if it has the permissions to do so.
+        moduleManager.CreateSubModuleInstance(WorkingModule!, moduleManager.ModuleCreator!.TryGetModuleLoadDescriptor(moduleName)!, MPath);
+    }
+
 
     /// <summary>
-    /// DO NOT REMOVE.
+    /// DO NOT REMOVE. Used by the 
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
@@ -82,13 +93,18 @@ public sealed class MKCallReceiver
         {
             return InitiateDataChannelRequestHandler((dynamic)request);
         }
+        else if (type == typeof(GetDataChannelInterfaceRequest<>))
+        {
+            return GetDataChannelInterfaceHandler((dynamic)request);
+        }
         else if (type == typeof(GetModuleInterfaceRequest<>))
         {
             return GetModuleInterfaceRequestHandler((dynamic)request);
         }
-        else if (type == typeof(GetDataChannelInterfaceRequest<>))
+
+        else if (type == typeof(CreateSubModuleInterfaceRequest<>))
         {
-            return GetDataChannelInterfaceHandler((dynamic)request);
+            return CreateSubModuleInterfaceRequestHandler((dynamic)request);
         }
         else
         {
@@ -105,13 +121,6 @@ public sealed class MKCallReceiver
         };
     }
 
-    public MKCallResult GetModuleInterfaceRequestHandler<T>(GetModuleInterfaceRequest<T> req) where T : class, IModuleInterface
-    {
-        return new GetModuleInterfaceResult<T>()
-        {
-            ModuleInterface = GetModuleInterface<T>(req.ModulePath)
-        };
-    }
 
     public MKCallResult GetDataChannelInterfaceHandler<T>(GetDataChannelInterfaceRequest<T> req)
     {
@@ -120,5 +129,23 @@ public sealed class MKCallReceiver
             Result = GetDataChannelInterface<T>(req.ChannelPath)
         };
     }
+
+    public MKCallResult GetModuleInterfaceRequestHandler<T>(GetModuleInterfaceRequest<T> req) where T : class, IModuleInterface
+    {
+        return new GetModuleInterfaceResult<T>()
+        {
+            ModuleInterface = GetModuleInterface<T>(req.ModulePath)
+        };
+    }
+
+    public MKCallResult CreateSubModuleInterfaceRequestHandler<T>(CreateSubModuleInterfaceRequest<T> req) where T : class, ISubModuleInterface, IModuleInterface
+    {
+        CreateSubModuleInterface(req.SubModulePath, req.SubModuleName);
+        return new CreateSubModuleInterfaceResult<T>()
+        {
+            SubModuleInterface = GetSubModuleInterface<T>(req.SubModulePath)
+        };
+    }
+
 
 }

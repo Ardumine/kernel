@@ -9,10 +9,6 @@ namespace Kernel.Modules;
 /// </summary>
 internal class LocalRModuleDescriptor : IRModule
 {
-    internal LocalRModuleDescriptor()
-    {
-
-    }
 
     public required BaseImplement Implementation { get; internal set; }
     public MKCallReceiver? CallReceiver { get; internal set; }
@@ -20,8 +16,15 @@ internal class LocalRModuleDescriptor : IRModule
     public ModuleChannel? ModuleChannel { get; internal set; }
 
 
-    public string? StartAfter { get; internal set; }
-    public bool? StartOnBoot { get; internal set; }
-    public bool? Running { get; internal set; }
+    public string StartAfter { get; internal set; } = string.Empty;
+    public bool StartOnBoot { get; internal set; } = false;
+    public bool IsPrepared { get; internal set; } = false;
+    public bool Running { get; internal set; } = false;
 
+
+    internal LocalRModuleDescriptor()
+    {
+
+    }
+    
 }

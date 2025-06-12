@@ -13,7 +13,7 @@ public abstract class BaseImplement
     public abstract void Start();
     public abstract void EndStop();
 
- 
+
     public IExistingDataChannelDescriptor? InitiateChannel<T>(string Path)
     {
         return MKConector.InitiateDataChannel<T>(Path);
@@ -27,9 +27,16 @@ public abstract class BaseImplement
         return MKConector.GetModuleInterface<T>(Path);
     }
 
-    public T? GetConfigValue<T>(string name){
+
+    public T? CreateSubModule<T>(string Path, string moduleName) where T : class, ISubModuleInterface
+    {
+        return MKConector.CreateSubModule<T>(Path, moduleName);
+    }
+
+    public T? GetConfigValue<T>(string name)
+    {
         var val = ConfigManager.GetConfigValue<T>(name);
-        
+
         return val;
     }
 

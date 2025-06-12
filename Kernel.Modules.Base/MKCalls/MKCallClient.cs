@@ -11,7 +11,7 @@ namespace Kernel.Modules.Base.MKCalls;
 public sealed unsafe class MKCallClient
 {
     private Func<MKCallRequest, MKCallResult>? kernelCallFunc;
-    public MKCallClient(delegate* <MKCallRequest, MKCallResult> func)
+    public MKCallClient(delegate*<MKCallRequest, MKCallResult> func)
     {
         kernelCallFunc = (req) =>
         {
@@ -54,12 +54,23 @@ public sealed unsafe class MKCallClient
             ChannelPath = channelPath
         }).Result;
     }
+
+
     public T? GetModuleInterface<T>(string MPath) where T : class, IModuleInterface
     {
         return MakeCall<GetModuleInterfaceResult<T>>(new GetModuleInterfaceRequest<T>()
         {
             ModulePath = MPath
         }).ModuleInterface;
+    }
+
+    public T? CreateSubModule<T>(string MPath, string moduleName) where T : class, ISubModuleInterface
+    {
+        return MakeCall<CreateSubModuleInterfaceResult<T>>(new CreateSubModuleInterfaceRequest<T>()
+        {
+            SubModulePath = MPath,
+            SubModuleName = moduleName
+        }).SubModuleInterface;
     }
 
 
