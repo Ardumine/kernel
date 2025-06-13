@@ -20,6 +20,12 @@ public class USBPortImplement : BaseImplement, IUSBPort
     }
     public override void EndStop()
     {
+
+    }
+
+    public override void Delete()
+    {
+
     }
 
 }

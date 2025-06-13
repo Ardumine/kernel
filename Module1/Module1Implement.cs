@@ -2,6 +2,7 @@
 namespace Ardumine.Modules.Module1;
 public class Module1Implement : Kernel.Modules.Base.BaseImplement, IModule1
 {
+
     public override void Prepare()
     {
     }

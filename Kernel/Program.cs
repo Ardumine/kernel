@@ -69,7 +69,7 @@ internal class Program
         logger.NewLine();
         logger.LogI("Stoping...");
 
-        moduleManager.StopModulesViaTree();
+        moduleManager.StopAndDeleteModulesViaTree();
         AFCPServer.Stop();
         kernelManager.Stop();
         logger.LogI("Done");

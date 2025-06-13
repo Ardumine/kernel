@@ -8,9 +8,9 @@ namespace Kernel.Modules;
 /// This is only meant to be used by the kernel. It represents a sub-module made by an parent Module.
 /// The modules CANNOT have DIRECT ACCESS with this class.
 /// </summary>
-internal class SubModuleDescriptor : LocalRModuleDescriptor
+internal class SubModuleDescriptor : ModuleDescriptor
 {
-    public required LocalRModuleDescriptor ParentModule { get; internal set; }
+    public required ModuleDescriptor ParentModule { get; internal set; }
 
     internal SubModuleDescriptor()
     {

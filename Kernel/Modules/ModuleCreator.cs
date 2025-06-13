@@ -3,6 +3,7 @@ using System.Reflection.Emit;
 using Kernel.AFCP;
 using Kernel.AFCP.FastMethod;
 using Kernel.AFCP.KernelManagement;
+using Kernel.Logging;
 using Kernel.Modules.Base;
 using Kernel.Modules.Base.MKCalls;
 using Kernel.Modules.Permissions;
@@ -19,15 +20,15 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
     /// </summary>
     /// <param name="desc"></param>
     /// <param name="path"></param>
-    internal LocalRModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescriptor desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
+    internal ModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescriptor desc, string path, ConfigFile.StartupModuleConfig moduleStartupConfig)
     {
-        var mod = new LocalRModuleDescriptor()
+        var mod = new ModuleDescriptor()
         {
             Path = path,
             HostingKernel = _localKernel.Guid,
             IsLocal = true,
             ModuleLoadDescription = desc,
-            Implementation = CreateLocalModImplement(desc, path)
+            Implementation = CreateLocalModImplement(desc, path),
         };
 
         //Set up kernel calls
@@ -50,13 +51,13 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
             var callClient = new MKCallClient((delegate*<MKCallRequest, MKCallResult>)CreateMKCallHandler(callReceiver));
             mod.Implementation.MKConector = callClient;
 
-
-
-            mod.Implementation.ConfigManager = new ModuleConfigManager()
-            {
-                moduleConfig = moduleStartupConfig.Config
-            };
         }
+
+
+        mod.Implementation.ConfigManager = new ModuleConfigManager()
+        {
+            moduleConfig = moduleStartupConfig.Config
+        };
 
         //Set up permissions
         var perms = new IModulePermissions();
@@ -86,6 +87,7 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
             });
         }
         mod.ModulePermissions = perms;
+        mod.Implementation.MPath = path;
 
         //Create the module channel
         CreateModuleChannel(mod, desc);
@@ -99,7 +101,7 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
     }
 
 
-    internal SubModuleDescriptor CreateSubModuleInstance(LocalRModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path)
+    internal SubModuleDescriptor CreateSubModuleInstance(ModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path)
     {
         var mod = new SubModuleDescriptor()
         {
@@ -131,10 +133,11 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
             var callClient = new MKCallClient((delegate*<MKCallRequest, MKCallResult>)CreateMKCallHandler(callReceiver));
             mod.Implementation.MKConector = callClient;
         }
+        mod.Implementation.MPath = path;
 
         CreateModuleChannel(mod, desc);
         mod.ModuleChannel = _channelManager.GetModuleChannel(mod.Path);
-
+        parentModule.SubModules.Add(mod);
         return mod;
     }
 
@@ -178,7 +181,7 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
 
     }
 
-    private void CreateModuleChannel(LocalRModuleDescriptor mod, IModuleLoadDescriptor desc)
+    private void CreateModuleChannel(ModuleDescriptor mod, IModuleLoadDescriptor desc)
     {
         CreateMethodCache(mod, desc);
 
@@ -216,7 +219,7 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
             }
         }
     }
-    private void CreateMethodCache(LocalRModuleDescriptor mod, IModuleLoadDescriptor desc)
+    private void CreateMethodCache(ModuleDescriptor mod, IModuleLoadDescriptor desc)
     {
         uint I = 0;
         var mets = GetMethods(desc.InterfaceType).ToArray();

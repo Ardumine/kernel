@@ -3,6 +3,7 @@ using Kernel.Modules.Base;
 namespace Ardumine.Modules.YDLidarSDK;
 public class YDLidarImplement : BaseImplement, IYDLidar
 {
+
     public CYdLidar lidarClass = new CYdLidar();
     private bool Run { get; set; }
 

@@ -3,14 +3,15 @@ using Kernel.AFCP.Packets;
 using Kernel.Logging;
 
 namespace Kernel.AFCP;
+
 public class ChannelManager : IDisposable
 {
     internal List<ExistingChannel> Channels = new List<ExistingChannel>();
     private RunningKernel LocalKernel;
     private ILogger _logger;
-    
+
     //I need to fix this.
-    public DataChannelManager? dataChannelManager {get;set;}
+    public DataChannelManager? dataChannelManager { get; set; }
 
     public ChannelManager(RunningKernel localKernel, ILogger logger)
     {
@@ -45,25 +46,26 @@ public class ChannelManager : IDisposable
         //NoitifyNewChannelCreateLocally(channel);
         Channels.Add(channel);
     }
-  
+
+
     /// <summary>
     /// Creates a local module channel
     /// </summary>
-    /// <param name="Path">The path fot the module channel</param>
+    /// <param name="path">The path fot the module channel</param>
     /// <param name="func">Function to map the calls by index to params(func index, func params, func return val)</param>
     /// <exception cref="ChannelPathAlreadyTaken">Thrown if the Path is already taken.</exception>
-    public void CreateLocalModuleChannel(string Path, Func<uint, object?[]?, object?> func)
+    public void CreateLocalModuleChannel(string path, Func<uint, object?[]?, object?> func)
     {
         //Checks
-        if (IsChannelPathTaken(Path))
+        if (IsChannelPathTaken(path))
         {
-            throw new ChannelPathAlreadyTaken($"The path {Path} is already taken by another channel.");
+            throw new ChannelPathAlreadyTaken($"The path {path} is already taken by another channel.");
         }
 
         var channel = new ModuleChannel(this)
         {
             IsLocal = true,
-            Path = Path,
+            Path = path,
             OwningKernel = LocalKernel.Guid,
             IsDataChannel = false,
             LocalTargetFunction = func,
@@ -76,7 +78,17 @@ public class ChannelManager : IDisposable
         Channels.Add(channel);
     }
 
+    public void DeleteLocalModuleChannel(string path)
+    {
+        var modChannel = GetModuleChannel(path);
+        if (modChannel == null)
+        {
+            throw new NullReferenceException($"The module with the Path {path} was not found.");
+        }
+        modChannel.StopLocalEvents();
+        Channels.Remove(modChannel);
 
+    }
 
 
 
@@ -181,7 +193,7 @@ public class ChannelManager : IDisposable
     #endregion
 
 
- 
+
     public object? RunFuncRemote(RunningKernel OwningKernel, string channelPath, uint FuncID, object?[]? Params)
     {
         PacketModFuncRequest packet = new PacketModFuncRequest()
@@ -211,7 +223,7 @@ public class ChannelManager : IDisposable
     public delegate object? FunctionRequestEventHandler(object sender, FunctionRequestEventArgs args);
     public event FunctionRequestEventHandler? OnFunctionRunRequest;
 
-
+    [Obsolete("Add manually the event, see Channels.StartLocalEvents")]
     public void AddEventFunctionRequest(string ChannelPath, FunctionRequestEventHandler handler)
     {
         OnFunctionRunRequest += (s, e) =>
@@ -224,6 +236,17 @@ public class ChannelManager : IDisposable
         };
     }
 
+    public void RemoveEventFunctionRequest(string ChannelPath, FunctionRequestEventHandler handler)
+    {
+        OnFunctionRunRequest += (s, e) =>
+        {
+            if (e.ChannelPath == ChannelPath)
+            {
+                return handler.Invoke(s, e);
+            }
+            return null;
+        };
+    }
     public object? RunLocalFunc(string channelPath, uint FuncID, object?[]? param)
     {
         return OnFunctionRunRequest?.Invoke(this, new()

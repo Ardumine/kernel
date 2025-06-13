@@ -1,8 +1,10 @@
 using Kernel.AFCP.KASerializer.Atributes;
 using Kernel.AFCP.KernelManagement;
+using static Kernel.AFCP.ChannelManager;
 
 
 namespace Kernel.AFCP;
+
 public class DataChannelInterface : DataChannelDescriptor
 {
     internal virtual void OnRemoteChange(object? NewVal)
@@ -261,16 +263,27 @@ public class ModuleChannel : ModuleChannelDescriptor
     }
 
 
+    public object? OnFunctionRunRequestEvent(object s, FunctionRequestEventArgs e)
+    {
+        if (e.ChannelPath == Path)
+        {
+            return Run(e.FunctionID, e.Params);
+        }
+        return null;
+    }
     /// <summary>
     /// Only run this when a module is local.
     /// </summary>
     public void StartLocalEvents()
     {
         //Add event on channel run
-        channelManager.AddEventFunctionRequest(Path, (s, e) =>
-        {
-            return Run(e.FunctionID, e.Params);
-        });
+        channelManager.OnFunctionRunRequest += OnFunctionRunRequestEvent;
+    }
+
+    public void StopLocalEvents()
+    {
+        //Remove event on channel run
+        channelManager.OnFunctionRunRequest -= OnFunctionRunRequestEvent;
     }
 
     //Get by event(cache) or get by request
@@ -290,7 +303,7 @@ public class ModuleChannel : ModuleChannelDescriptor
 
 public class ExistingChannel : ChannelDescriptor
 {
-    public ExistingChannel() : base() { OwningKernelDesc = null!;}
+    public ExistingChannel() : base() { OwningKernelDesc = null!; }
     public RunningKernel OwningKernelDesc { get; internal set; }
     public bool Exists { get; internal set; }
 }

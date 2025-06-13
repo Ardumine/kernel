@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using Kernel.Modules.Base.MKCalls.RequestTypes;
+using Kernel.Modules.Base.MKCalls.RequestTypes.SubModules;
 using Kernel.Modules.Base.MKCalls.ResultTypes;
 
 namespace Kernel.Modules.Base.MKCalls;
@@ -64,9 +65,10 @@ public sealed unsafe class MKCallClient
         }).ModuleInterface;
     }
 
+    #region Sub-Modules 
     public T? CreateSubModule<T>(string MPath, string moduleName, bool StartOnCreation) where T : class, ISubModuleInterface
     {
-        return MakeCall<CreateSubModuleInterfaceResult<T>>(new CreateSubModuleInterfaceRequest<T>()
+        return MakeCall<CreateSubModuleInterfaceResult<T>>(new CreateSubModuleRequest<T>()
         {
             SubModulePath = MPath,
             SubModuleName = moduleName,
@@ -75,4 +77,32 @@ public sealed unsafe class MKCallClient
     }
 
 
+    public void StartSubModule(string path)
+    {
+        MakeCall<NoValueResult>(new StartSubModuleRequest()
+        {
+            SubModulePath = path,
+        });
+    }
+
+
+    public void StopSubModule(string path)
+    {
+        MakeCall<NoValueResult>(new StopSubModuleRequest()
+        {
+            SubModulePath = path,
+        });
+    }
+
+
+
+    public void DeleteSubModule(string path)
+    {
+        MakeCall<NoValueResult>(new DeleteSubModuleRequest()
+        {
+            SubModulePath = path,
+        });
+    }
+
+    #endregion
 }

@@ -3,6 +3,7 @@ using Kernel.AFCP;
 using Kernel.Modules.Base;
 using Kernel.Modules.Base.MKCalls;
 using Kernel.Modules.Base.MKCalls.RequestTypes;
+using Kernel.Modules.Base.MKCalls.RequestTypes.SubModules;
 using Kernel.Modules.Base.MKCalls.ResultTypes;
 
 namespace Kernel.Modules;
@@ -26,9 +27,9 @@ namespace Kernel.Modules;
 /// Modules now have an client, MKCallClient, to interact with this class, MKCallReceiver. MKCallClient calls this class via kernelCallFunc. I think that calling via IL is the best method for object security.
 /// </summary>
 
-public sealed class MKCallReceiver
+public sealed class MKCallReceiver  
 {
-    internal LocalRModuleDescriptor? WorkingModule { private get; init; }
+    internal ModuleDescriptor? WorkingModule { private get; init; }
     public required ChannelManager channelManager { private get; init; }
     public required DataChannelManager dataChannelManager { private get; init; }
     public required ModuleManager moduleManager { private get; init; }
@@ -47,13 +48,13 @@ public sealed class MKCallReceiver
         return DataChannelInterface<T>.FromAFCP(dataChannel);
     }
 
-    public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string MPath)
+    public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string path)
     {
-        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(MPath);
+        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(path);
 
         //Check if the module has permission to that channel
         if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{MPath}'");
+            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{path}'");
 
         var afcpChannel = dataChannelManager.CreateLocalDataChannel<T>(channelRealPath);
 
@@ -61,19 +62,19 @@ public sealed class MKCallReceiver
 
     }
 
-    public T GetModuleInterface<T>(string MPath) where T : class, IModuleInterface
+    public T GetModuleInterface<T>(string path) where T : class, IModuleInterface
     {
         //We need to check if it has the permissions to do so.
-        return moduleManager.GetModuleInterface<T>(MPath);
+        return moduleManager.GetModuleInterface<T>(path);
     }
 
-    public T GetSubModuleInterface<T>(string MPath) where T : class, ISubModuleInterface
+    public T GetSubModuleInterface<T>(string path) where T : class, ISubModuleInterface
     {
         //We need to check if it has the permissions to do so.
-        return moduleManager.GetSubModuleInterface<T>(MPath);
+        return moduleManager.GetSubModuleInterface<T>(path);
     }
 
-    public void CreateSubModuleInterface(string MPath, string moduleName, bool start)
+    public void CreateSubModuleInterface(string path, string moduleName, bool start)
     {
         if (moduleManager.ModuleCreator == null)
             throw new NotSupportedException("Cannot create sub-modules because ModuleCreator was not set");
@@ -84,8 +85,9 @@ public sealed class MKCallReceiver
             throw new KeyNotFoundException($"The module load descriptor '{moduleName}' was not found");
 
 
-        moduleManager.CreateSubModuleInstance(WorkingModule!, loadDescriptor, MPath, start);
+        moduleManager.CreateSubModuleInstance(WorkingModule!, loadDescriptor, path, start);
     }
+
 
 
     /// <summary>
@@ -96,27 +98,41 @@ public sealed class MKCallReceiver
     /// <exception cref="SecurityException"></exception>
     public MKCallResult CallHandler(MKCallRequest request)
     {
-        var type = request.GetType().GetGenericTypeDefinition();
-        if (type == typeof(InitiateDataChannelRequest<>))
+        var requestType = request.GetType();
+        requestType = requestType.IsGenericType ? requestType.GetGenericTypeDefinition() : requestType;
+
+        if (requestType == typeof(InitiateDataChannelRequest<>))
         {
             return InitiateDataChannelRequestHandler((dynamic)request);
         }
-        else if (type == typeof(GetDataChannelInterfaceRequest<>))
+        else if (requestType == typeof(GetDataChannelInterfaceRequest<>))
         {
             return GetDataChannelInterfaceHandler((dynamic)request);
         }
-        else if (type == typeof(GetModuleInterfaceRequest<>))
+        else if (requestType == typeof(GetModuleInterfaceRequest<>))
         {
             return GetModuleInterfaceRequestHandler((dynamic)request);
         }
 
-        else if (type == typeof(CreateSubModuleInterfaceRequest<>))
+        else if (requestType == typeof(CreateSubModuleRequest<>))
         {
-            return CreateSubModuleInterfaceRequestHandler((dynamic)request);
+            return CreateSubModuleRequestHandler((dynamic)request);
+        }
+        else if (requestType == typeof(StartSubModuleRequest))
+        {
+            return StartSubModuleRequestHandler((dynamic)request);
+        }
+        else if (requestType == typeof(StopSubModuleRequest))
+        {
+            return StopSubModuleRequestHandler((dynamic)request);
+        }
+        else if (requestType == typeof(DeleteSubModuleRequest))
+        {
+            return DeleteSubModuleRequestHandler((dynamic)request);
         }
         else
         {
-            throw new SecurityException($"{request.GetType()} is not supported.");
+            throw new NotSupportedException($"The request type '{requestType}' is not supported or not implemented.");
         }
     }
 
@@ -146,7 +162,9 @@ public sealed class MKCallReceiver
         };
     }
 
-    public MKCallResult CreateSubModuleInterfaceRequestHandler<T>(CreateSubModuleInterfaceRequest<T> req) where T : class, ISubModuleInterface
+
+    #region Sub-Modules
+    public MKCallResult CreateSubModuleRequestHandler<T>(CreateSubModuleRequest<T> req) where T : class, ISubModuleInterface
     {
         CreateSubModuleInterface(req.SubModulePath, req.SubModuleName, req.StartOnCreation);
         return new CreateSubModuleInterfaceResult<T>()
@@ -154,6 +172,44 @@ public sealed class MKCallReceiver
             SubModuleInterface = GetSubModuleInterface<T>(req.SubModulePath)
         };
     }
+    public MKCallResult StartSubModuleRequestHandler(StartSubModuleRequest req)
+    {
+        //TODO: Checks to check if the module is an sub-module of the parent module and the action can be performed
 
+        var modImpl = moduleManager.GetLocalModuleDescriptor(req.SubModulePath);
+        if (modImpl == null)
+        {
+            throw new KeyNotFoundException($"The channel with the path '{req.SubModulePath}' was not found!");
+        }
+        modImpl.Start();
+        return new NoValueResult();
+    }
+    public MKCallResult StopSubModuleRequestHandler(StopSubModuleRequest req)
+    {
+        //TODO: Checks to check if the module is an sub-module of the parent module and the action can be performed
+
+        var modImpl = moduleManager.GetLocalModuleDescriptor(req.SubModulePath);
+        if (modImpl == null)
+        {
+            throw new KeyNotFoundException($"The channel with the path '{req.SubModulePath}' was not found!");
+        }
+        modImpl.Stop();
+        return new NoValueResult();
+    }
+    public MKCallResult DeleteSubModuleRequestHandler(DeleteSubModuleRequest req)
+    {
+        //TODO: Checks to check if the module is an sub-module of the parent module and the action can be performed
+
+        var modImpl = moduleManager.GetLocalModuleDescriptor(req.SubModulePath);
+        if (modImpl == null)
+        {
+            throw new KeyNotFoundException($"The channel with the path '{req.SubModulePath}' was not found!");
+        }
+        moduleManager.DeleteModule(modImpl);
+        return new NoValueResult();
+    }
+
+
+    #endregion
 
 }
