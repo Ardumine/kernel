@@ -33,13 +33,21 @@ public class ModuleManager
         return rMod;
     }
 
-    internal SubModuleDescriptor CreateSubModuleInstance(LocalRModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path)
+    internal SubModuleDescriptor CreateSubModuleInstance(LocalRModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path, bool start = false)
     {
         if (ModuleCreator == null)
             throw new NotSupportedException("Cannot create modules because ModuleCreator was not set");
 
         var subMod = ModuleCreator.CreateSubModuleInstance(parentModule, desc, path);
         LocalRModules.Add(subMod);
+
+        subMod.Implementation.Prepare();
+
+        if (start)
+        {
+            subMod.Implementation.Start();
+        }
+
         return subMod;
     }
 
@@ -167,7 +175,7 @@ public class ModuleManager
     /// <param name="Path">The Path of the Module</param>
     /// <returns>The interface for the Module</returns>
     /// <exception cref="NullReferenceException">If the Path of the Module is not found, then thrown.</exception>
-    public T GetSubModuleInterface<T>(string Path) where T : class, ISubModuleInterface, IModuleInterface
+    public T GetSubModuleInterface<T>(string Path) where T : class, ISubModuleInterface
     {
         var channel = _channelManager.GetModuleChannel(Path);
         if (channel == null)

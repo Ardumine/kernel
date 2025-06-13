@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+
+    <ProjectReference Include="..\Kernel.Modules.Base\Kernel.Modules.Base.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+
+    <ProjectReference Include="..\Kernel.Logging\Kernel.Logging.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+
+
+  </ItemGroup>
+</Project>

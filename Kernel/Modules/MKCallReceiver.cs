@@ -67,16 +67,24 @@ public sealed class MKCallReceiver
         return moduleManager.GetModuleInterface<T>(MPath);
     }
 
-    public T GetSubModuleInterface<T>(string MPath) where T : class, ISubModuleInterface, IModuleInterface
+    public T GetSubModuleInterface<T>(string MPath) where T : class, ISubModuleInterface
     {
         //We need to check if it has the permissions to do so.
         return moduleManager.GetSubModuleInterface<T>(MPath);
     }
 
-    public void CreateSubModuleInterface(string MPath, string moduleName)
+    public void CreateSubModuleInterface(string MPath, string moduleName, bool start)
     {
-        //We need to check if it has the permissions to do so.
-        moduleManager.CreateSubModuleInstance(WorkingModule!, moduleManager.ModuleCreator!.TryGetModuleLoadDescriptor(moduleName)!, MPath);
+        if (moduleManager.ModuleCreator == null)
+            throw new NotSupportedException("Cannot create sub-modules because ModuleCreator was not set");
+
+
+        var loadDescriptor = moduleManager.ModuleCreator.TryGetModuleLoadDescriptor(moduleName);
+        if (loadDescriptor == null)
+            throw new KeyNotFoundException($"The module load descriptor '{moduleName}' was not found");
+
+
+        moduleManager.CreateSubModuleInstance(WorkingModule!, loadDescriptor, MPath, start);
     }
 
 
@@ -138,9 +146,9 @@ public sealed class MKCallReceiver
         };
     }
 
-    public MKCallResult CreateSubModuleInterfaceRequestHandler<T>(CreateSubModuleInterfaceRequest<T> req) where T : class, ISubModuleInterface, IModuleInterface
+    public MKCallResult CreateSubModuleInterfaceRequestHandler<T>(CreateSubModuleInterfaceRequest<T> req) where T : class, ISubModuleInterface
     {
-        CreateSubModuleInterface(req.SubModulePath, req.SubModuleName);
+        CreateSubModuleInterface(req.SubModulePath, req.SubModuleName, req.StartOnCreation);
         return new CreateSubModuleInterfaceResult<T>()
         {
             SubModuleInterface = GetSubModuleInterface<T>(req.SubModulePath)

@@ -8,5 +8,7 @@ public class CreateSubModuleInterfaceRequest<T> : MKCallRequest where T : class,
 {
     public required string SubModulePath { get; set; }
     public required string SubModuleName { get; set; }
+    public required bool StartOnCreation { get; set; }
+
 
 }

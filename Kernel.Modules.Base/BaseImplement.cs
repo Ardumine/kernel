@@ -28,9 +28,9 @@ public abstract class BaseImplement
     }
 
 
-    public T? CreateSubModule<T>(string Path, string moduleName) where T : class, ISubModuleInterface
+    public T? CreateSubModule<T>(string Path, string moduleName, bool startOnCreation = true) where T : class, ISubModuleInterface
     {
-        return MKConector.CreateSubModule<T>(Path, moduleName);
+        return MKConector.CreateSubModule<T>(Path, moduleName, startOnCreation);
     }
 
     public T? GetConfigValue<T>(string name)

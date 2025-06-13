@@ -64,12 +64,13 @@ public sealed unsafe class MKCallClient
         }).ModuleInterface;
     }
 
-    public T? CreateSubModule<T>(string MPath, string moduleName) where T : class, ISubModuleInterface
+    public T? CreateSubModule<T>(string MPath, string moduleName, bool StartOnCreation) where T : class, ISubModuleInterface
     {
         return MakeCall<CreateSubModuleInterfaceResult<T>>(new CreateSubModuleInterfaceRequest<T>()
         {
             SubModulePath = MPath,
-            SubModuleName = moduleName
+            SubModuleName = moduleName,
+            StartOnCreation = StartOnCreation
         }).SubModuleInterface;
     }
 
