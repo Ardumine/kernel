@@ -11,12 +11,13 @@ public class Module2Implement : Kernel.Modules.Base.BaseImplement, IModule2
 
     public override void Start()
     {
-        Logger.LogI("Starting...");
+        logger.LogI("Running the CoolFunc...");
 
+        //Gets the interface to the module1
         var interfaceMod1 = GetModuleInterface<IModule1>("/modules/mod1");
-        interfaceMod1.CoolFunc();
-        Logger.LogI("Module2 started!");
 
+        interfaceMod1?.CoolFunc();
+        logger.LogOK("Module2 started!");
     }
 
     public override void EndStop()

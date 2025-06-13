@@ -1,6 +1,7 @@
 namespace Kernel.Modules.Base;
 
-public interface IModuleConfigManager{
+public interface IModuleConfigManager
+{
     /// <summary>
     /// Get a value of the config via entry
     /// </summary>

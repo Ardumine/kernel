@@ -1,6 +1,6 @@
 using Kernel.Modules.Base;
 
-namespace Ardumine.Modules.YDLidar;
+namespace Ardumine.Modules.YDLidarSDK;
 
 public interface IYDLidar: IModuleInterface
 {

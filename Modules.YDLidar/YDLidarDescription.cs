@@ -1,8 +1,8 @@
 using Kernel.Modules.Base;
 
-namespace Ardumine.Modules.YDLidar;
+namespace Ardumine.Modules.YDLidarSDK;
 
-public class YDLidarDescription : IModuleLoadDescription
+public class YDLidarDescription : IModuleLoadDescriptor
 {
     public string Name => "YDLidar";
 

@@ -17,7 +17,7 @@ namespace HectorSLAM.Matcher
     /// </summary>
     public class ScanMatcher : IDisposable
     {
-        private readonly Logger? logger;
+        private readonly ILogger? logger;
         private readonly ParallelWorker worker;
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace HectorSLAM.Matcher
         /// </summary>
         /// <param name="numThreads">Number of calculation threads to use</param>
         /// <param name="logger">Logging interface</param>
-        public ScanMatcher(int numThreads, Logger? logger = null)
+        public ScanMatcher(int numThreads, ILogger? logger = null)
         {
             this.logger = logger;
             worker = new ParallelWorker(numThreads, "HectorSLAM estimator");

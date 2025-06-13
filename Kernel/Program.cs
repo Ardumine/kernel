@@ -1,83 +1,79 @@
 ﻿using Kernel.AFCP;
+using Kernel.AFCP.KernelManagement;
 using Kernel.Logging;
 using Kernel.Modules;
-using Kernel.Modules.Base;
 
 namespace Kernel;
+
 internal class Program
 {
-    static List<IModuleLoadDescription> AvailableModules = new();
-    static List<KernelDescriptor> ConnectedKernels = new();
     private static void Main(string[] args)
     {
-        Thread.CurrentThread.Name = "Main Thread";
-        var logger = new Logger("kernel");
+        Console.Title = "Starting...";
+        Thread.CurrentThread.Name = "Kernel Main Thread";
+        ILogger logger = new ConsoleLogger("Kernel");
 
-        var localKernelDescriptor = new KernelDescriptor()
-        {
-            Guid = Guid.NewGuid()
-        };
+        var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
+        using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
+        var dataChannelManager = new DataChannelManager(channelManager, localKernel, logger.CreateSubLogger("DataChannelManager"));
 
-
-        //Create the channel manager.
-        var channelManager = new ChannelManager()
-        {
-            ConnectedKernels = ConnectedKernels,
-            LocalKernel = localKernelDescriptor
-        };
-
+        var kernelManager = new KernelManager(localKernel, channelManager, dataChannelManager, logger.CreateSubLogger("KernelManager"));
 
         //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager)
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, dataChannelManager, kernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
         {
-            LocalKernel = localKernelDescriptor
+            LocalKernel = localKernel
         };
 
-
-        var moduleManager = new ModuleManager(channelManager, localKernelDescriptor);
+        var moduleManager = new ModuleManager(channelManager, dataChannelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
         var moduleLoader = new ModuleLoader();
-
 
         var config = ConfigParser.Load("config.json");
 
 
-        //Load the DLLs and get the available modules.
-        AvailableModules = moduleLoader.LoadModules(config.ModulesDlls);
 
         AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
         {
             return moduleLoader.GetModuleAssembly(args.Name);//In case a module requires another module
         };
 
+
+        //Load the DLLs and get the available modules
+        var availableModuleLoadDescriptiors = moduleLoader.LoadModules(config.ModulesDlls);
+
+        var moduleCreator = new ModuleCreator(moduleManager, availableModuleLoadDescriptiors, channelManager, dataChannelManager, localKernel);
+
+        moduleManager.ModuleCreator = moduleCreator;
+
         logger.LogI("Starting AFCP...");
         AFCPServer.Start();
 
         foreach (var moduleConfig in config.StartupModules)
         {
-            var modDesc = AvailableModules.Where(m => m.Name == moduleConfig.ModuleName).FirstOrDefault();
-            var mod = moduleManager.CreateLocalModuleInstance(modDesc!, moduleConfig.Path, moduleConfig);
-        }
+            var modLoadDesc = moduleCreator.TryGetModuleLoadDescriptor(moduleConfig.ModuleName);
 
-        foreach (var mod in logger.CreateIterator(moduleManager.LocalRModules, "Preparing modules..."))
-        {
-            var impl = moduleManager.GetLocalImplement(mod);
-            impl?.Prepare();
+            if (modLoadDesc == null)
+                throw new NullReferenceException($"The module load with the name {moduleConfig.ModuleName} does not exist. Make sure you have the correct name and the DLL is loaded in config.json/ModulesDlls.");
+            moduleManager.CreateLocalModuleInstance(modLoadDesc, moduleConfig.Path, moduleConfig);
         }
 
         moduleManager.StartModulesViaTree();
 
         logger.LogOK("Kernel started!");
+        Console.Title = "Ok!";
         Console.ReadLine();//Wait for stop signal
 
 
-        logger.Space();
-        logger.LogI("Stop");
+        logger.NewLine();
+        logger.LogI("Stoping...");
 
-        moduleManager.StopModulesViaTree();
+        moduleManager.StopAndDeleteModulesViaTree();
         AFCPServer.Stop();
+        kernelManager.Stop();
         logger.LogI("Done");
+
     }
 
 }

@@ -1,16 +1,19 @@
-using System.Threading.Channels;
 using Kernel.AFCP.KASerializer.Atributes;
+using Kernel.AFCP.KernelManagement;
+using static Kernel.AFCP.ChannelManager;
 
 
 namespace Kernel.AFCP;
-public class DataChannelInterface : ChannelBase
+
+public class DataChannelInterface : DataChannelDescriptor
 {
-    public required virtual DataChannelDescriptor DataChannel { get; set; }
     internal virtual void OnRemoteChange(object? NewVal)
     {
 
     }
     public virtual object? ValueAsObj { get; set; }
+
+
 
 }
 
@@ -58,17 +61,17 @@ public abstract class DataChannelInterface<T> : DataChannelInterface
 
 public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 {
-    private ChannelManager channelManager;
-    public RemoteDataChannelInterface(ChannelManager channelManager_, string path_)
+    private DataChannelManager _dataChannelManager;
+    public RemoteDataChannelInterface(DataChannelManager dataChannelManager, string path_)
     {
         Path = path_;
-        channelManager = channelManager_;
+        _dataChannelManager = dataChannelManager;
         Init();
     }
     public void Init()
     {
         //Add event on channel run
-        channelManager.AddEventRemoteDataChange(Path, (s, e) =>
+        _dataChannelManager.AddEventRemoteDataChange(Path, (s, e) =>
         {
             Parallel.For(0, Events.Count, (i) =>
             {
@@ -91,7 +94,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
             if (!IsLocal)
             {
                 //Console.WriteLine("Add notify!");
-                channelManager.AddEventRemote(OwningKernel, Path);
+                _dataChannelManager.AddEventRemote(OwningKernelDesc, Path);
             }
         }
         Events.Add(evente);
@@ -103,7 +106,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
         {
             if (!IsLocal)
             {
-                channelManager.RemoveEventRemote(OwningKernel, Path);
+                _dataChannelManager.RemoveEventRemote(OwningKernelDesc, Path);
             }
         }
 
@@ -113,7 +116,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            channelManager.SetValueRemote(OwningKernel, Path, Data);
+            _dataChannelManager.SetValueRemote(OwningKernelDesc, Path, Data);
         }
 
         Parallel.For(0, Events.Count, (i) =>
@@ -126,7 +129,7 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
     {
         if (!IsLocal)
         {
-            return channelManager.GetValueRemote<T>(OwningKernel, Path);
+            return _dataChannelManager.GetValueRemote<T>(OwningKernelDesc, Path);
         }
         //DONT REMOVE THIS. IF YOU GET HIS THEN YOU ARE DOING SOMETHING WRONG
         throw new NotImplementedException();
@@ -149,16 +152,15 @@ public class RemoteDataChannelInterface<T> : DataChannelInterface<T>, IDisposabl
 
     public void Dispose()
     {
-        throw new NotImplementedException();
+        Events.Clear();
     }
 }
-public class LocalDataChannelInterface<T> : DataChannelInterface<T>
+public class LocalDataChannelInterface<T> : DataChannelInterface<T>, IDisposable
 {
-
-    private ChannelManager channelManager;
-    public LocalDataChannelInterface(ChannelManager channelManager_)
+    private DataChannelManager _dataChannelManager;
+    public LocalDataChannelInterface(DataChannelManager dataChannelManager)
     {
-        channelManager = channelManager_;
+        _dataChannelManager = dataChannelManager;
     }
 
     private T? LocalValue;
@@ -179,7 +181,8 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
         if (IsLocal)
         {
             LocalValue = Data;
-            channelManager.NoitifyChannelDataChanged(DataChannel, LocalValue);
+            _dataChannelManager.NoitifyChannelDataChanged(this, LocalValue);
+            //Console.WriteLine("Notify....");
         }
         Parallel.For(0, Events.Count, (i) =>
         {
@@ -211,38 +214,38 @@ public class LocalDataChannelInterface<T> : DataChannelInterface<T>
             Events[i]((T?)NewVal);
         });
     }
+
+    public void Dispose()
+    {
+        Events.Clear();
+    }
 }
 
 
-public class DataChannelDescriptor : ChannelBase
+public class DataChannelDescriptor : ExistingChannel
 {
-    public required string? DataType { get; set; }
-
-    public List<KernelDescriptor> KernelsToNotify = new List<KernelDescriptor>();
-    //public required DataChannelInterface<object> channelInterface { get; set; }
-    public void AddNotifyToKernelOnChange(KernelDescriptor kernelGuid)
-    {
-        KernelsToNotify.Add(kernelGuid);
-    }
-
-    public void RemoveNotifyToKernelOnChange(KernelDescriptor kernelGuid)
-    {
-        KernelsToNotify.Add(kernelGuid);
-    }
-
-    public List<KernelDescriptor> KernelsSubscribed = new List<KernelDescriptor>();
-
+    public List<RunningKernel> KernelsToNotify = new List<RunningKernel>();
     public DataChannelDescriptor()
     {
     }
 
+    public void AddNotifyToKernelOnChange(RunningKernel kernel)
+    {
+        KernelsToNotify.Add(kernel);
+    }
 
-
+    public void RemoveNotifyToKernelOnChange(RunningKernel kernel)
+    {
+        KernelsToNotify.Remove(kernel);
+    }
 }
 
-public class ModuleChannelDescriptor : ChannelBase
+
+
+public class ModuleChannelDescriptor : ExistingChannel
 {
-    public ModuleChannelDescriptor() : base(){
+    public ModuleChannelDescriptor() : base()
+    {
 
     }
 }
@@ -260,16 +263,27 @@ public class ModuleChannel : ModuleChannelDescriptor
     }
 
 
+    public object? OnFunctionRunRequestEvent(object s, FunctionRequestEventArgs e)
+    {
+        if (e.ChannelPath == Path)
+        {
+            return Run(e.FunctionID, e.Params);
+        }
+        return null;
+    }
     /// <summary>
     /// Only run this when a module is local.
     /// </summary>
     public void StartLocalEvents()
     {
         //Add event on channel run
-        channelManager.AddEventFunctionRequest(Path, (s, e) =>
-        {
-            return Run(e.FunctionID, e.Params);
-        });
+        channelManager.OnFunctionRunRequest += OnFunctionRunRequestEvent;
+    }
+
+    public void StopLocalEvents()
+    {
+        //Remove event on channel run
+        channelManager.OnFunctionRunRequest -= OnFunctionRunRequestEvent;
     }
 
     //Get by event(cache) or get by request
@@ -281,19 +295,20 @@ public class ModuleChannel : ModuleChannelDescriptor
         }
         else
         {
-            return channelManager.RunFuncRemote(OwningKernel, Path, FuncID, param);
+            return channelManager.RunFuncRemote(OwningKernelDesc, Path, FuncID, param);
         }
     }
 
 }
 
-public class ChannelBase : ChannelDescriptor
+public class ExistingChannel : ChannelDescriptor
 {
-    //public required ChannelManager ParentChannelManager;//NOT THE CAHNNEL MAMANGER THAT OWNS THIS CHANNEL IN A GLOBAL LEVEL!!
-    public  ChannelBase() : base() { }
+    public ExistingChannel() : base() { OwningKernelDesc = null!; }
+    public RunningKernel OwningKernelDesc { get; internal set; }
+    public bool Exists { get; internal set; }
 }
 
-public class ChannelDescriptor()
+public class ChannelDescriptor
 {
     public required bool IsLocal { get; set; }
 
@@ -301,6 +316,7 @@ public class ChannelDescriptor()
 
     public required Guid OwningKernel { get; set; }
 
-    public bool IsDataChannel { get; set; }
+    public required bool IsDataChannel { get; set; }
+    public required string DataType { get; set; }
 
 }

@@ -57,7 +57,7 @@ public class ClassSerializer
 
         if (emptyConstructor == null)
         {
-            throw new Exception($"There is no empry constuctor for the type {type.FullName}");
+            throw new Exception($"There is no empty constuctor for the type {type.FullName}");
         }
 
         //Entra Serializer(estancia) Stream

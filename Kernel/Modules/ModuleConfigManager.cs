@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Kernel.Modules.Base;
 
+namespace Kernel.Modules;
 internal class ModuleConfigManager : IModuleConfigManager
 {
     public required Dictionary<string, object>? moduleConfig { get; init; }

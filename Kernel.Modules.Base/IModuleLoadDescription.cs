@@ -4,7 +4,7 @@ namespace Kernel.Modules.Base;
 /// This is only used when you create the module itself.
 /// When you create an Module, you have an **Description.cs, where it stores the config to create the module implementatation.
 /// </summary>
-public interface IModuleLoadDescription
+public interface IModuleLoadDescriptor
 {
     /// <summary>
     /// Module name. It is used in the config.json to define the module type.

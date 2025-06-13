@@ -1,137 +1,75 @@
 ﻿namespace Kernel.Logging;
-public class Logger
+public class ConsoleLogger : ILogger
 {
-    private Logger() { Name = ""; }
-
-    private string Name { get; set; }
-    public Logger(string _Name)
+    public ConsoleLogger(string name, ILogger? parent = null) : base(name, parent)
     {
-        Name = _Name;
-    }
-
-    public string GetTime()
-    {
-        return DateTime.UtcNow.ToShortTimeString();
-    }
-    public void LogI(string dado)
-    {
-        var ant = Console.BackgroundColor;
-        var antx = Console.ForegroundColor;
-
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        //Console.ForegroundColor = ConsoleColor.Black;
-
-        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
-        Console.BackgroundColor = ant;
-        Console.ForegroundColor = antx;
-
-
-    }
-
-    public void LogOK(string dado)
-    {
-        var ant = Console.BackgroundColor;
-        var antx = Console.ForegroundColor;
-
-        Console.ForegroundColor = ConsoleColor.Green;
-        //Console.ForegroundColor = ConsoleColor.Black;
-
-        Console.WriteLine($"I[{GetTime()} {Name}] {dado}");
-        Console.BackgroundColor = ant;
-        Console.ForegroundColor = antx;
-
-
-    }
-
-    public void LogW(string dado)
-    {
-        var ant = Console.BackgroundColor;
-        var antx = Console.ForegroundColor;
-
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        //Console.ForegroundColor = ConsoleColor.Black;
-
-        Console.WriteLine($"I[{DateTime.UtcNow} {Name}] {dado}");
-        Console.BackgroundColor = ant;
-        Console.ForegroundColor = antx;
-
-
     }
 
 
-    /// <summary>
-    /// Log a list item
-    /// </summary>
-    /// <param name="item"></param>
-    public void LogL(string item)
-    {
-        var ant = Console.BackgroundColor;
-        var antx = Console.ForegroundColor;
+    /*  /// <summary>
+        /// Log a list item
+        /// </summary>
+        /// <param name="item"></param>
+        public void LogL(string item)
+        {
+            var ant = Console.BackgroundColor;
+            var antx = Console.ForegroundColor;
 
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine($"     {item}");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"     {item}");
 
-        Console.BackgroundColor = ant;
-        Console.ForegroundColor = antx;
+            Console.BackgroundColor = ant;
+            Console.ForegroundColor = antx;
 
-    }
+        }
+
+    */
 
 
-    public LogIterator<T> CreateIterator<T>(IEnumerable<T> list, string Description)
-    {
-        return new LogIterator<T>(list, this, Description);
-    }
-    public void Space()
+
+    public override void NewLine()
     {
         Console.WriteLine();
     }
-    public void ClearCurrentConsoleLine()
+
+    private void PrintHeader()
     {
-        //Console.CursorLeft = 0;
-        //Console.Write(new string(' ', Console.WindowWidth));
-        //Console.CursorLeft = 0;
+        var ant = Console.BackgroundColor;
+        var antx = Console.ForegroundColor;
+
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write($"[{GetTime()} {_Name}] ");//DateTime.UtcNow
+        Console.BackgroundColor = ant;
+        Console.ForegroundColor = antx;
     }
 
 
-
-
-}
-public class LogIterator<T> : IEnumerable<T>
-{
-    private IEnumerable<T> list { get; set; }
-    private Logger logger { get; set; }
-    private string Description { get; set; }
-    public LogIterator(IEnumerable<T> _list, Logger _logger, string _description)
+    public override void PrintMessage(string message, ConsoleColor color, string Letter)
     {
-        list = _list;
-        logger = _logger;
-        Description = _description;
-    }
-    public IEnumerator<T> GetEnumerator()
-    {
-        
-        int i = 0;
-        foreach (var item in list)
+        //Lock to not allow printing at the same time.
+        lock (_lockObject)
         {
-            int max = list.Count();
+            var ant = Console.BackgroundColor;
+            var antx = Console.ForegroundColor;
 
-            UpdateScreen(i + 1, max);
-            yield return item;
-            i++;
+            Console.ForegroundColor = color;
+
+            Console.Write(Letter);
+            PrintHeader();
+            Console.WriteLine(message);
+
+            Console.BackgroundColor = ant;
+            Console.ForegroundColor = antx;
         }
-        
-        Console.WriteLine("");
-
-
     }
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+
+    public override ILogger CreateSubLogger(string subName)
     {
-        return GetEnumerator();
+        return new ConsoleLogger($"{_Name}.{subName}", this);
     }
-    private void UpdateScreen(int current, int max)
+
+    internal override void PrintRawNewLine(string text)
     {
-        Console.ForegroundColor = ConsoleColor.White;
-        logger.ClearCurrentConsoleLine();
-        Console.Write($"[{Description}] {current}/{max} {(float)current / max * 100.0f:0.00}%");
+        Console.WriteLine(text);
     }
 }

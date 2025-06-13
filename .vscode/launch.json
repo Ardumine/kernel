@@ -5,10 +5,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "C#: kernel Debug",
+      "name": "C#: Kernel Debug",
       "type": "dotnet",
       "request": "launch",
       "projectPath": "${workspaceFolder}/Kernel/Kernel.csproj"
+    },
+    {
+      "name": "C#: thirdApp Debug",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/thirdApp/thirdApp.csproj"
     }
   ]
 }

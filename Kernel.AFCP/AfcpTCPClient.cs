@@ -1,10 +1,10 @@
-using System.ComponentModel;
 using System.Net.Sockets;
 using Kernel.AFCP.DataTreatment;
+using Kernel.Logging;
 
 namespace Kernel.AFCP;
 
-public class AfcpClient : IDisposable
+public class AfcpTCPClient : IDisposable
 {
     public bool Running { get; private set; }
 
@@ -25,12 +25,16 @@ public class AfcpClient : IDisposable
     public delegate void OnClientDisconnectEvent(DisconnectReason reason);
     public event OnClientDisconnectEvent? OnClientDisconnect;
 
-    public AfcpClient(){
-        
+    private ILogger _logger;
+    public AfcpTCPClient(ILogger logger)
+    {
+        _logger = logger;
     }
 
-    public AfcpClient(TcpClient client, string IP, int Port)
+    public AfcpTCPClient(TcpClient client, string IP, int Port, ILogger logger)
     {
+        _logger = logger;
+
         TcpClient = client;
         TCPClientstream = TcpClient.GetStream();
         Running = true;
@@ -82,15 +86,17 @@ public class AfcpClient : IDisposable
         {
             while (DataCache.Count > 0)
             {
+                if (TCPClientstream == null)
+                    break;
                 var writter = DataCache.Dequeue();
-                writter.Copy(TCPClientstream!);
+                writter.Copy(TCPClientstream);
 
                 writter.Dispose();
             }
             OnNewData.Reset();
             OnNewData.WaitOne(new TimeSpan(0, 0, 5));//In case stuck, just reloop in 5 secs
         }
-        Console.WriteLine("Exit Write");
+        _logger.LogI("Exit handleTCPClientWrite");
     }
 
     private void handleTCPClientRead()
@@ -99,21 +105,27 @@ public class AfcpClient : IDisposable
         {
             try
             {
-                var reader = new DataReader(TCPClientstream!);
+                if (TCPClientstream == null)
+                {
+                    break;
+                }
+                var reader = new DataReader(TCPClientstream);
                 if (OnDataRec != null)
                 {
                     OnDataRec.Invoke(reader);
                 }
             }
+            catch (EndOfStreamException)
+            {
+                Stop();
+            }
             catch
             {
-                if (!TcpClient!.Connected && Running)
+                if (TcpClient != null && TcpClient!.Connected && Running)
                 {
                     OnDisconnect(DisconnectReason.ConnectionLost);
-                    Running = false;
                 }
-
-                if (Running && TcpClient.Connected)
+                if (Running && TcpClient != null && TcpClient.Connected)
                 {
                     throw;
                 }
@@ -122,7 +134,7 @@ public class AfcpClient : IDisposable
             }
 
         }
-        Console.WriteLine("exit read");
+        _logger.LogI("exit handleTCPClientRead");
 
     }
     public void OnDisconnect(DisconnectReason reason)
@@ -131,11 +143,21 @@ public class AfcpClient : IDisposable
         {
             OnClientDisconnect.Invoke(reason);
         }
-
+        Stop();
     }
 
+    private void Stop()
+    {
+        Running = false;
+        TcpClient?.Close();
+        TCPClientstream?.Close();
+        OnNewData.Set();
+        DataCache.Clear();
+
+    }
     public void Dispose()
     {
+        Stop();
         TcpClient?.Dispose();
         TCPClientstream?.Dispose();
         OnNewData.Dispose();

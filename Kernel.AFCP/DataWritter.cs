@@ -35,7 +35,7 @@ public class DataWritter: IDisposable
 
 
     string TreatString(string? data){
-        return (data != null) ? data : "";
+        return data ?? string.Empty;
     }
 
     public unsafe void Writeeeee(string? data)
@@ -76,7 +76,12 @@ public class DataWritter: IDisposable
         int read;
         while ((read = memoryStream.Read(buffer, 0, buffer.Length)) > 0)
         {
-            stream.Write(buffer, 0, read);
+            if(stream.CanWrite)
+                stream.Write(buffer, 0, read);
+            else{
+                Console.WriteLine("DataWritter.Copy stream.CanWrite = false");
+                break;
+            }
         }
 
 

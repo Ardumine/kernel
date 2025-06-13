@@ -2,7 +2,7 @@ using Kernel.Modules.Base;
 
 namespace Ardumine.Modules.SLAM.Hector;
 
-public class HectorSLAMDescription : IModuleLoadDescription
+public class HectorSLAMDescription : IModuleLoadDescriptor
 {
     public string Name => "HectorSLAM";
 

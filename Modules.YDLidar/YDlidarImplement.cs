@@ -1,9 +1,9 @@
 using Kernel.Modules.Base;
-using YDLidarSDK;
 
-namespace Ardumine.Modules.YDLidar;
+namespace Ardumine.Modules.YDLidarSDK;
 public class YDLidarImplement : BaseImplement, IYDLidar
 {
+
     public CYdLidar lidarClass = new CYdLidar();
     private bool Run { get; set; }
 
@@ -17,11 +17,9 @@ public class YDLidarImplement : BaseImplement, IYDLidar
 
     public override void Start()
     {
-        //var config = SelfMod.Config!;
-        Logger.LogI("Starting lidar...");
+        logger.LogI("Starting lidar...");
 
-        //ConnectLidar(((System.Text.Json.JsonElement)config["Port"]).ToString());
-        ConnectLidar(GetConfigValue<string>("Port")!);
+        ConnectLidar(GetConfigValue<string>("Port") ?? "Port was not found in config");
         
         Run = true;
         
@@ -34,7 +32,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
 
     public void ConnectLidar(string porta)
     {
-        YDLidarSDK.YDLidarSDK.os_init();
+        YDLidar.os_init();
         //string port = "/dev/ttyUSB0";//COM14
         int baudrate = 230400;
 
@@ -110,7 +108,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         else
         {
-            Logger.LogW("error:" + lidarClass.DescribeError());
+            logger.LogE("error:" + lidarClass.DescribeError());
         }
 
     }
@@ -133,7 +131,7 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         if (Run)
         {
-            Logger.LogW("The YDLidar loop stopped and there was no instruction to stop.");
+            logger.LogW("The YDLidar loop stopped and there was no instruction to stop.");
         }
     }
     void ProcessScan(LaserScan scan)
@@ -161,6 +159,5 @@ public class YDLidarImplement : BaseImplement, IYDLidar
         }
         LidarDataChannel?.Set(points.ToArray());
     }
-
 
 }

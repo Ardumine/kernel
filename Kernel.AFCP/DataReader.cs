@@ -27,7 +27,7 @@ public class DataReader
 
     public uint ReadUint()
     {
-        byte[] arr = new byte[4];
+        Span<byte> arr = new byte[4];
         stream.ReadExactly(arr);
 
         return Tools.GetUInt(arr);

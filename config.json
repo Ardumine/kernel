@@ -3,7 +3,8 @@
         "[root]/Module1/bin/Debug/net9.0/Module1.dll",
         "[root]/Module2/bin/Debug/net9.0/Module2.dll",
         "[root]/Modules.YDLidar/bin/Debug/net9.0/Modules.YDLidar.dll",
-        "[root]/Modules.SLAM.Hector/bin/Debug/net9.0/Modules.SLAM.Hector.dll"
+        "[root]/Modules.SLAM.Hector/bin/Debug/net9.0/Modules.SLAM.Hector.dll",
+        "[root]/Modules.USB/bin/Debug/net9.0/Modules.USB.dll"
     ],
     "StartupModules": [
         {
@@ -28,7 +29,7 @@
         {
             "ModuleName": "YDLidar",
             "Path": "/modules/YDLidar",
-            "StartOnBoot": true,
+            "StartOnBoot": false,
             "startAfter": "kernel",
             "hostingChannels": [
                 {
@@ -44,7 +45,7 @@
         {
             "ModuleName": "HectorSLAM",
             "Path": "/modules/HectorSLAM",
-            "StartOnBoot": true,
+            "StartOnBoot": false,
             "startAfter": "/modules/YDLidar",
             "hostingChannels": [
                 {
@@ -66,8 +67,14 @@
                 }
             ],
             "Config": {
-                "Port": "COM14"
+                "FakePosReport": true
             }
+        },
+        {
+            "ModuleName": "USBController",
+            "Path": "/modules/USBController",
+            "StartOnBoot": true,
+            "startAfter": "kernel"
         }
     ],
     "RCS": {

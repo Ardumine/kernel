@@ -1,33 +1,65 @@
 using Kernel.Modules.Base;
 using Kernel.AFCP;
+using Kernel.AFCP.KernelManagement;
+using Kernel.Logging;
 
 namespace Kernel.Modules;
 
 public class ModuleManager
 {
-    internal List<LocalRModule> LocalRModules = new List<LocalRModule>();
-    private ChannelManager channelManager;
-    private ModuleActivator moduleActivator { get; set; }
-    private KernelDescriptor LocalKernel { get; set; }
+    internal List<ModuleDescriptor> LocalRModules = new List<ModuleDescriptor>();
+    private ChannelManager _channelManager;
+    internal ModuleCreator? ModuleCreator { get; set; }
+    private DataChannelManager _dataChannelManager;
 
-    public ModuleManager(ChannelManager _channelManager, KernelDescriptor _LocalKernel)
+    private ILogger _logger;
+
+    public ModuleManager(ChannelManager channelManager, DataChannelManager dataChannelManager, LocalRunningKernel localKernel, ILogger logger)
     {
-        channelManager = _channelManager;
-        LocalKernel = _LocalKernel;
+        _channelManager = channelManager;
+        _logger = logger;
+        _dataChannelManager = dataChannelManager;
 
-        moduleActivator = new()
-        {
-            channelManager = channelManager,
-            moduleManager = this,
-            localKernel = LocalKernel
-        };
     }
-    internal LocalRModule CreateLocalModuleInstance(IModuleLoadDescription desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)
+
+
+    internal ModuleDescriptor CreateLocalModuleInstance(IModuleLoadDescriptor desc, string path, ConfigFile.StartupModuleConfig ModuleConfig)
     {
-        var rMod = moduleActivator.CreateLocalModuleInstance(desc, path, ModuleConfig);
+        if (ModuleCreator == null)
+            throw new NotSupportedException("Cannot create modules because ModuleCreator was not set");
+
+        var rMod = ModuleCreator.CreateLocalModuleInstance(desc, path, ModuleConfig);
+        rMod._logger = _logger.CreateSubLogger($"Internal{path}");
+
         LocalRModules.Add(rMod);
         return rMod;
     }
+
+    internal SubModuleDescriptor CreateSubModuleInstance(ModuleDescriptor parentModule, IModuleLoadDescriptor desc, string path, bool start = false)
+    {
+        if (ModuleCreator == null)
+            throw new NotSupportedException("Cannot create modules because ModuleCreator was not set");
+
+        var subMod = ModuleCreator.CreateSubModuleInstance(parentModule, desc, path);
+        subMod._logger = _logger.CreateSubLogger($"Internal{path}");
+
+        LocalRModules.Add(subMod);
+
+        subMod.Prepare();
+
+        if (start)
+        {
+            subMod.Start();
+        }
+
+        return subMod;
+    }
+
+    internal void TryGet()
+    {
+
+    }
+
     /*
         //DO NOT REMOVE
         public DataChannelDescriptor? CreateLocalDataChannel<T>(LocalRModule? mod, string Path)
@@ -91,32 +123,96 @@ public class ModuleManager
 
     */
 
-
-    internal LocalRModule? GetModule(string Path)
+    /// <summary>
+    /// Gets a local Module Descriptor
+    /// </summary>
+    /// <param name="Path">The Path of the Module</param>
+    /// <returns>The Module descriptor. If null then it was not found.</returns>
+    internal ModuleDescriptor? GetLocalModuleDescriptor(string Path)
     {
         return LocalRModules.Where(m => m.Path == Path).FirstOrDefault();
     }
-    public BaseImplement? GetLocalImplement(string Path)
+
+    /// <summary>
+    /// Gets the implement of a local Module
+    /// </summary>
+    /// <param name="Path">The Path of the Module</param>
+    /// <returns>The implement of the Module</returns>
+    internal BaseImplement? GetLocalImplement(string Path)
     {
-        return GetModule(Path)?.Implementation;
+        return GetLocalModuleDescriptor(Path)?.Implementation;
     }
 
-
-    internal BaseImplement? GetLocalImplement(LocalRModule mod)
+    /// <summary>
+    /// Gets the implement of a local Module
+    /// </summary>
+    /// <param name="mod">The Local Module DEscriptor</param>
+    /// <returns>The implement of the Module</returns>
+    internal BaseImplement? GetLocalImplement(ModuleDescriptor mod)
     {
         return mod.Implementation;
     }
 
 
 
-
+    /// <summary>
+    /// Gets the interface for an Module
+    /// </summary>
+    /// <typeparam name="T">The interface type of the Module(derived of IModuleInterface)</typeparam>
+    /// <param name="Path">The Path of the Module</param>
+    /// <returns>The interface for the Module</returns>
+    /// <exception cref="NullReferenceException">If the Path of the Module is not found, then thrown.</exception>
     public T GetModuleInterface<T>(string Path) where T : class, IModuleInterface
     {
-        var channel = channelManager.GetModuleChannel(Path);
+        var channel = _channelManager.GetModuleChannel(Path);
+        if (channel == null)
+        {
+            throw new NullReferenceException($"The module with the Path {Path} was not found.");
+        }
         return ModuleProxy<T>.CreateProxy<T>(channel);
     }
 
+    /// <summary>
+    /// Gets the interface for an Module
+    /// </summary>
+    /// <typeparam name="T">The interface type of the Module(derived of IModuleInterface)</typeparam>
+    /// <param name="Path">The Path of the Module</param>
+    /// <returns>The interface for the Module</returns>
+    /// <exception cref="NullReferenceException">If the Path of the Module is not found, then thrown.</exception>
+    public T GetSubModuleInterface<T>(string Path) where T : class, ISubModuleInterface
+    {
+        var channel = _channelManager.GetModuleChannel(Path);
+        if (channel == null)
+        {
+            throw new NullReferenceException($"The module with the Path {Path} was not found.");
+        }
+        return ModuleProxy<T>.CreateProxy<T>(channel);
+    }
 
+    internal void DeleteModule(ModuleDescriptor mod)
+    {
+        mod.InternalDelete();
+
+        if (!mod.IsDeleted)
+        {
+            foreach (var subMod in mod.SubModules)
+            {
+                if (!subMod.IsDeleted)
+                {
+                    _logger?.LogW($"The module did not delete the sub-module '{subMod.Path}'! Deleting manually...");
+                    DeleteModule(subMod);
+                }
+            }
+
+        }
+
+        _channelManager.DeleteLocalModuleChannel(mod.Path);
+
+        LocalRModules.Remove(mod);
+    }
+
+
+    #region Boot tree
     public void StartModulesViaTree(string startingModule = "kernel")
     {
         var modListOrder = CreateBootTree(startingModule);
@@ -124,34 +220,61 @@ public class ModuleManager
         //Start the modules that has the "StartOnBoot" flag
         foreach (var _mod in modListOrder)
         {
-            var mod = (LocalRModule)_mod;
-            if (mod.StartOnBoot == true)
+            var mod = (ModuleDescriptor)_mod;
+
+            if (mod.StartOnBoot)
             {
-                var impl = GetLocalImplement(mod);
-                impl?.Start();
-                mod.Running = true;
+                mod.Prepare();
+                mod.Start();
             }
 
         }
     }
 
 
-    
-    public void StopModulesViaTree(string startingModule = "kernel")
+    public void StopAndDeleteModulesViaTree(string startingModule = "kernel")
     {
         var modListOrder = CreateStopTree(startingModule);
 
         foreach (var _mod in modListOrder)
         {
-            var mod = (LocalRModule)_mod;
-            if (mod.Running == true)
+            var mod = (ModuleDescriptor)_mod;
+            if (mod.IsRunning)
             {
-                Console.WriteLine($"Stop: {mod.Path}");
-                var impl = GetLocalImplement(mod);
-                impl?.EndStop();
-                mod.Running = false;
+                _logger.LogI($"Stopping '{mod.Path}'...");
+                mod.Stop();
             }
+        }
 
+        foreach (var _mod in modListOrder)
+        {
+            var mod = (ModuleDescriptor)_mod;
+            if (!mod.IsDeleted)
+            {
+                _logger.LogI($"Deleting '{mod.Path}'...");
+                DeleteModule(mod);
+            }
+        }
+
+
+        var runningModules = LocalRModules.Where(mod => mod.IsRunning);
+        if (runningModules.Any())
+        {
+            _logger.LogW("It appears that some modules are still running after stopping via tree. Stopping them anyways...");
+            foreach (var mod in runningModules)
+            {
+                mod.Stop();
+            }
+        }
+
+        var nonDeletedModules = LocalRModules.Where(mod => !mod.IsDeleted);
+        if (nonDeletedModules.Any())
+        {
+            _logger.LogW("It appears that some modules are not deleted after deleting via tree. Deleting them anyways...");
+            foreach (var mod in nonDeletedModules)
+            {
+                DeleteModule(mod);
+            }
         }
     }
 
@@ -171,7 +294,7 @@ public class ModuleManager
 
         var modsOrder = new List<IModule>();
         FlattenTree(tree, modsOrder);
-        
+
         modsOrder.Reverse();
 
         return modsOrder;
@@ -185,7 +308,6 @@ public class ModuleManager
             FlattenTree(branch.Dependers, mods);
         }
     }
-
 
 
     public void PrintTree(List<StartModBranch> tree, int i = 0)
@@ -210,5 +332,7 @@ public class ModuleManager
         }
         return tree;
     }
+
+    #endregion
 }
 

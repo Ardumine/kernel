@@ -2,7 +2,7 @@ using Kernel.Modules.Base;
 
 namespace Ardumine.Modules.Module1;
 
-public class Module1Description : IModuleLoadDescription
+public class Module1Descriptor : IModuleLoadDescriptor
 {
     public string Name => "Module1";
 

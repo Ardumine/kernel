@@ -1,3 +1,4 @@
+namespace Kernel.Modules.Permissions;
 internal class IModulePermissions
 {
     private List<ModulePermission> Permissions { get; set; }

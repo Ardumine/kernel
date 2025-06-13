@@ -1,41 +1,55 @@
 using Kernel.AFCP.Packets;
 
 namespace Kernel.AFCP.Systems;
+
 public class ChannelManagementSystem
 {
-    ChannelManager channelManager;
+    private DataChannelManager _dataChannelManager;
+    private KernelManager _kernelManager;
 
-    public ChannelManagementSystem(ChannelManager _channelManager)
+
+    public ChannelManagementSystem(DataChannelManager dataChannelManager, KernelManager kernelManager)
     {
-        channelManager = _channelManager;
+        _dataChannelManager = dataChannelManager;
+        _kernelManager = kernelManager;
     }
-    public BasePacketAnswer Process(PacketChannelManagementRequest a)
+
+    public BasePacketAnswer Process(PacketChannelManagementRequest req)
     {
         //When another kernel requests to notify when a channel changes it's data.
-        if (a.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
+        if (req.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
         {
-            //Console.WriteLine("Add event!!!!");
-            DataChannelDescriptor? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.AddNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
+            //Console.WriteLine($"Remote kernel {req.RequestingKernel} requested add event to {req.ChannelPath}");
+            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
+            if (remoteKernel == null)
+            {
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
+            }
+            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
+
+            channel?.AddNotifyToKernelOnChange(remoteKernel);
         }
-        else if (a.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
+        else if (req.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
         {
-            DataChannelDescriptor? channel = channelManager.TryGetLocalChannel(a.ChannelPath);
-            channel?.RemoveNotifyToKernelOnChange(channelManager.GetKernel(a.RequestingKernel)!);
+            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
+            if (remoteKernel == null)
+            {
+                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
+            }
+            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
+
+            channel?.RemoveNotifyToKernelOnChange(remoteKernel);
         }
-        else if (a.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
+        else if (req.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
         {
-            //Console.WriteLine($"Event rec!!! {a.NewVal == null}");
+            //Console.WriteLine($"Event rec!!! {req.NewVal == null}");
+
             //When a remote kernel notifys when a remote channel changes it's data.
-            //DataChannel? channel = channelManager.GetDataChannel();
-            //var interf = channelManager.GetInterfaceForChannel(a.ChannelPath);
-
-
-            channelManager.OnRemoteDataChange(a.ChannelPath, a.NewVal);
-
-            //interf?.OnRemoteChange(myData);
+            _dataChannelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
         }
 
-        return new PacketChannelManagementAnswer();
+        return new PacketChannelManagementAnswer(){
+            RemoteKernelGuid = _kernelManager.LocalKernel.Guid
+        };
     }
 }
