@@ -28,20 +28,6 @@ internal class Program
         Console.WriteLine("Connected!");
 
 
-        var interfPos = dataChannelManager.GetDataChannelInterface<Vector3>("/slamPos");
-        var interfMap = dataChannelManager.GetDataChannelInterface<byte[]>("/SLAMmap");
-
-        interfPos?.AddEvent((pos) =>
-        {
-            Console.WriteLine("Pos data rec!!" + pos);
-        });
-        interfMap?.AddEvent((aa) =>
-        {
-            Console.WriteLine("Map data rec!!");
-        });
-
-
-        Console.WriteLine("Get: " + interfPos?.Get());
         Console.WriteLine("Execing cool func...");
 
         var interfaceMod1 = moduleManager.GetModuleInterface<IModule1>("/modules/mod1");
