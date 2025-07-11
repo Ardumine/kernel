@@ -11,7 +11,6 @@ namespace Kernel.AFCP;
 public class ChannelManagerAfcpClientConector
 {
     public ChannelManager LocalChannelManager { get; init; }
-    public DataChannelManager _dataChannelManager { get; init; }
 
     public RemoteRunningKernel? RemoteKernel { get; set; }
 
@@ -30,12 +29,11 @@ public class ChannelManagerAfcpClientConector
     private ILogger _logger;
 
     //Are we a server?
-    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, DataChannelManager dataChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
+    public ChannelManagerAfcpClientConector(AfcpTCPClient client, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
     {
         _logger = logger;
         _afcpClient = client;
         LocalChannelManager = _localChannelManager;
-        _dataChannelManager = dataChannelManager;
 
         LocalKernel = _LocalKernel;
         KernelManager = _KernelManager;
@@ -47,7 +45,7 @@ public class ChannelManagerAfcpClientConector
         _afcpClient.OnDataRec += OnDataRec;
         _afcpClient.OnClientDisconnect += OnDisconnect;
 
-        _channelManagementSystem = new ChannelManagementSystem(_dataChannelManager, KernelManager);
+        _channelManagementSystem = new ChannelManagementSystem(KernelManager);
         _connectSystem = new()
         {
             channelManagerClient = this,
@@ -58,11 +56,10 @@ public class ChannelManagerAfcpClientConector
     }
 
     //Are we a client?
-    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, DataChannelManager dataChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
+    public ChannelManagerAfcpClientConector(string IP, int Port, ChannelManager _localChannelManager, LocalRunningKernel _LocalKernel, KernelManager _KernelManager, ILogger logger)
     {
         _logger = logger;
         LocalChannelManager = _localChannelManager;
-        _dataChannelManager = dataChannelManager;
         LocalKernel = _LocalKernel;
         KernelManager = _KernelManager;
 
@@ -76,7 +73,7 @@ public class ChannelManagerAfcpClientConector
 
 
 
-        _channelManagementSystem = new ChannelManagementSystem(_dataChannelManager, KernelManager);
+        _channelManagementSystem = new ChannelManagementSystem(KernelManager);
         _connectSystem = new()
         {
             channelManagerClient = this,
@@ -162,10 +159,6 @@ public class ChannelManagerAfcpClientConector
             {
                 answer = _channelManagementSystem.Process(ParsePacketRequest<PacketChannelManagementRequest>(reader));
             }
-            else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
-            {
-                answer = ParseChannelRequestPacket(ParsePacketRequest<PacketChannelRequest>(reader));
-            }
             else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
             {
                 answer = ProcessFunctionRequestPacket(ParsePacketRequest<PacketModFuncRequest>(reader));
@@ -198,10 +191,6 @@ public class ChannelManagerAfcpClientConector
                 else if (msgType == MessagesTypes.ChannelManagementRequest)//12 Channel management.
                 {
                     Obj = _Serializer.Deserialize<PacketChannelManagementAnswer>(reader.stream);
-                }
-                else if (msgType == MessagesTypes.ChannelDataRequest)//15 = channel data
-                {
-                    Obj = _Serializer.Deserialize<PacketChannelAnswer>(reader.stream);
                 }
                 else if (msgType == MessagesTypes.ChannelFunctionRequest)//16 = channel function
                 {
@@ -273,29 +262,7 @@ public class ChannelManagerAfcpClientConector
 
     }
 
-    private PacketChannelAnswer ParseChannelRequestPacket(PacketChannelRequest data)
-    {
-        var answer = new PacketChannelAnswer()
-        {
-            Result = 0,
-            RemoteKernelGuid = LocalKernel.Guid
-        };
-        string channelPath = data.channelPath;
-
-
-        if (!data.WriteData)//Read data from channel
-        {
-            answer.Result = ReadChannel<object>(channelPath);
-        }
-        else//Write data ToList() channel  if (msgType == 1)
-        {
-            _dataChannelManager.SetLocalValue(channelPath, data.Val);
-        }
-        return answer;
-
-    }
-
-
+    
 
     private BasePacketAnswer ProcessFunctionRequestPacket(PacketModFuncRequest data)
     {
@@ -325,10 +292,6 @@ public class ChannelManagerAfcpClientConector
         writter.Write(false);
         return writter;
     }
-    private T? ReadChannel<T>(string channelPath)
-    {
-        return _dataChannelManager.GetLocalValue<T>(channelPath);
-    }
 
 }
 
@@ -337,6 +300,5 @@ public static class MessagesTypes
     public static byte ChannelConnectRequest = 10;
     public static byte ChannelSyncRequest = 11;
     public static byte ChannelManagementRequest = 12;
-    public static byte ChannelDataRequest = 15;
     public static byte ChannelFunctionRequest = 16;
 }

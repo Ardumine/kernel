@@ -16,15 +16,13 @@ public class KernelManager
     /// </summary>
     private List<RunningKernel> _ExistingKernels;
     private  ChannelManager _channelManager;
-    private  DataChannelManager _dataChannelManager;
 
     private ILogger _logger;
-    public KernelManager(LocalRunningKernel localKernel, ChannelManager channelManager, DataChannelManager dataChannelManager, ILogger logger)
+    public KernelManager(LocalRunningKernel localKernel, ChannelManager channelManager, ILogger logger)
     {
         LocalKernel = localKernel;
         _logger = logger;
         _channelManager = channelManager;
-        _dataChannelManager = dataChannelManager;
 
         _ExistingKernels = new List<RunningKernel>();
         _ExistingKernels.Add(LocalKernel);
@@ -38,7 +36,7 @@ public class KernelManager
     /// <param name="port">The port of the remote kernel</param>
     public void Join(string IPAddress, int port)
     {
-        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, _channelManager, _dataChannelManager, LocalKernel, this, _logger.CreateSubLogger("ChannelManagerAfcpClientConector"));
+        var afcpClient = new ChannelManagerAfcpClientConector(IPAddress, port, _channelManager, LocalKernel, this, _logger.CreateSubLogger("ChannelManagerAfcpClientConector"));
 
         var connectResponse = afcpClient.SendRequest<PacketConnectAnswer>(MessagesTypes.ChannelConnectRequest, new PacketConnectRequest()
         {

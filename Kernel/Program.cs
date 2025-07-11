@@ -15,19 +15,18 @@ internal class Program
 
         var localKernel = LocalRunningKernel.CreateLocalKernelDescriptor("4d120748-810c-41f0-b93e-66500092f567");
         using var channelManager = new ChannelManager(localKernel, logger.CreateSubLogger("ChannelManager"));
-        var dataChannelManager = new DataChannelManager(channelManager, localKernel, logger.CreateSubLogger("DataChannelManager"));
 
-        var kernelManager = new KernelManager(localKernel, channelManager, dataChannelManager, logger.CreateSubLogger("KernelManager"));
+        var kernelManager = new KernelManager(localKernel, channelManager, logger.CreateSubLogger("KernelManager"));
 
         //Create the AFCP server
         var AFCPServer = new AfcpServer(8000);
 
-        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, dataChannelManager, kernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
+        var ChannelManagerAFCPServerConector = new ChannelManagerAFCPServerConector(AFCPServer, channelManager, kernelManager, logger.CreateSubLogger("ChannelManagerAFCPServerConector"))
         {
             LocalKernel = localKernel
         };
 
-        var moduleManager = new ModuleManager(channelManager, dataChannelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
+        var moduleManager = new ModuleManager(channelManager, localKernel, logger.CreateSubLogger("ModuleManager"));
         var moduleLoader = new ModuleLoader();
 
         var config = ConfigParser.Load("config.json");
@@ -43,7 +42,7 @@ internal class Program
         //Load the DLLs and get the available modules
         var availableModuleLoadDescriptiors = moduleLoader.LoadModules(config.ModulesDlls);
 
-        var moduleCreator = new ModuleCreator(moduleManager, availableModuleLoadDescriptiors, channelManager, dataChannelManager, localKernel);
+        var moduleCreator = new ModuleCreator(moduleManager, availableModuleLoadDescriptiors, channelManager, localKernel);
 
         moduleManager.ModuleCreator = moduleCreator;
 

@@ -4,52 +4,16 @@ namespace Kernel.AFCP.Systems;
 
 public class ChannelManagementSystem
 {
-    private DataChannelManager _dataChannelManager;
     private KernelManager _kernelManager;
 
 
-    public ChannelManagementSystem(DataChannelManager dataChannelManager, KernelManager kernelManager)
+    public ChannelManagementSystem(  KernelManager kernelManager)
     {
-        _dataChannelManager = dataChannelManager;
         _kernelManager = kernelManager;
     }
 
     public BasePacketAnswer Process(PacketChannelManagementRequest req)
     {
-        //When another kernel requests to notify when a channel changes it's data.
-        if (req.MsgType == ChannelMessageSyncMessageTypes.AddEventChannel)
-        {
-            //Console.WriteLine($"Remote kernel {req.RequestingKernel} requested add event to {req.ChannelPath}");
-            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
-            if (remoteKernel == null)
-            {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
-            }
-            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
-
-            channel?.AddNotifyToKernelOnChange(remoteKernel);
-        }
-        else if (req.MsgType == ChannelMessageSyncMessageTypes.RemoveEventChannel)
-        {
-            var remoteKernel = _kernelManager.GetKernel(req.SourceKernelGuid);
-            if (remoteKernel == null)
-            {
-                throw new Exception($"ChannelManagementSystem has received a call to add event to channel, but the kernel {req.SourceKernelGuid} is not registred");
-            }
-            DataChannelDescriptor? channel = _dataChannelManager.GetLocalDataChannelDescriptor(req.ChannelPath);
-
-            channel?.RemoveNotifyToKernelOnChange(remoteKernel);
-        }
-        else if (req.MsgType == ChannelMessageSyncMessageTypes.ChannelDataChange)
-        {
-            //Console.WriteLine($"Event rec!!! {req.NewVal == null}");
-
-            //When a remote kernel notifys when a remote channel changes it's data.
-            _dataChannelManager.OnRemoteDataChange(req.ChannelPath, req.NewVal);
-        }
-
-        return new PacketChannelManagementAnswer(){
-            RemoteKernelGuid = _kernelManager.LocalKernel.Guid
-        };
+        throw new NotImplementedException("Removed data channels from the kernel code");
     }
 }

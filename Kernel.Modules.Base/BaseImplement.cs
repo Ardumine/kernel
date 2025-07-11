@@ -19,14 +19,7 @@ public abstract class BaseImplement : IModuleInterface
     }
 
 
-    public IExistingDataChannelDescriptor? InitiateChannel<T>(string Path)
-    {
-        return MKConector.InitiateDataChannel<T>(Path);
-    }
-    public IDataChannelInterface<T>? GetChannelInterface<T>(string Path)
-    {
-        return MKConector.GetDataChannelInterface<T>(Path);
-    }
+ 
     public T? GetModuleInterface<T>(string Path) where T : class, IModuleInterface
     {
         return MKConector.GetModuleInterface<T>(Path);

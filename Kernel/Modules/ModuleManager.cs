@@ -10,16 +10,14 @@ public class ModuleManager
     internal List<ModuleDescriptor> LocalRModules = new List<ModuleDescriptor>();
     private ChannelManager _channelManager;
     internal ModuleCreator? ModuleCreator { get; set; }
-    private DataChannelManager _dataChannelManager;
 
     private ILogger _logger;
 
-    public ModuleManager(ChannelManager channelManager, DataChannelManager dataChannelManager, LocalRunningKernel localKernel, ILogger logger)
+    public ModuleManager(ChannelManager channelManager, LocalRunningKernel localKernel, ILogger logger)
     {
         _channelManager = channelManager;
         _logger = logger;
-        _dataChannelManager = dataChannelManager;
-
+            
     }
 
 

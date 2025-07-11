@@ -11,7 +11,6 @@ public class ChannelManager : IDisposable
     private ILogger _logger;
 
     //I need to fix this.
-    public DataChannelManager? dataChannelManager { get; set; }
 
     public ChannelManager(RunningKernel localKernel, ILogger logger)
     {
@@ -114,29 +113,15 @@ public class ChannelManager : IDisposable
         var descriptors = new List<ChannelDescriptor>();
         foreach (var channel in Channels.Where(ch => ch.IsLocal))
         {
-            if (channel.IsDataChannel)
+
+            descriptors.Add(new ChannelDescriptor()
             {
-                var dataChannel = (DataChannelDescriptor)channel;
-                descriptors.Add(new ChannelDescriptor()
-                {
-                    IsLocal = false,
-                    Path = dataChannel.Path,
-                    OwningKernel = LocalKernel.Guid,
-                    IsDataChannel = true,
-                    DataType = dataChannel.DataType
-                });
-            }
-            else
-            {
-                descriptors.Add(new ChannelDescriptor()
-                {
-                    IsLocal = false,
-                    Path = channel.Path,
-                    OwningKernel = LocalKernel.Guid,
-                    IsDataChannel = false,
-                    DataType = "module channel no type 2"
-                });
-            }
+                IsLocal = false,
+                Path = channel.Path,
+                OwningKernel = LocalKernel.Guid,
+                IsDataChannel = false,
+                DataType = "module channel no type 2"
+            });
         }
         return descriptors.ToArray();
     }
@@ -157,36 +142,16 @@ public class ChannelManager : IDisposable
                 throw new ChannelPathAlreadyTaken($"Error in adding list of channels. The path is already taken. Path: {channel.Path}");
             }
 
-            if (channel.IsDataChannel)
+            Channels.Add(new ModuleChannel(this)
             {
-                var d1 = typeof(RemoteDataChannelInterface<>);
-                Type[] typeArgs = { Type.GetType(channel.DataType)! };
-                var makeme = d1.MakeGenericType(typeArgs);
-                DataChannelInterface ch = (DataChannelInterface)Activator.CreateInstance(makeme, [dataChannelManager, channel.Path])!;
-
-
-                ch.IsLocal = false;
-                ch.OwningKernel = RemoteKernel.Guid;
-                ch.IsDataChannel = true;
-                ch.OwningKernelDesc = RemoteKernel;
-                ch.Exists = true;
-                ch.DataType = channel.DataType;
-
-                Channels.Add(ch);
-            }
-            else
-            {
-                Channels.Add(new ModuleChannel(this)
-                {
-                    IsLocal = false,
-                    Path = channel.Path,
-                    OwningKernel = RemoteKernel.Guid,
-                    IsDataChannel = false,
-                    OwningKernelDesc = RemoteKernel,
-                    Exists = true,
-                    DataType = "module channel no type 3"
-                });
-            }
+                IsLocal = false,
+                Path = channel.Path,
+                OwningKernel = RemoteKernel.Guid,
+                IsDataChannel = false,
+                OwningKernelDesc = RemoteKernel,
+                Exists = true,
+                DataType = "module channel no type 3"
+            });
         }
     }
 
@@ -264,13 +229,7 @@ public class ChannelManager : IDisposable
     public void RemoveKernel(RunningKernel kernel)
     {
         Channels.RemoveAll(ch => ch.OwningKernel == kernel.Guid);
-        Channels.ForEach(ch =>
-        {
-            if (ch is DataChannelDescriptor)
-            {
-                ((DataChannelDescriptor)ch).KernelsToNotify.Remove(kernel);
-            }
-        });
+
     }
 
 

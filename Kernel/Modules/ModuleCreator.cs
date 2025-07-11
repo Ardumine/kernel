@@ -10,7 +10,7 @@ using Kernel.Modules.Permissions;
 
 namespace Kernel.Modules;
 
-internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescriptor> _moduleLoadDescriptors, ChannelManager _channelManager, DataChannelManager _dataChannelManager, LocalRunningKernel _localKernel)
+internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescriptor> _moduleLoadDescriptors, ChannelManager _channelManager, LocalRunningKernel _localKernel)
 {
     internal delegate MKCallResult MKCallDelegate(MKCallRequest req);
 
@@ -41,7 +41,6 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
                 WorkingModule = mod,
                 channelManager = _channelManager,
                 moduleManager = _moduleManager,
-                dataChannelManager = _dataChannelManager
             };
             mod.CallReceiver = callReceiver;
 
@@ -123,7 +122,6 @@ internal class ModuleCreator(ModuleManager _moduleManager, List<IModuleLoadDescr
                 WorkingModule = mod,
                 channelManager = _channelManager,
                 moduleManager = _moduleManager,
-                dataChannelManager = _dataChannelManager
             };
             mod.CallReceiver = callReceiver;
 

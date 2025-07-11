@@ -40,22 +40,6 @@ public sealed unsafe class MKCallClient
         return (T)result;
     }
 
-    public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string channelPath)
-    {
-        return MakeCall<InitiateDataChannelResult<T>>(new InitiateDataChannelRequest<T>()
-        {
-            ChannelPath = channelPath
-        }).Result;
-    }
-
-    public IDataChannelInterface<T>? GetDataChannelInterface<T>(string channelPath)
-    {
-        return MakeCall<GetDataChannelInterfaceResult<T>>(new GetDataChannelInterfaceRequest<T>()
-        {
-            ChannelPath = channelPath
-        }).Result;
-    }
-
 
     public T? GetModuleInterface<T>(string MPath) where T : class, IModuleInterface
     {

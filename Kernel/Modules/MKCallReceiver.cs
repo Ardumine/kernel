@@ -31,36 +31,8 @@ public sealed class MKCallReceiver
 {
     internal ModuleDescriptor? WorkingModule { private get; init; }
     public required ChannelManager channelManager { private get; init; }
-    public required DataChannelManager dataChannelManager { private get; init; }
     public required ModuleManager moduleManager { private get; init; }
 
-
-    public IDataChannelInterface<T>? GetDataChannelInterface<T>(string MPath)
-    {
-        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(MPath);
-
-        //Check if the module has permission to that channel
-        if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{MPath}'");
-
-        var dataChannel = dataChannelManager.GetDataChannelInterface<T>(channelRealPath);
-
-        return DataChannelInterface<T>.FromAFCP(dataChannel);
-    }
-
-    public IExistingDataChannelDescriptor? InitiateDataChannel<T>(string path)
-    {
-        var channelRealPath = WorkingModule?.ModulePermissions?.SolveMPath(path);
-
-        //Check if the module has permission to that channel
-        if (channelRealPath == null)
-            throw new SecurityException($"The module '{WorkingModule?.Path}' does not have access to the channel MPath '{path}'");
-
-        var afcpChannel = dataChannelManager.CreateLocalDataChannel<T>(channelRealPath);
-
-        return ExistingDataChannelDescriptor.FromAFCP(afcpChannel);
-
-    }
 
     public T GetModuleInterface<T>(string path) where T : class, IModuleInterface
     {
@@ -101,15 +73,7 @@ public sealed class MKCallReceiver
         var requestType = request.GetType();
         requestType = requestType.IsGenericType ? requestType.GetGenericTypeDefinition() : requestType;
 
-        if (requestType == typeof(InitiateDataChannelRequest<>))
-        {
-            return InitiateDataChannelRequestHandler((dynamic)request);
-        }
-        else if (requestType == typeof(GetDataChannelInterfaceRequest<>))
-        {
-            return GetDataChannelInterfaceHandler((dynamic)request);
-        }
-        else if (requestType == typeof(GetModuleInterfaceRequest<>))
+        if (requestType == typeof(GetModuleInterfaceRequest<>))
         {
             return GetModuleInterfaceRequestHandler((dynamic)request);
         }
@@ -137,22 +101,7 @@ public sealed class MKCallReceiver
     }
 
 
-    public MKCallResult InitiateDataChannelRequestHandler<T>(InitiateDataChannelRequest<T> req)
-    {
-        return new InitiateDataChannelResult<T>()
-        {
-            Result = InitiateDataChannel<T>(req.ChannelPath)
-        };
-    }
 
-
-    public MKCallResult GetDataChannelInterfaceHandler<T>(GetDataChannelInterfaceRequest<T> req)
-    {
-        return new GetDataChannelInterfaceResult<T>()
-        {
-            Result = GetDataChannelInterface<T>(req.ChannelPath)
-        };
-    }
 
     public MKCallResult GetModuleInterfaceRequestHandler<T>(GetModuleInterfaceRequest<T> req) where T : class, IModuleInterface
     {

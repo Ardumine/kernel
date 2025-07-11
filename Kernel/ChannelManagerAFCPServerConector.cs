@@ -11,15 +11,13 @@ public class ChannelManagerAFCPServerConector
     private KernelManager _KernelManager;
     private AfcpServer _AfcpServer;
     private ChannelManager _channelManager;
-    private DataChannelManager _dataChannelManager;
 
     private ILogger _logger;
 
 
-    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, DataChannelManager dataChannelManager, KernelManager kernelManager, ILogger logger)
+    public ChannelManagerAFCPServerConector(AfcpServer AFCPServer, ChannelManager channelManager, KernelManager kernelManager, ILogger logger)
     {
         _logger = logger;
-        _dataChannelManager = dataChannelManager;
         _AfcpServer = AFCPServer;
         _KernelManager = kernelManager;
 
@@ -38,6 +36,6 @@ public class ChannelManagerAFCPServerConector
 
 
         var afcpClient = new AfcpTCPClient(tcpClient, "Server", 0, _logger.CreateSubLogger($"AfcpTCPClient{ip}"));
-        var client = new ChannelManagerAfcpClientConector(afcpClient, _channelManager, _dataChannelManager, LocalKernel, _KernelManager, _logger.CreateSubLogger($"ChannelManagerAfcpClientConector"));
+        var client = new ChannelManagerAfcpClientConector(afcpClient, _channelManager, LocalKernel, _KernelManager, _logger.CreateSubLogger($"ChannelManagerAfcpClientConector"));
     }
 }
